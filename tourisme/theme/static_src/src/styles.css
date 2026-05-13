@@ -1,11 +1,67 @@
 @import "tailwindcss";
-@plugin "daisyui";
 
-/**
-  * A catch-all path to Django template files, JavaScript, and Python files
-  * that contain Tailwind CSS classes and will be scanned by Tailwind to generate the final CSS file.
-  *
-  * If your final CSS file is not being updated after code changes, you may want to broaden or narrow
-  * the scope of this path.
-  */
-@source "../../../**/*.{html,py,js}";
+/* On dit à Tailwind de scanner nos templates Django */
+@source "../../../templates/**/*.html";
+@source "../../../**/templates/**/*.html";
+
+/* Plugin DaisyUI */
+@plugin "daisyui" {
+    themes: cameroun --default;
+}
+
+/* ====================================================
+   THEME CAMEROUN — Vert forêt + Or jaune
+   Inspiré du drapeau camerounais (vert, rouge, jaune)
+   ==================================================== */
+@plugin "daisyui/theme" {
+    name: "cameroun";
+    default: true;
+    prefersdark: false;
+    color-scheme: light;
+
+    /* Couleurs de base */
+    --color-base-100: oklch(99% 0.003 110);          /* Blanc cassé chaleureux */
+    --color-base-200: oklch(96% 0.006 110);          /* Gris très clair */
+    --color-base-300: oklch(92% 0.010 110);          /* Gris clair */
+    --color-base-content: oklch(20% 0.020 130);      /* Texte vert très foncé */
+
+    /* PRIMARY : Vert forêt camerounais */
+    --color-primary: oklch(48% 0.15 145);            /* Vert profond */
+    --color-primary-content: oklch(98% 0.005 145);   /* Texte sur primary */
+
+    /* SECONDARY : Vert plus clair */
+    --color-secondary: oklch(65% 0.12 145);
+    --color-secondary-content: oklch(15% 0.020 145);
+
+    /* ACCENT : Or/Jaune camerounais */
+    --color-accent: oklch(78% 0.14 85);              /* Or éclatant */
+    --color-accent-content: oklch(20% 0.020 85);     /* Texte foncé sur or */
+
+    /* NEUTRAL */
+    --color-neutral: oklch(25% 0.020 130);
+    --color-neutral-content: oklch(95% 0.005 130);
+
+    /* INFO / SUCCESS / WARNING / ERROR */
+    --color-info: oklch(60% 0.12 230);
+    --color-info-content: oklch(98% 0.005 230);
+    --color-success: oklch(55% 0.13 150);
+    --color-success-content: oklch(98% 0.005 150);
+    --color-warning: oklch(75% 0.15 70);
+    --color-warning-content: oklch(20% 0.020 70);
+    --color-error: oklch(58% 0.18 25);
+    --color-error-content: oklch(98% 0.005 25);
+
+    /* Bordures arrondies */
+    --radius-selector: 0.5rem;
+    --radius-field: 0.5rem;
+    --radius-box: 0.75rem;
+
+    /* Tailles */
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+
+    /* Effets */
+    --depth: 1;
+    --noise: 0;
+}

@@ -291,7 +291,7 @@ class Paiement(TimestampedModel):
         verbose_name_plural = "Paiements"
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['reservation', 'statut']),
+            models.Index(fields=['reservations', 'statut']),
             models.Index(fields=['statut', '-created_at']),
             models.Index(fields=['reference_externe']),
             models.Index(fields=['reference_interne']),

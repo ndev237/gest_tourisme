@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('catalogue', '0001_initial'),
         ('compte', '0001_initial'),
-        ('localisation', '0001_initial'),
+        ('localisations', '0001_initial'),
     ]
 
     operations = [
@@ -22,8 +22,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='sitetouristique',
-            name='localisation',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='site', to='localisation.localisation', verbose_name='Localisation'),
+            name='localisations',
+            field=models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='site', to='localisations.localisations', verbose_name='Localisation'),
         ),
         migrations.AddField(
             model_name='sitetag',

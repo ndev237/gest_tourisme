@@ -8,7 +8,7 @@ Contient :
 - Favori : sites mis en favori par un touriste
 
 Règle métier critique : un touriste ne peut laisser un avis que s'il a
-effectivement réservé ET visité le site (reservation.statut = terminee).
+effectivement réservé ET visité le site (reservations.statut = terminee).
 """
 
 from django.db import models

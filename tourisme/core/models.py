@@ -48,7 +48,7 @@ class UUIDModel(models.Model):
     Mixin abstrait qui remplace l'ID auto-incrément par un UUID.
 
     Utilisé pour les ressources sensibles (Reservation, Paiement)
-    pour empêcher l'énumération via URL (ex: /reservation/123, /124...).
+    pour empêcher l'énumération via URL (ex: /reservations/123, /124...).
     """
     id = models.UUIDField(
         primary_key=True,

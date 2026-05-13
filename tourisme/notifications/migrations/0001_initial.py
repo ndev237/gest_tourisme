@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('reservation', '0001_initial'),
+        ('reservations', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -49,13 +49,13 @@ class Migration(migrations.Migration):
                 ('destinataire', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages_recus', to=settings.AUTH_USER_MODEL, verbose_name='Destinataire')),
                 ('expediteur', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages_envoyes', to=settings.AUTH_USER_MODEL, verbose_name='Expéditeur')),
                 ('message_parent', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='reponses', to='notifications.message', verbose_name='Message parent (si réponse)')),
-                ('reservation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='reservation.reservation', verbose_name='Réservation liée (optionnel)')),
+                ('reservations', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='reservations.reservations', verbose_name='Réservation liée (optionnel)')),
             ],
             options={
                 'verbose_name': 'Message',
                 'verbose_name_plural': 'Messages',
                 'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['destinataire', 'statut'], name='notificatio_destina_498e40_idx'), models.Index(fields=['expediteur', '-created_at'], name='notificatio_expedit_d584b1_idx'), models.Index(fields=['destinataire', '-created_at'], name='notificatio_destina_7a9bda_idx'), models.Index(fields=['reservation', '-created_at'], name='notificatio_reserva_49e599_idx')],
+                'indexes': [models.Index(fields=['destinataire', 'statut'], name='notificatio_destina_498e40_idx'), models.Index(fields=['expediteur', '-created_at'], name='notificatio_expedit_d584b1_idx'), models.Index(fields=['destinataire', '-created_at'], name='notificatio_destina_7a9bda_idx'), models.Index(fields=['reservations', '-created_at'], name='notificatio_reserva_49e599_idx')],
             },
         ),
         migrations.CreateModel(
@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 ('motif_echec', models.TextField(blank=True, verbose_name="Motif d'échec")),
                 ('metadonnees', models.JSONField(blank=True, default=dict, help_text='Données techniques (response ID du provider email/SMS, etc.)', verbose_name='Métadonnées')),
                 ('destinataire', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL, verbose_name='Destinataire')),
-                ('reservation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to='reservation.reservation', verbose_name='Réservation liée')),
+                ('reservations', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to='reservations.reservations', verbose_name='Réservation liée')),
             ],
             options={
                 'verbose_name': 'Notification',

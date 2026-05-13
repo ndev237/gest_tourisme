@@ -1,5 +1,5 @@
 """
-localisation/models.py
+localisations/models.py
 ======================
 Modèles de géolocalisation pour le Cameroun.
 
@@ -164,5 +164,5 @@ class Localisation(TimestampedModel):
 
     @property
     def google_maps_url(self):
-        """URL Google Maps pour cette localisation."""
+        """URL Google Maps pour cette localisations."""
         return f"https://www.google.com/maps/search/?api=1&query={self.latitude},{self.longitude}"

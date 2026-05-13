@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('catalogue', '0001_initial'),
         ('compte', '0001_initial'),
-        ('reservation', '0001_initial'),
+        ('reservations', '0001_initial'),
     ]
 
     operations = [
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('date_reponse', models.DateTimeField(blank=True, null=True, verbose_name='Date de la réponse')),
                 ('nombre_utiles', models.PositiveIntegerField(default=0, verbose_name='Nombre de "Utile" reçus')),
                 ('nombre_signalements', models.PositiveIntegerField(default=0, verbose_name='Nombre de signalements')),
-                ('reservation', models.OneToOneField(help_text="Garantit qu'un avis = une visite effective (anti-faux avis)", on_delete=django.db.models.deletion.CASCADE, related_name='avis', to='reservation.reservation', verbose_name='Réservation')),
+                ('reservations', models.OneToOneField(help_text="Garantit qu'un avis = une visite effective (anti-faux avis)", on_delete=django.db.models.deletion.CASCADE, related_name='avis', to='reservations.reservations', verbose_name='Réservation')),
                 ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='avis', to='catalogue.sitetouristique', verbose_name='Site')),
                 ('touriste', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='avis_donnes', to='compte.touriste', verbose_name='Touriste')),
             ],

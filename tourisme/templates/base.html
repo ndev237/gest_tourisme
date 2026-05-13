@@ -1,10 +1,47 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}Plateforme de gestion et de réservation des sites touristiques au Cameroun.{% endblock %}">
 
+    <title>{% block title %}Tourisme Cameroun{% endblock %} | Découvrez l'Afrique en miniature</title>
+
+    {# Tailwind CSS (compilé via theme app) #}
+    {% load tailwind_tags %}
+    {% tailwind_css %}
+
+    {# Favicon #}
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+
+    {# Bloc pour CSS spécifique à une page #}
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="min-h-screen flex flex-col bg-base-100 text-base-content">
+
+    {# ============== NAVBAR ============== #}
+    {% include 'partials/_navbar.html' %}
+
+    {# ============== MESSAGES FLASH ============== #}
+    {% if messages %}
+        {% include 'partials/_messages.html' %}
+    {% endif %}
+
+    {# ============== CONTENU PRINCIPAL ============== #}
+    <main class="flex-grow">
+        {% block content %}
+            <div class="container mx-auto px-4 py-8">
+                <p>Contenu de la page par défaut</p>
+            </div>
+        {% endblock %}
+    </main>
+
+    {# ============== FOOTER ============== #}
+    {% include 'partials/_footer.html' %}
+
+    {# Bloc pour JS spécifique à une page #}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

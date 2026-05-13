@@ -1,0 +1,105 @@
+{% load static %}
+
+<nav class="navbar bg-base-100 shadow-md border-b border-base-200 sticky top-0 z-50">
+    <div class="container mx-auto px-4">
+
+        {# ===== LOGO + MENU MOBILE ===== #}
+        <div class="navbar-start">
+            {# Menu hamburger pour mobile #}
+            <div class="dropdown lg:hidden">
+                <label tabindex="0" class="btn btn-ghost btn-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                    </svg>
+                </label>
+                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a href="{% url 'catalogue:accueil' %}">Accueil</a></li>
+                    <li><a href="{% url 'catalogue:liste_sites' %}">Sites touristiques</a></li>
+                    <li><a href="#">Hébergements</a></li>
+                    <li><a href="#">Guides</a></li>
+                    <li><a href="#">À propos</a></li>
+                </ul>
+            </div>
+
+            {# Logo #}
+            <a href="{% url 'catalogue:accueil' %}" class="btn btn-ghost normal-case text-xl text-primary">
+                <span class="text-2xl">🏔</span>
+                <span class="font-bold ml-2">Tourisme<span class="text-accent">CM</span></span>
+            </a>
+        </div>
+
+        {# ===== MENU CENTRAL (desktop) ===== #}
+        <div class="navbar-center hidden lg:flex">
+            <ul class="menu menu-horizontal px-1 gap-1">
+                <li><a href="{% url 'catalogue:accueil' %}" class="font-medium">Accueil</a></li>
+                <li><a href="{% url 'catalogue:liste_sites' %}" class="font-medium">Sites touristiques</a></li>
+                <li><a href="#" class="font-medium">Hébergements</a></li>
+                <li><a href="#" class="font-medium">Guides</a></li>
+                <li><a href="#" class="font-medium">À propos</a></li>
+            </ul>
+        </div>
+
+        {# ===== ACTIONS (à droite) ===== #}
+        <div class="navbar-end gap-2">
+            {% if user.is_authenticated %}
+
+                {# Cloche de notifications #}
+                <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-circle">
+                        <div class="indicator">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            {% if notifications_non_lues_count %}
+                                <span class="badge badge-xs badge-primary indicator-item">{{ notifications_non_lues_count }}</span>
+                            {% endif %}
+                        </div>
+                    </label>
+                </div>
+
+                {# Menu utilisateur #}
+                <div class="dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                        <div class="w-10 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                            {% if user.photo_profil %}
+                                <img src="{{ user.photo_profil.url }}" alt="{{ user.nom_complet }}">
+                            {% else %}
+                                <div class="bg-primary text-primary-content w-full h-full flex items-center justify-center font-bold">
+                                    {{ user.first_name|first|default:user.email|first|upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </label>
+                    <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
+                        <li class="menu-title">
+                            <span>{{ user.nom_complet|default:user.email }}</span>
+                        </li>
+                        <li><a href="#">Mon profil</a></li>
+                        {% if user.type_user == 'touriste' %}
+                            <li><a href="#">Mes réservations</a></li>
+                            <li><a href="#">Mes favoris</a></li>
+                            <li><a href="#">Mes avis</a></li>
+                        {% elif user.type_user == 'gestionnaire' %}
+                            <li><a href="#">Mes sites</a></li>
+                            <li><a href="#">Mes réservations reçues</a></li>
+                            <li><a href="#">Statistiques</a></li>
+                        {% elif user.type_user == 'guide' %}
+                            <li><a href="#">Mes missions</a></li>
+                            <li><a href="#">Mon planning</a></li>
+                        {% elif user.type_user == 'admin' %}
+                            <li><a href="#">Dashboard admin</a></li>
+                            <li><a href="#">Modération</a></li>
+                        {% endif %}
+                        <div class="divider my-1"></div>
+                        <li><a href="{% url 'compte:deconnexion' %}" class="text-error">Déconnexion</a></li>
+                    </ul>
+                </div>
+\
+            {% else %}
+                {# Boutons connexion / inscription #}
+                <a href="{% url 'compte:connexion' %}" class="btn btn-ghost btn-sm">Connexion</a>
+                <a href="{% url 'compte:inscription' %}" class="btn btn-primary btn-sm">S'inscrire</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>

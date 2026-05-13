@@ -38,10 +38,10 @@ class Migration(migrations.Migration):
                 ('date_confirmation', models.DateTimeField(blank=True, null=True, verbose_name='Date de confirmation')),
                 ('date_annulation', models.DateTimeField(blank=True, null=True, verbose_name="Date d'annulation")),
                 ('motif_annulation', models.TextField(blank=True, verbose_name="Motif d'annulation")),
-                ('guide', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='reservation', to='compte.guide', verbose_name='Guide (optionnel)')),
-                ('hebergement', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='reservation', to='catalogue.hebergement', verbose_name='Hébergement (optionnel)')),
-                ('site', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='reservation', to='catalogue.sitetouristique', verbose_name='Site touristique')),
-                ('touriste', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='reservation', to='compte.touriste', verbose_name='Touriste')),
+                ('guide', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='reservations', to='compte.guide', verbose_name='Guide (optionnel)')),
+                ('hebergement', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='reservations', to='catalogue.hebergement', verbose_name='Hébergement (optionnel)')),
+                ('site', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='reservations', to='catalogue.sitetouristique', verbose_name='Site touristique')),
+                ('touriste', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='reservations', to='compte.touriste', verbose_name='Touriste')),
             ],
             options={
                 'verbose_name': 'Réservation',
@@ -60,12 +60,12 @@ class Migration(migrations.Migration):
                 ('quantite', models.PositiveSmallIntegerField(default=1, verbose_name='Quantité')),
                 ('prix_unitaire', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Prix unitaire (FCFA)')),
                 ('sous_total', models.DecimalField(decimal_places=2, max_digits=12, verbose_name='Sous-total (FCFA)')),
-                ('reservation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lignes', to='reservation.reservation', verbose_name='Réservation')),
+                ('reservations', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lignes', to='reservations.reservations', verbose_name='Réservation')),
             ],
             options={
                 'verbose_name': 'Ligne de réservation',
                 'verbose_name_plural': 'Lignes de réservation',
-                'ordering': ['reservation', 'type_service'],
+                'ordering': ['reservations', 'type_service'],
             },
         ),
         migrations.CreateModel(
@@ -80,7 +80,7 @@ class Migration(migrations.Migration):
                 ('est_utilise', models.BooleanField(default=False, help_text="Coché quand le QR a été scanné à l'entrée", verbose_name='Utilisé')),
                 ('date_utilisation', models.DateTimeField(blank=True, null=True, verbose_name="Date d'utilisation (scan)")),
                 ('scanne_par', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='bons_scannes', to=settings.AUTH_USER_MODEL, verbose_name='Scanné par')),
-                ('reservation', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='bon', to='reservation.reservation', verbose_name='Réservation')),
+                ('reservations', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='bon', to='reservations.reservations', verbose_name='Réservation')),
             ],
             options={
                 'verbose_name': 'Bon de réservation',
@@ -89,19 +89,19 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AddIndex(
-            model_name='reservation',
+            model_name='reservations',
             index=models.Index(fields=['touriste', '-date_visite'], name='reservation_tourist_7b3b97_idx'),
         ),
         migrations.AddIndex(
-            model_name='reservation',
+            model_name='reservations',
             index=models.Index(fields=['site', 'date_visite'], name='reservation_site_id_9e0ac8_idx'),
         ),
         migrations.AddIndex(
-            model_name='reservation',
+            model_name='reservations',
             index=models.Index(fields=['statut', 'date_visite'], name='reservation_statut_aea19e_idx'),
         ),
         migrations.AddIndex(
-            model_name='reservation',
+            model_name='reservations',
             index=models.Index(fields=['numero'], name='reservation_numero_f8fd52_idx'),
         ),
         migrations.AddIndex(

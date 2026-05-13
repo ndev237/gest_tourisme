@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('reservation', '0001_initial'),
+        ('reservations', '0001_initial'),
     ]
 
     operations = [
@@ -65,13 +65,13 @@ class Migration(migrations.Migration):
                 ('callback_data', models.JSONField(blank=True, default=dict, help_text="Réponse brute de l'API de paiement", verbose_name='Données du callback')),
                 ('moyen', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paiements', to='paiements.moyenpaiement', verbose_name='Moyen de paiement')),
                 ('paiement_origine', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='remboursements', to='paiements.paiement', verbose_name='Paiement original (si remboursement)')),
-                ('reservation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paiements', to='reservation.reservation', verbose_name='Réservation')),
+                ('reservations', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paiements', to='reservations.reservations', verbose_name='Réservation')),
             ],
             options={
                 'verbose_name': 'Paiement',
                 'verbose_name_plural': 'Paiements',
                 'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['reservation', 'statut'], name='paiements_p_reserva_aafb8f_idx'), models.Index(fields=['statut', '-created_at'], name='paiements_p_statut_223bec_idx'), models.Index(fields=['reference_externe'], name='paiements_p_referen_d444c0_idx'), models.Index(fields=['reference_interne'], name='paiements_p_referen_5a1838_idx')],
+                'indexes': [models.Index(fields=['reservations', 'statut'], name='paiements_p_reserva_aafb8f_idx'), models.Index(fields=['statut', '-created_at'], name='paiements_p_statut_223bec_idx'), models.Index(fields=['reference_externe'], name='paiements_p_referen_d444c0_idx'), models.Index(fields=['reference_interne'], name='paiements_p_referen_5a1838_idx')],
             },
         ),
     ]
