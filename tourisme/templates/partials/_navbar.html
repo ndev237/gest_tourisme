@@ -1,105 +1,165 @@
-{% load static %}
+{% comment %}
+==============================================================
+templates/partials/_navbar.html
+==============================================================
+Barre de navigation incluse dans base.html.
 
-<nav class="navbar bg-base-100 shadow-md border-b border-base-200 sticky top-0 z-50">
-    <div class="container mx-auto px-4">
+Initiatives :
+1. Navbar adaptative selon l'utilisateur :
+   - Anonyme → "Connexion" / "S'inscrire"
+   - Connecté → menu déroulant avec profil/dashboard/déconnexion
+2. Menu mobile (hamburger) géré par Alpine.js (déjà inclus dans le projet)
+3. Liens "actifs" mis en évidence via {% if request.resolver_match.url_name == 'home' %}
+{% endcomment %}
 
-        {# ===== LOGO + MENU MOBILE ===== #}
-        <div class="navbar-start">
-            {# Menu hamburger pour mobile #}
-            <div class="dropdown lg:hidden">
-                <label tabindex="0" class="btn btn-ghost btn-circle">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-                    </svg>
-                </label>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a href="{% url 'catalogue:accueil' %}">Accueil</a></li>
-                    <li><a href="{% url 'catalogue:liste_sites' %}">Sites touristiques</a></li>
-                    <li><a href="#">Hébergements</a></li>
-                    <li><a href="#">Guides</a></li>
-                    <li><a href="#">À propos</a></li>
-                </ul>
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm"
+     x-data="{ mobileOpen: false, userOpen: false }">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- LOGO + NOM -->
+      <div class="flex items-center gap-2">
+        <a href="{% url 'home' %}" class="flex items-center gap-2 text-green-700 font-bold text-lg hover:text-green-800 transition">
+          <span class="text-2xl">🏔️</span>
+          <span>Tourisme Cameroun</span>
+        </a>
+      </div>
+
+      <!-- LIENS DESKTOP (cachés en mobile) -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="{% url 'home' %}"
+           class="text-sm font-medium transition
+                  {% if request.resolver_match.url_name == 'home' %}text-green-700{% else %}text-gray-700 hover:text-green-700{% endif %}">
+          Accueil
+        </a>
+        <a href="#"
+           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+          Sites
+        </a>
+        <a href="#"
+           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+          Hébergements
+        </a>
+        <a href="#"
+           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+          Guides
+        </a>
+        <a href="#"
+           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+          Régions
+        </a>
+      </div>
+
+      <!-- ACTIONS DROITES -->
+      <div class="hidden md:flex items-center gap-3">
+        {% if user.is_authenticated %}
+          <!-- MENU UTILISATEUR (déroulant) -->
+          <div class="relative" @click.away="userOpen = false">
+            <button @click="userOpen = !userOpen"
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+              {% if user.photo_profil %}
+                <img src="{{ user.photo_profil.url }}" alt="" class="w-8 h-8 rounded-full object-cover">
+              {% else %}
+                <div class="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-semibold">
+                  {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                </div>
+              {% endif %}
+              <span class="text-sm text-gray-700 hidden lg:inline">{{ user.first_name }}</span>
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            <!-- DROPDOWN -->
+            <div x-show="userOpen" x-cloak
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+
+              <div class="px-4 py-3 border-b border-gray-100">
+                <p class="text-sm font-semibold text-gray-900">{{ user.nom_complet }}</p>
+                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+                <span class="inline-block mt-1 text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                  {{ user.get_type_user_display }}
+                </span>
+              </div>
+
+              <!-- Dashboard selon le type d'utilisateur -->
+              {% if user.type_user == 'touriste' %}
+                <a href="{% url 'compte:dashboard_touriste' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  📊 Mon tableau de bord
+                </a>
+              {% elif user.type_user == 'gestionnaire' %}
+                <a href="{% url 'compte:dashboard_gestionnaire' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  📊 Espace gestionnaire
+                </a>
+              {% elif user.type_user == 'guide' %}
+                <a href="{% url 'compte:dashboard_guide' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  📊 Espace guide
+                </a>
+              {% elif user.type_user == 'admin' %}
+                <a href="{% url 'compte:dashboard_admin' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  📊 Administration
+                </a>
+              {% endif %}
+
+              <a href="{% url 'compte:profil' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                👤 Mon profil
+              </a>
+              <a href="{% url 'compte:changer_password' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                🔒 Mot de passe
+              </a>
+
+              <div class="border-t border-gray-100 mt-1 pt-1">
+                <a href="{% url 'compte:deconnexion' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                  🚪 Déconnexion
+                </a>
+              </div>
             </div>
+          </div>
+        {% else %}
+          <a href="{% url 'compte:connexion' %}"
+             class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-700 transition">
+            Connexion
+          </a>
+          <a href="{% url 'compte:inscription' %}"
+             class="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+            S'inscrire
+          </a>
+        {% endif %}
+      </div>
 
-            {# Logo #}
-            <a href="{% url 'catalogue:accueil' %}" class="btn btn-ghost normal-case text-xl text-primary">
-                <span class="text-2xl">🏔</span>
-                <span class="font-bold ml-2">Tourisme<span class="text-accent">CM</span></span>
-            </a>
-        </div>
-
-        {# ===== MENU CENTRAL (desktop) ===== #}
-        <div class="navbar-center hidden lg:flex">
-            <ul class="menu menu-horizontal px-1 gap-1">
-                <li><a href="{% url 'catalogue:accueil' %}" class="font-medium">Accueil</a></li>
-                <li><a href="{% url 'catalogue:liste_sites' %}" class="font-medium">Sites touristiques</a></li>
-                <li><a href="#" class="font-medium">Hébergements</a></li>
-                <li><a href="#" class="font-medium">Guides</a></li>
-                <li><a href="#" class="font-medium">À propos</a></li>
-            </ul>
-        </div>
-
-        {# ===== ACTIONS (à droite) ===== #}
-        <div class="navbar-end gap-2">
-            {% if user.is_authenticated %}
-
-                {# Cloche de notifications #}
-                <div class="dropdown dropdown-end">
-                    <label tabindex="0" class="btn btn-ghost btn-circle">
-                        <div class="indicator">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                            </svg>
-                            {% if notifications_non_lues_count %}
-                                <span class="badge badge-xs badge-primary indicator-item">{{ notifications_non_lues_count }}</span>
-                            {% endif %}
-                        </div>
-                    </label>
-                </div>
-
-                {# Menu utilisateur #}
-                <div class="dropdown dropdown-end">
-                    <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-                        <div class="w-10 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                            {% if user.photo_profil %}
-                                <img src="{{ user.photo_profil.url }}" alt="{{ user.nom_complet }}">
-                            {% else %}
-                                <div class="bg-primary text-primary-content w-full h-full flex items-center justify-center font-bold">
-                                    {{ user.first_name|first|default:user.email|first|upper }}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </label>
-                    <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
-                        <li class="menu-title">
-                            <span>{{ user.nom_complet|default:user.email }}</span>
-                        </li>
-                        <li><a href="#">Mon profil</a></li>
-                        {% if user.type_user == 'touriste' %}
-                            <li><a href="#">Mes réservations</a></li>
-                            <li><a href="#">Mes favoris</a></li>
-                            <li><a href="#">Mes avis</a></li>
-                        {% elif user.type_user == 'gestionnaire' %}
-                            <li><a href="#">Mes sites</a></li>
-                            <li><a href="#">Mes réservations reçues</a></li>
-                            <li><a href="#">Statistiques</a></li>
-                        {% elif user.type_user == 'guide' %}
-                            <li><a href="#">Mes missions</a></li>
-                            <li><a href="#">Mon planning</a></li>
-                        {% elif user.type_user == 'admin' %}
-                            <li><a href="#">Dashboard admin</a></li>
-                            <li><a href="#">Modération</a></li>
-                        {% endif %}
-                        <div class="divider my-1"></div>
-                        <li><a href="{% url 'compte:deconnexion' %}" class="text-error">Déconnexion</a></li>
-                    </ul>
-                </div>
-\
-            {% else %}
-                {# Boutons connexion / inscription #}
-                <a href="{% url 'compte:connexion' %}" class="btn btn-ghost btn-sm">Connexion</a>
-                <a href="{% url 'compte:inscription' %}" class="btn btn-primary btn-sm">S'inscrire</a>
-            {% endif %}
-        </div>
+      <!-- BOUTON HAMBURGER MOBILE -->
+      <button @click="mobileOpen = !mobileOpen"
+              class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+        <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
     </div>
+
+    <!-- MENU MOBILE DÉROULANT -->
+    <div x-show="mobileOpen" x-cloak class="md:hidden pb-4 space-y-1">
+      <a href="{% url 'home' %}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Accueil</a>
+      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Sites</a>
+      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Hébergements</a>
+      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Régions</a>
+
+      {% if user.is_authenticated %}
+        <div class="border-t border-gray-200 pt-2 mt-2">
+          <a href="{% url 'compte:profil' %}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">👤 Mon profil</a>
+          <a href="{% url 'compte:deconnexion' %}" class="block px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg">🚪 Déconnexion</a>
+        </div>
+      {% else %}
+        <div class="border-t border-gray-200 pt-2 mt-2 flex gap-2 px-3">
+          <a href="{% url 'compte:connexion' %}" class="flex-1 text-center px-4 py-2 text-sm border border-gray-300 rounded-lg">Connexion</a>
+          <a href="{% url 'compte:inscription' %}" class="flex-1 text-center px-4 py-2 text-sm bg-green-600 text-white rounded-lg">S'inscrire</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </nav>

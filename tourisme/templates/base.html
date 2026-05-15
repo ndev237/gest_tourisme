@@ -1,47 +1,109 @@
-{% load static %}
+{% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="fr" data-theme="light">
+{% comment %}
+==============================================================
+templates/base.html — TEMPLATE PRINCIPAL (squelette commun)
+==============================================================
+Tous les autres templates héritent de celui-ci via :
+    {% extends "base.html" %}
+
+Initiatives prises :
+1. **Blocs override** : title, meta_description, extra_css, content, extra_js
+   permettent à chaque page enfant de personnaliser sa partie sans dupliquer
+   tout le HTML.
+2. **SEO** : balises meta description, OpenGraph (Facebook/WhatsApp),
+   favicon, lang="fr" → important pour le référencement.
+3. **Tailwind via django-tailwind** : on charge le CSS compilé depuis
+   l'app `theme` avec {% tailwind_css %}.
+4. **Alpine.js** pour l'interactivité (menu déroulant, modals, alertes
+   auto-disparaissantes) — léger (10kb) et pas besoin de build.
+5. **CSRF token** dans le <head> via meta : utilisable depuis JavaScript
+   pour les requêtes AJAX (fetch POST).
+6. **Partials inclus** : navbar, messages flash, footer → réutilisables.
+{% endcomment %}
+<html lang="fr" class="h-full scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{% block meta_description %}Plateforme de gestion et de réservation des sites touristiques au Cameroun.{% endblock %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>{% block title %}Tourisme Cameroun{% endblock %} | Découvrez l'Afrique en miniature</title>
+  <!-- TITLE — chaque page peut override le bloc -->
+  <title>{% block title %}{{ page_title|default:"Tourisme Cameroun" }}{% endblock %} | Tourisme Cameroun</title>
 
-    {# Tailwind CSS (compilé via theme app) #}
-    {% load tailwind_tags %}
-    {% tailwind_css %}
+  <!-- SEO META -->
+  <meta name="description" content="{% block meta_description %}Découvrez et réservez les plus beaux sites touristiques du Cameroun : plages de Kribi, Mont Cameroun, parcs nationaux, chefferies et bien plus.{% endblock %}">
+  <meta name="keywords" content="tourisme, cameroun, réservation, mobile money, kribi, douala, yaoundé">
+  <meta name="author" content="IUEs / INSAM 2026">
 
-    {# Favicon #}
-    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <!-- OPENGRAPH (partage Facebook/WhatsApp) -->
+  <meta property="og:title" content="{% block og_title %}Tourisme Cameroun{% endblock %}">
+  <meta property="og:description" content="La plateforme officielle pour découvrir le Cameroun.">
+  <meta property="og:image" content="{% static 'images/og-tourisme-cameroun.jpg' %}">
+  <meta property="og:type" content="website">
 
-    {# Bloc pour CSS spécifique à une page #}
-    {% block extra_css %}{% endblock %}
+  <!-- CSRF token accessible depuis JavaScript -->
+  <meta name="csrf-token" content="{{ csrf_token }}">
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+  <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
+
+  <!-- TAILWIND CSS (compilé par django-tailwind) -->
+  {% tailwind_css %}
+
+  <!-- Polices Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Alpine.js (interactivité légère) -->
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+  <!-- CSS personnalisé pour cacher Alpine avant init -->
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    h1, h2, h3, .font-display { font-family: 'Poppins', sans-serif; }
+
+    /* Scrollbar fine et discrète */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f3f4f6; }
+    ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #15803d; }
+  </style>
+
+  <!-- Bloc pour CSS additionnel propre à une page -->
+  {% block extra_css %}{% endblock %}
 </head>
 
-<body class="min-h-screen flex flex-col bg-base-100 text-base-content">
+<body class="h-full flex flex-col bg-gray-50 text-gray-900 antialiased">
 
-    {# ============== NAVBAR ============== #}
-    {% include 'partials/_navbar.html' %}
+  <!-- =========================
+       NAVBAR (partial inclus)
+       ========================= -->
+  {% include "partials/_navbar.html" %}
 
-    {# ============== MESSAGES FLASH ============== #}
-    {% if messages %}
-        {% include 'partials/_messages.html' %}
-    {% endif %}
+  <!-- =========================
+       MESSAGES FLASH (success, error, warning)
+       ========================= -->
+  {% include "partials/_messages.html" %}
 
-    {# ============== CONTENU PRINCIPAL ============== #}
-    <main class="flex-grow">
-        {% block content %}
-            <div class="container mx-auto px-4 py-8">
-                <p>Contenu de la page par défaut</p>
-            </div>
-        {% endblock %}
-    </main>
+  <!-- =========================
+       CONTENU PRINCIPAL
+       ========================= -->
+  <main class="flex-1">
+    {% block content %}
+      <!-- Le contenu de chaque page sera injecté ici -->
+    {% endblock %}
+  </main>
 
-    {# ============== FOOTER ============== #}
-    {% include 'partials/_footer.html' %}
+  <!-- =========================
+       FOOTER (partial inclus)
+       ========================= -->
+  {% include "partials/_footer.html" %}
 
-    {# Bloc pour JS spécifique à une page #}
-    {% block extra_js %}{% endblock %}
+  <!-- Bloc pour JS additionnel propre à une page -->
+  {% block extra_js %}{% endblock %}
+
 </body>
 </html>

@@ -66,10 +66,10 @@ LOCAL_APPS = [
     'compte', # Authentification + profils utilisateursUser (custom), Touriste, Gestionnaire, Guide, Admin
     'catalogue', # Sites, hébergements, catégories,Categorie, Tag, SiteTouristique, PhotoSite, Hebergement, Disponibilite, SiteTag
     'core', # Modèles transverses, mixins, utilitairesAuditLog, TimestampedModel (mixin)
-    'localisations', # GéolocalisationRegion, Localisation
+    'localisation', # GéolocalisationRegion, Localisation
     'notifications', # Notifications multi-canauxNotification
     'paiements', # Paiements et moyens de paiementMoyenPaiement, Paiement
-    'reservations', # Cycle de vie des réservationsReservation, LigneReservation, BonReservation
+    'reservation', # Cycle de vie des réservationsReservation, LigneReservation, BonReservation
     'reviews' # Avis et favorisAvis, Favori
 ]
 

@@ -1,10 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% comment %}
+==============================================================
+templates/controle/compte_suspendu.html
+==============================================================
+Page affichée quand un compte désactivé (is_active=False) tente
+de se connecter — soit suspendu par admin, soit gestionnaire
+en attente de validation.
+{% endcomment %}
+
+{% block title %}Compte suspendu{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 bg-gray-50">
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 text-center">
+
+    <!-- Icône d'alerte -->
+    <div class="w-20 h-20 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-6">
+      <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+    </div>
+
+    <h1 class="font-display text-2xl font-bold text-gray-900 mb-3">
+      Compte suspendu
+    </h1>
+
+    <p class="text-gray-600 mb-6 text-sm leading-relaxed">
+      Votre compte a été temporairement désactivé. Cette mesure peut être due à&nbsp;:
+    </p>
+
+    <ul class="text-left text-sm text-gray-700 space-y-2 mb-6 bg-gray-50 rounded-lg p-4">
+      <li class="flex gap-2"><span class="text-red-500">•</span> Une infraction aux conditions générales d'utilisation</li>
+      <li class="flex gap-2"><span class="text-red-500">•</span> Une activité suspecte détectée sur votre compte</li>
+      <li class="flex gap-2"><span class="text-red-500">•</span> Une attente de validation administrative</li>
+      <li class="flex gap-2"><span class="text-red-500">•</span> Un signalement de la part d'autres utilisateurs</li>
+    </ul>
+
+    <p class="text-sm text-gray-600 mb-6">
+      Pour réactiver votre compte ou obtenir plus d'informations, veuillez contacter notre support&nbsp;:
+    </p>
+
+    <div class="space-y-3">
+      <a href="mailto:support@tourisme-cameroun.cm"
+         class="block w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition shadow">
+        ✉ support@tourisme-cameroun.cm
+      </a>
+      <a href="{% url 'home' %}"
+         class="block w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+        Retour à l'accueil
+      </a>
+    </div>
+
+    <p class="mt-6 text-xs text-gray-400">
+      Référence du compte : {{ user.id|default:"non identifié" }}
+    </p>
+  </div>
+</div>
+{% endblock %}

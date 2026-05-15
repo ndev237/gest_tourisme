@@ -1,10 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
 
-</body>
-</html>
+{% comment %}
+==============================================================
+templates/controle/profil.html
+==============================================================
+Édition du profil de l'utilisateur connecté.
+
+Initiatives :
+1. Sidebar avec onglets (Profil / Sécurité / Notifications)
+2. Upload photo de profil avec aperçu instantané
+3. Bouton "Supprimer mon compte" en zone danger
+4. Sous-formulaire spécifique selon le type (Touriste, Gestionnaire...)
+{% endcomment %}
+
+{% block title %}Mon profil{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-[calc(100vh-4rem)] py-10">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="font-display text-3xl font-bold text-gray-900">Mon profil</h1>
+      <p class="text-gray-600 text-sm mt-1">Gérez vos informations personnelles et vos préférences.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+      <!-- SIDEBAR PROFIL -->
+      <aside class="lg:col-span-1">
+        <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-20">
+
+          <!-- Avatar -->
+          <div class="text-center mb-5">
+            {% if user.photo_profil %}
+              <img src="{{ user.photo_profil.url }}" alt=""
+                   class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-green-100">
+            {% else %}
+              <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600
+                          mx-auto flex items-center justify-center text-white text-2xl font-bold">
+                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+              </div>
+            {% endif %}
+            <h3 class="font-semibold text-gray-900 mt-3">{{ user.nom_complet }}</h3>
+            <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+            <span class="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+              {{ user.get_type_user_display }}
+            </span>
+          </div>
+
+          <nav class="space-y-1 text-sm">
+            <a href="#profil" class="block px-3 py-2 rounded-lg bg-green-50 text-green-700 font-medium">
+              👤 Informations
+            </a>
+            <a href="{% url 'compte:changer_password' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
+              🔒 Sécurité
+            </a>
+            {% if user.type_user == 'touriste' %}
+              <a href="{% url 'compte:dashboard_touriste' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
+                📊 Mes réservations
+              </a>
+            {% elif user.type_user == 'gestionnaire' %}
+              <a href="{% url 'compte:dashboard_gestionnaire' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
+                📊 Espace gestionnaire
+              </a>
+            {% endif %}
+            <a href="{% url 'compte:deconnexion' %}" class="block px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">
+              🚪 Déconnexion
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- FORMULAIRE PROFIL -->
+      <div class="lg:col-span-3 space-y-6">
+        <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm p-8" novalidate>
+          {% csrf_token %}
+
+          <h2 class="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">
+            Informations personnelles
+          </h2>
+
+          <!-- Photo de profil -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
+            {{ form_user.photo_profil }}
+            {% if form_user.photo_profil.errors %}
+              <p class="mt-1 text-xs text-red-600">{{ form_user.photo_profil.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label for="{{ form_user.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
+              {{ form_user.first_name }}
+            </div>
+            <div>
+              <label for="{{ form_user.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
+              {{ form_user.last_name }}
+            </div>
+            <div class="sm:col-span-2">
+              <label for="{{ form_user.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              {{ form_user.email }}
+            </div>
+            <div class="sm:col-span-2">
+              <label for="{{ form_user.telephone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Téléphone</label>
+              {{ form_user.telephone }}
+            </div>
+          </div>
+
+          <!-- Sous-formulaire touriste -->
+          {% if form_profil %}
+            <h2 class="text-lg font-semibold text-gray-900 mt-8 mb-6 pb-3 border-b border-gray-200">
+              Informations touriste
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label for="{{ form_profil.nationalite.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Nationalité</label>
+                {{ form_profil.nationalite }}
+              </div>
+              <div>
+                <label for="{{ form_profil.type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
+                {{ form_profil.type }}
+              </div>
+              <div>
+                <label for="{{ form_profil.cni_passeport.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">N° CNI / Passeport</label>
+                {{ form_profil.cni_passeport }}
+              </div>
+              <div>
+                <label for="{{ form_profil.date_naissance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Date de naissance</label>
+                {{ form_profil.date_naissance }}
+              </div>
+              <div class="sm:col-span-2">
+                <label for="{{ form_profil.langue_pref.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Langue préférée</label>
+                {{ form_profil.langue_pref }}
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Boutons -->
+          <div class="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+            <a href="{% url 'home' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-center">
+              Annuler
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow">
+              💾 Enregistrer
+            </button>
+          </div>
+        </form>
+
+        <!-- Zone danger -->
+        <div class="bg-white rounded-2xl shadow-sm p-8 border-2 border-red-100">
+          <h2 class="text-lg font-semibold text-red-700 mb-2">Zone dangereuse</h2>
+          <p class="text-sm text-gray-600 mb-4">
+            La suppression de votre compte est définitive. Toutes vos données seront effacées (droit à l'effacement RGPD).
+          </p>
+          <button type="button"
+                  onclick="if(confirm('Êtes-vous sûr de vouloir supprimer définitivement votre compte ?')) window.location='#'"
+                  class="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium">
+            🗑 Supprimer mon compte
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,10 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
 
-</body>
-</html>
+{% comment %}
+==============================================================
+templates/controle/connexion.html
+==============================================================
+Page de connexion à la plateforme.
+
+Initiatives :
+1. Layout 2 colonnes (image à gauche, formulaire à droite) en desktop
+2. Empilement vertical en mobile (image cachée pour gagner de l'espace)
+3. Affichage des erreurs Django (non_field_errors + erreurs par champ)
+4. Lien "mot de passe oublié" (à implémenter plus tard)
+5. Bouton "se connecter" prend toute la largeur (UX mobile-friendly)
+{% endcomment %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+  <div class="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+
+    <!-- COLONNE GAUCHE : Image décorative (cachée en mobile) -->
+    <div class="hidden lg:flex relative bg-gradient-to-br from-green-700 to-emerald-800 p-12 flex-col justify-between text-white">
+      <div>
+        <a href="{% url 'home' %}" class="inline-flex items-center gap-2 text-white font-bold text-xl">
+          <span class="text-3xl">🏔️</span>
+          <span>Tourisme Cameroun</span>
+        </a>
+      </div>
+
+      <div>
+        <h2 class="font-display text-3xl font-bold mb-3">
+          Bon retour parmi nous&nbsp;!
+        </h2>
+        <p class="text-green-100 mb-6">
+          Connectez-vous pour accéder à vos réservations, vos favoris
+          et découvrir de nouveaux sites au Cameroun.
+        </p>
+        <!-- Mini-stats -->
+        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
+          <div><span class="block text-2xl font-bold">50+</span><span class="text-xs text-green-100">Sites</span></div>
+          <div><span class="block text-2xl font-bold">10</span><span class="text-xs text-green-100">Régions</span></div>
+          <div><span class="block text-2xl font-bold">★ 4.7</span><span class="text-xs text-green-100">Avis</span></div>
+        </div>
+      </div>
+
+      <p class="text-xs text-green-200">
+        © {% now "Y" %} Tourisme Cameroun
+      </p>
+    </div>
+
+    <!-- COLONNE DROITE : Formulaire -->
+    <div class="p-8 sm:p-12">
+      <div class="mb-8">
+        <h1 class="font-display text-3xl font-bold text-gray-900 mb-2">Connexion</h1>
+        <p class="text-gray-600 text-sm">
+          Pas encore de compte&nbsp;?
+          <a href="{% url 'compte:inscription' %}" class="text-green-700 font-semibold hover:underline">
+            Créer un compte
+          </a>
+        </p>
+      </div>
+
+      <!-- Affichage des erreurs globales (ex: identifiants invalides) -->
+      {% if form.non_field_errors %}
+        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded">
+          {% for error in form.non_field_errors %}
+            <p class="text-sm">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'compte:connexion' %}" class="space-y-5" novalidate>
+        {% csrf_token %}
+
+        <!-- Préservation du paramètre ?next= pour redirection après login -->
+        {% if request.GET.next %}
+          <input type="hidden" name="next" value="{{ request.GET.next }}">
+        {% endif %}
+
+        <!-- Champ Email -->
+        <div>
+          <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
+            {{ form.username.label }}
+          </label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Champ Mot de passe -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+              {{ form.password.label }}
+            </label>
+            <a href="#" class="text-xs text-green-700 hover:underline">Mot de passe oublié&nbsp;?</a>
+          </div>
+          <div x-data="{ show: false }" class="relative">
+            {{ form.password }}
+            <!-- Bouton afficher/cacher le mot de passe -->
+            <button type="button" @click="show = !show; $el.previousElementSibling.type = show ? 'text' : 'password'"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+              <svg x-show="!show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <svg x-show="show" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+              </svg>
+            </button>
+          </div>
+          {% if form.password.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.password.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Se souvenir de moi -->
+        <div class="flex items-center">
+          {{ form.remember_me }}
+          <label for="{{ form.remember_me.id_for_label }}" class="ml-2 text-sm text-gray-700">
+            {{ form.remember_me.label }}
+          </label>
+        </div>
+
+        <!-- Bouton de soumission -->
+        <button type="submit"
+                class="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg
+                       transition shadow-md hover:shadow-lg">
+          Se connecter
+        </button>
+
+        <!-- Séparateur -->
+        <div class="relative my-6">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+          <div class="relative flex justify-center text-xs"><span class="px-3 bg-white text-gray-500">ou</span></div>
+        </div>
+
+        <!-- Lien vers inscription -->
+        <p class="text-center text-sm text-gray-600">
+          Vous êtes un professionnel&nbsp;?
+          <a href="{% url 'compte:inscription' %}?type=gestionnaire" class="text-green-700 font-semibold hover:underline">
+            Inscription gestionnaire
+          </a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

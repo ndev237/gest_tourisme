@@ -266,7 +266,7 @@ class Message(TimestampedModel):
             models.Index(fields=['destinataire', 'statut']),
             models.Index(fields=['expediteur', '-created_at']),
             models.Index(fields=['destinataire', '-created_at']),
-            models.Index(fields=['reservations', '-created_at']),
+            models.Index(fields=['reservation', '-created_at']),
         ]
 
     def __str__(self):

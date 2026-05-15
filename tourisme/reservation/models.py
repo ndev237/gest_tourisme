@@ -61,13 +61,13 @@ class Reservation(TimestampedModel):
     touriste = models.ForeignKey(
         Touriste,
         on_delete=models.PROTECT,
-        related_name='reservations',
+        related_name='reservation',
         verbose_name="Touriste"
     )
     site = models.ForeignKey(
         SiteTouristique,
         on_delete=models.PROTECT,
-        related_name='reservations',
+        related_name='reservation',
         verbose_name="Site touristique"
     )
     hebergement = models.ForeignKey(
@@ -75,7 +75,7 @@ class Reservation(TimestampedModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='reservations',
+        related_name='reservation',
         verbose_name="Hébergement (optionnel)"
     )
     guide = models.ForeignKey(
@@ -83,7 +83,7 @@ class Reservation(TimestampedModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='reservations',
+        related_name='reservation',
         verbose_name="Guide (optionnel)"
     )
 
@@ -288,7 +288,7 @@ class LigneReservation(TimestampedModel):
     class Meta:
         verbose_name = "Ligne de réservation"
         verbose_name_plural = "Lignes de réservation"
-        ordering = ['reservations', 'type_service']
+        ordering = ['reservation', 'type_service']
 
     def __str__(self):
         return f"{self.designation} ({self.quantite} × {self.prix_unitaire})"

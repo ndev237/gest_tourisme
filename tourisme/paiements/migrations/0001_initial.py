@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('reservations', '0001_initial'),
+        ('reservation', '0001_initial'),
     ]
 
     operations = [

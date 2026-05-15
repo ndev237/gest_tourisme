@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('catalogue', '0001_initial'),
         ('compte', '0001_initial'),
-        ('reservations', '0001_initial'),
+        ('reservation', '0001_initial'),
     ]
 
     operations = [

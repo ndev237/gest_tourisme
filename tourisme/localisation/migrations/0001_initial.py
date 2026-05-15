@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('latitude', models.DecimalField(decimal_places=6, help_text='Coordonnée GPS (format décimal, ex: 3.848)', max_digits=9, validators=[django.core.validators.MinValueValidator(-90.0), django.core.validators.MaxValueValidator(90.0)], verbose_name='Latitude')),
                 ('longitude', models.DecimalField(decimal_places=6, help_text='Coordonnée GPS (format décimal, ex: 11.502)', max_digits=9, validators=[django.core.validators.MinValueValidator(-180.0), django.core.validators.MaxValueValidator(180.0)], verbose_name='Longitude')),
                 ('point_repere', models.CharField(blank=True, help_text="Ex: 'À 200m de l'hôtel Mont Fébé'", max_length=200, verbose_name='Point de repère')),
-                ('region', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='localisations', to='localisations.region', verbose_name='Région')),
+                ('region', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='Localisations', to='Localisations.region', verbose_name='Région')),
             ],
             options={
                 'verbose_name': 'Localisation',
