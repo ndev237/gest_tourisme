@@ -1,10 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Ajouter hébergement — formulaire complet pour un site donné.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Nouvel hébergement — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-3xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-foret-900">Mes sites</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:liste_hebergement' slug=site.slug %}" class="hover:text-foret-900">Hébergements</a>
+      <span>/</span>
+      <span class="text-accent">Nouveau</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Hospitalité</p>
+        <h1 class="relative font-display text-2xl font-light">Nouvel hébergement</h1>
+        <p class="relative text-sm text-base-100/60 mt-1 font-mono">Pour {{ site.nom }}</p>
+      </div>
+
+      <div class="p-8 lg:p-10">
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_nom" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom <span class="text-error">*</span></label>
+            <input type="text" name="nom" id="id_nom"
+                   value="{{ form.nom.value|default:'' }}"
+                   required maxlength="150"
+                   placeholder="Hôtel Mont Fébé, Lodge Akwa…"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_type" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Type <span class="text-error">*</span></label>
+              <select name="type" id="id_type" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                <option value="">— Choisir —</option>
+                {% for value, label in form.type.field.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label for="id_etoiles" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Étoiles</label>
+              <select name="etoiles" id="id_etoiles" class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                <option value="1">★ (1)</option>
+                <option value="2">★★ (2)</option>
+                <option value="3" selected>★★★ (3)</option>
+                <option value="4">★★★★ (4)</option>
+                <option value="5">★★★★★ (5)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="id_description" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description</label>
+            <textarea name="description" id="id_description" rows="4"
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.description.value|default:'' }}</textarea>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_nb_chambres" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Chambres <span class="text-error">*</span></label>
+              <input type="number" name="nb_chambres" id="id_nb_chambres" value="{{ form.nb_chambres.value|default:'1' }}" required min="1"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+            <div>
+              <label for="id_prix_nuit" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Prix/nuit (FCFA) <span class="text-error">*</span></label>
+              <input type="number" name="prix_nuit" id="id_prix_nuit" value="{{ form.prix_nuit.value|default:'' }}" required min="0" step="1000"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+          </div>
+
+          <div>
+            <label for="id_services" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Services proposés (JSON)</label>
+            <textarea name="services" id="id_services" rows="2"
+                      placeholder='["wifi", "piscine", "petit-déjeuner"]'
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.services.value|default:'[]' }}</textarea>
+          </div>
+
+          <div>
+            <label for="id_photo" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Photo principale</label>
+            <input type="file" name="photo" id="id_photo" accept="image/*"
+                   class="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-mono file:uppercase file:tracking-wider file:bg-foret-900 file:text-base-100 hover:file:bg-foret-700 file:cursor-pointer">
+          </div>
+
+          <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer">
+            <input type="checkbox" name="est_disponible" value="on" checked class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+            <span>Disponible aux réservations</span>
+          </label>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:liste_hebergement' slug=site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Créer l'hébergement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

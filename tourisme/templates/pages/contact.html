@@ -1,0 +1,128 @@
+<!--
+  Page Contact — split formulaire / coordonnées
+-->
+{% extends "base.html" %}
+
+{% block title %}Nous contacter — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+
+<!-- Bandeau de page -->
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">Contact</span>
+    </nav>
+    <p class="eyebrow text-accent mb-4">Correspondance</p>
+    <h1 class="font-display text-4xl lg:text-6xl font-light leading-tight max-w-3xl">
+      Écrivez-nous une <em class="font-display-italic text-accent">carte</em>,
+      nous répondons sous 48h.
+    </h1>
+  </div>
+</section>
+
+<!-- Corps -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+  <div class="grid lg:grid-cols-12 gap-12">
+
+    <!-- Formulaire -->
+    <div class="lg:col-span-7">
+      <p class="eyebrow mb-4">Formulaire</p>
+      <h2 class="font-display text-3xl font-light text-foret-900 leading-tight mb-8">
+        Un mot ? Un partenariat ? <em class="font-display-italic text-accent">Allons-y</em>.
+      </h2>
+
+      <form class="space-y-6">
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label for="ct-nom" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom complet</label>
+            <input id="ct-nom" type="text" required
+                   class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-foret-700 focus:ring-2 focus:ring-accent/20">
+          </div>
+          <div>
+            <label for="ct-email" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Email</label>
+            <input id="ct-email" type="email" required
+                   class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-foret-700 focus:ring-2 focus:ring-accent/20">
+          </div>
+        </div>
+
+        <div>
+          <label for="ct-sujet" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Sujet</label>
+          <select id="ct-sujet" class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-foret-700">
+            <option>Question générale</option>
+            <option>Problème de réservation</option>
+            <option>Partenariat / Devenir gestionnaire</option>
+            <option>Presse</option>
+            <option>Autre</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ct-msg" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Message</label>
+          <textarea id="ct-msg" rows="6" required
+                    class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-foret-700 focus:ring-2 focus:ring-accent/20 resize-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <p class="text-xs text-foret-700/60 font-mono">Vos données restent confidentielles.</p>
+          <button type="submit"
+                  class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Envoyer le message
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Coordonnées -->
+    <aside class="lg:col-span-5 lg:pl-8 lg:border-l border-foret-100/60">
+      <p class="eyebrow mb-4">Adresses</p>
+
+      <ul class="space-y-8">
+        <li>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-1">Email général</p>
+          <a href="mailto:contact@tourisme-cameroun.cm" class="font-display text-2xl text-foret-900 hover:text-accent transition">
+            contact@tourisme-cameroun.cm
+          </a>
+        </li>
+
+        <li>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-1">Support technique</p>
+          <a href="mailto:support@tourisme-cameroun.cm" class="font-display text-2xl text-foret-900 hover:text-accent transition">
+            support@tourisme-cameroun.cm
+          </a>
+        </li>
+
+        <li>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-1">Téléphone</p>
+          <p class="font-mono-num text-2xl text-foret-900">+237 6 99 00 00 00</p>
+          <p class="text-xs text-foret-700/60 mt-1">Du lundi au vendredi, 9h–18h (WAT)</p>
+        </li>
+
+        <li>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-2">Siège</p>
+          <address class="not-italic text-foret-900 leading-relaxed">
+            Tourisme Cameroun<br>
+            Quartier Bastos<br>
+            BP 0000 — Yaoundé<br>
+            République du Cameroun
+          </address>
+        </li>
+      </ul>
+
+      <div class="mt-10 pt-8 border-t border-foret-100/60">
+        <p class="eyebrow mb-3">Réseaux</p>
+        <div class="flex gap-2">
+          <a href="#" aria-label="Facebook" class="w-10 h-10 rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 grid place-items-center transition">FB</a>
+          <a href="#" aria-label="Instagram" class="w-10 h-10 rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 grid place-items-center transition">IG</a>
+          <a href="#" aria-label="Twitter" class="w-10 h-10 rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 grid place-items-center transition">X</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+{% endblock %}

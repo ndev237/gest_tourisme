@@ -1,361 +1,463 @@
 """
 compte/forms.py
 ===============
-Formulaires d'authentification et de gestion de profil.
+Formulaires Django pour l'app compte.
 
-Initiatives prises :
-1. Utilisation des `ModelForm` quand le formulaire correspond à un modèle
-   (DRY : on évite de redéclarer chaque champ).
-2. `clean_<champ>()` pour les validations métier (ex: téléphone Cameroun).
-3. Classes Tailwind directement dans les widgets pour un rendu cohérent
-   sans avoir à styliser chaque champ dans le template.
-4. Politique de mot de passe stricte (8+ caractères, 1 chiffre, 1 spécial)
-   alignée avec le cahier des charges.
-5. Confirmation du mot de passe (champ password2) + validation croisée.
+ARCHITECTURE :
+- ConnexionForm        : email + password (authentification)
+- InscriptionForm      : crée User + profil selon type_user
+- ProfilUserForm       : modification infos User (nom, téléphone, photo)
+- ProfilTouristeForm   : champs spécifiques touriste
+- ProfilGestionnaireForm : champs spécifiques gestionnaire
+- ProfilGuideForm      : champs spécifiques guide
+- ChangerPasswordForm  : changement de mot de passe
+
+INITIATIVES PÉDAGOGIQUES :
+1. Forms Django (pas ModelForms) pour ConnexionForm car pas de
+   persistance directe — c'est juste de la validation d'inputs.
+2. ModelForms pour les profils (1 form = 1 modèle = persistance).
+3. Validation côté serveur OBLIGATOIRE même si l'HTML5 valide côté
+   client. Un attaquant peut contourner le HTML5 (curl, Postman).
+4. Hash automatique du mot de passe via UserManager.create_user().
 """
 
-import re
 from django import forms
-from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
-from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 
-from .models import Touriste, Gestionnaire, Guide
-
-User = get_user_model()
-
-
-# ============================================================
-# CLASSES CSS RÉUTILISABLES (Tailwind)
-# ============================================================
-# On centralise les classes pour pouvoir les modifier en un seul
-# endroit. Plus maintenable que de répéter les classes dans chaque widget.
-INPUT_CLASS = (
-    "w-full px-4 py-2.5 border border-gray-300 rounded-lg "
-    "focus:ring-2 focus:ring-green-600 focus:border-green-600 "
-    "outline-none transition placeholder-gray-400 text-gray-900"
-)
-SELECT_CLASS = INPUT_CLASS + " bg-white"
-CHECKBOX_CLASS = "w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+from compte.models import User, Touriste, Gestionnaire, Guide
 
 
 # ============================================================
-# 1. FORMULAIRE DE CONNEXION
+# CONSTANTES (Tailwind/DaisyUI classes)
 # ============================================================
-class ConnexionForm(AuthenticationForm):
+# Pédago : on utilise les classes DaisyUI directement dans les templates
+# pour les widgets standards. Ici on s'occupe juste de la VALIDATION,
+# pas du rendu visuel (le template fait le HTML, le form fait la logique).
+
+
+# ============================================================
+# 1. CONNEXION
+# ============================================================
+class ConnexionForm(forms.Form):
     """
     Formulaire de connexion par email + mot de passe.
 
-    Hérite de `AuthenticationForm` de Django qui gère déjà :
-    - La vérification des identifiants
-    - Le verrouillage des comptes inactifs
-    - Le message d'erreur générique (sécurité : on ne dit pas
-      si c'est l'email ou le mot de passe qui est faux).
+    Pédago : Form (pas ModelForm) car on n'écrit RIEN en BDD ici.
+    On valide juste les credentials puis on passe la main à
+    authenticate() qui vérifie le hash du mdp.
     """
-    username = forms.EmailField(
-        label="Email",
-        widget=forms.EmailInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'votre.email@exemple.com',
-            'autocomplete': 'email',
-            'autofocus': True,
-        })
+    email = forms.EmailField(
+        label="Adresse email",
+        widget=forms.EmailInput(),
+        error_messages={
+            'required': "L'email est obligatoire",
+            'invalid': "Format d'email invalide",
+        },
     )
     password = forms.CharField(
         label="Mot de passe",
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': '••••••••',
-            'autocomplete': 'current-password',
-        })
+        widget=forms.PasswordInput(),
+        min_length=1,
+        error_messages={
+            'required': "Le mot de passe est obligatoire",
+        },
     )
     remember_me = forms.BooleanField(
         required=False,
         label="Se souvenir de moi",
-        widget=forms.CheckboxInput(attrs={'class': CHECKBOX_CLASS})
     )
 
+    def __init__(self, *args, **kwargs):
+        # Pédago : on récupère le request pour pouvoir appeler authenticate()
+        # avec le bon backend (utile si on a plusieurs backends d'authentification).
+        self.request = kwargs.pop('request', None)
+        self.user_cache = None
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        """
+        Validation globale du form : on tente d'authentifier l'user.
+        Si échec, on met une erreur globale (pas par champ pour ne
+        pas donner d'indice à un attaquant — "email existe mais mdp
+        faux" est une fuite d'info).
+        """
+        cleaned = super().clean()
+        email = cleaned.get('email')
+        password = cleaned.get('password')
+
+        if email and password:
+            # authenticate() retourne le user si OK, None sinon.
+            # Comme on a configuré USERNAME_FIELD='email', on passe
+            # `username=email` (sémantique Django).
+            self.user_cache = authenticate(
+                request=self.request,
+                username=email,
+                password=password,
+            )
+            if self.user_cache is None:
+                # Pédago : message volontairement vague ("ou" entre les deux)
+                # pour ne pas révéler quel champ est faux.
+                raise ValidationError(
+                    "Email ou mot de passe incorrect.",
+                    code='invalid_login',
+                )
+            # Vérifier que l'user est actif (pas suspendu)
+            if not self.user_cache.is_active:
+                raise ValidationError(
+                    "Ce compte a été désactivé. Contactez le support.",
+                    code='inactive',
+                )
+
+        return cleaned
+
+    def get_user(self):
+        """Renvoie l'instance User authentifiée (à appeler après is_valid)."""
+        return self.user_cache
+
 
 # ============================================================
-# 2. FORMULAIRE D'INSCRIPTION (Touriste par défaut)
+# 2. INSCRIPTION (création User + profil selon type)
 # ============================================================
-class InscriptionForm(forms.ModelForm):
+class InscriptionForm(forms.Form):
     """
-    Formulaire d'inscription touriste.
+    Formulaire d'inscription avec choix du type d'utilisateur.
 
-    Crée d'un coup :
-    - Un User (table compte_user)
-    - Un Touriste lié au User (table compte_touriste)
-
-    Pour gestionnaire/guide, on a des formulaires dédiés en bas.
+    Pédago : Form (pas ModelForm) car on crée 2 objets : un User
+    et un profil spécifique (Touriste/Gestionnaire/Guide).
+    Plus simple à gérer en Form avec une méthode save() custom.
     """
 
-    password = forms.CharField(
+    # ---- Champs COMMUNS ----
+    type_user = forms.ChoiceField(
+        choices=[
+            ('touriste', 'Touriste'),
+            ('gestionnaire', 'Gestionnaire'),
+            ('guide', 'Guide'),
+            # Pédago : 'admin' INTERDIT publiquement.
+            # Les admins sont créés via createsuperuser.
+        ],
+        widget=forms.RadioSelect(),
+    )
+    first_name = forms.CharField(
+        label="Prénom",
+        max_length=50,
+        min_length=2,
+    )
+    last_name = forms.CharField(
+        label="Nom",
+        max_length=50,
+        min_length=2,
+    )
+    email = forms.EmailField(
+        label="Email",
+    )
+    telephone = forms.CharField(
+        label="Téléphone",
+        max_length=20,
+        required=False,
+        # Pédago : RegexValidator valide le format avec une expression régulière.
+        # Format international : + suivi de 8 à 15 chiffres (espaces tolérés).
+        validators=[RegexValidator(
+            regex=r'^\+?[\d\s]{8,20}$',
+            message="Format de téléphone invalide. Exemple : +237 6XX XXX XXX",
+        )],
+    )
+    password1 = forms.CharField(
         label="Mot de passe",
+        widget=forms.PasswordInput(),
         min_length=8,
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Minimum 8 caractères',
-            'autocomplete': 'new-password',
-        }),
-        help_text="Min. 8 caractères, avec 1 chiffre et 1 caractère spécial."
     )
-    password_confirm = forms.CharField(
-        label="Confirmer le mot de passe",
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Retapez votre mot de passe',
-            'autocomplete': 'new-password',
-        })
+    password2 = forms.CharField(
+        label="Confirmation du mot de passe",
+        widget=forms.PasswordInput(),
     )
-    nationalite = forms.CharField(
-        label="Nationalité",
-        initial='Camerounaise',
-        widget=forms.TextInput(attrs={'class': INPUT_CLASS})
-    )
-    accepte_cgu = forms.BooleanField(
-        label="J'accepte les conditions générales d'utilisation",
+    accept_cgu = forms.BooleanField(
+        label="J'accepte les CGU",
         required=True,
-        widget=forms.CheckboxInput(attrs={'class': CHECKBOX_CLASS})
+        error_messages={
+            'required': "Vous devez accepter les CGU pour continuer.",
+        },
     )
 
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'email', 'telephone']
-        widgets = {
-            'first_name': forms.TextInput(attrs={
-                'class': INPUT_CLASS, 'placeholder': 'Prénom'
-            }),
-            'last_name': forms.TextInput(attrs={
-                'class': INPUT_CLASS, 'placeholder': 'Nom'
-            }),
-            'email': forms.EmailInput(attrs={
-                'class': INPUT_CLASS, 'placeholder': 'votre.email@exemple.com'
-            }),
-            'telephone': forms.TextInput(attrs={
-                'class': INPUT_CLASS, 'placeholder': '+237 6XX XXX XXX'
-            }),
-        }
-        labels = {
-            'first_name': 'Prénom',
-            'last_name': 'Nom',
-            'email': 'Adresse email',
-            'telephone': 'Téléphone',
-        }
+    # ---- Champs SPÉCIFIQUES TOURISTE ----
+    nationalite = forms.CharField(max_length=50, required=False, initial='Camerounaise')
+    type_touriste = forms.ChoiceField(
+        choices=Touriste.TypeTouriste.choices,
+        required=False,
+        initial='local',
+    )
+    date_naissance = forms.DateField(required=False)
 
-    # --- Validations personnalisées ---
+    # ---- Champs SPÉCIFIQUES GESTIONNAIRE ----
+    entreprise = forms.CharField(max_length=150, required=False)
+    num_registre_commerce = forms.CharField(max_length=50, required=False)
 
+    # ---- Champs SPÉCIFIQUES GUIDE ----
+    licence_pro = forms.CharField(max_length=50, required=False)
+    tarif_journalier = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        min_value=0,
+    )
+    annees_experience = forms.IntegerField(
+        required=False,
+        min_value=0,
+        max_value=70,
+        initial=0,
+    )
+    bio = forms.CharField(
+        widget=forms.Textarea(),
+        required=False,
+        max_length=1000,
+    )
+
+    # ============================================================
+    # VALIDATIONS
+    # ============================================================
     def clean_email(self):
-        """Vérifie l'unicité de l'email (insensible à la casse)."""
+        """Vérifier que l'email n'est pas déjà utilisé."""
         email = self.cleaned_data['email'].lower().strip()
         if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError(
-                "Un compte existe déjà avec cet email."
+            raise ValidationError(
+                "Un compte existe déjà avec cet email. "
+                "Connectez-vous ou utilisez un autre email."
             )
         return email
 
-    def clean_telephone(self):
+    def clean_password1(self):
         """
-        Valide le format du numéro camerounais.
-        Format attendu : +237 6XX XXX XXX ou 6XX XXX XXX
+        Valider le mot de passe avec les validators Django configurés
+        dans settings.AUTH_PASSWORD_VALIDATORS.
         """
-        tel = self.cleaned_data.get('telephone', '').replace(' ', '')
-        if tel and not re.match(r'^(\+237)?6[5-9]\d{7}$', tel):
-            raise forms.ValidationError(
-                "Numéro invalide. Format attendu : +237 6XX XXX XXX"
-            )
-        return tel
+        password = self.cleaned_data['password1']
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            raise ValidationError(e.messages)
+        return password
 
-    def clean_password(self):
-        """
-        Politique de mot de passe stricte (cf. cahier des charges §9.1) :
-        - 8 caractères minimum
-        - Au moins 1 chiffre
-        - Au moins 1 caractère spécial
-        """
-        pwd = self.cleaned_data['password']
-        if not re.search(r'\d', pwd):
-            raise forms.ValidationError(
-                "Le mot de passe doit contenir au moins un chiffre."
-            )
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=]', pwd):
-            raise forms.ValidationError(
-                "Le mot de passe doit contenir au moins un caractère spécial."
-            )
-        return pwd
+    def clean_password2(self):
+        """Vérifier que les 2 mots de passe correspondent."""
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("Les deux mots de passe ne correspondent pas.")
+        return password2
 
     def clean(self):
-        """Vérifie que les deux mots de passe correspondent."""
+        """
+        Validation croisée selon le type_user choisi.
+        On valide les champs spécifiques OBLIGATOIRES selon le type.
+        """
         cleaned = super().clean()
-        pwd = cleaned.get('password')
-        pwd2 = cleaned.get('password_confirm')
-        if pwd and pwd2 and pwd != pwd2:
-            self.add_error('password_confirm',
-                "Les deux mots de passe ne correspondent pas."
-            )
+        type_user = cleaned.get('type_user')
+
+        # GESTIONNAIRE : entreprise + n° registre obligatoires
+        if type_user == 'gestionnaire':
+            if not cleaned.get('entreprise'):
+                self.add_error('entreprise', "Le nom de l'entreprise est obligatoire.")
+            if not cleaned.get('num_registre_commerce'):
+                self.add_error('num_registre_commerce', "Le n° de registre est obligatoire.")
+            else:
+                # Vérifier l'unicité du n° de registre
+                num = cleaned['num_registre_commerce']
+                if Gestionnaire.objects.filter(num_registre_commerce=num).exists():
+                    self.add_error('num_registre_commerce',
+                                   "Ce n° de registre est déjà enregistré.")
+
+        # GUIDE : licence + tarif obligatoires
+        elif type_user == 'guide':
+            if not cleaned.get('licence_pro'):
+                self.add_error('licence_pro', "Le n° de licence est obligatoire.")
+            else:
+                licence = cleaned['licence_pro']
+                if Guide.objects.filter(licence_pro=licence).exists():
+                    self.add_error('licence_pro', "Cette licence est déjà enregistrée.")
+            if not cleaned.get('tarif_journalier'):
+                self.add_error('tarif_journalier', "Le tarif journalier est obligatoire.")
+
         return cleaned
 
-    def save(self, commit=True):
+    # ============================================================
+    # SAVE — Crée le User + profil spécifique
+    # ============================================================
+    def save(self):
         """
-        Crée le User + le profil Touriste dans une transaction.
-        Pourquoi ne pas appeler super().save() directement ?
-        Parce que ModelForm sauve sans hasher le mot de passe.
-        Il FAUT utiliser set_password() pour le hash Argon2/PBKDF2.
-        """
-        user = super().save(commit=False)
-        user.email = user.email.lower()
-        user.set_password(self.cleaned_data['password'])  # hash sécurisé
-        user.type_user = User.UserType.TOURISTE
+        Crée le User et le profil spécifique selon type_user.
 
-        if commit:
-            user.save()
-            # Création du profil touriste lié
+        Pédago : on encapsule la création dans une transaction atomique
+        (à faire dans la view). Si la création du profil échoue, on rollback
+        le User.
+
+        Returns:
+            User: l'instance créée
+        """
+        data = self.cleaned_data
+        type_user = data['type_user']
+
+        # ---- ÉTAPE 1 : Création du User ----
+        # Pédago : UserManager.create_user() hash automatiquement le mdp
+        # via set_password(). NE JAMAIS faire User(password=mdp) → mdp en clair !
+        user = User.objects.create_user(
+            email=data['email'],
+            password=data['password1'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            telephone=data.get('telephone', ''),
+            type_user=type_user,
+        )
+
+        # ---- ÉTAPE 2 : Création du profil spécifique ----
+        if type_user == 'touriste':
             Touriste.objects.create(
                 user=user,
-                nationalite=self.cleaned_data['nationalite']
+                nationalite=data.get('nationalite', 'Camerounaise'),
+                type=data.get('type_touriste', 'local'),
+                date_naissance=data.get('date_naissance'),
             )
-        return user
 
-
-# ============================================================
-# 3. INSCRIPTION GESTIONNAIRE (avec validation admin)
-# ============================================================
-class InscriptionGestionnaireForm(InscriptionForm):
-    """
-    Inscription d'un gestionnaire de site.
-    Champs supplémentaires : entreprise + N° registre commerce.
-    Le compte reste en statut 'en_attente' jusqu'à validation admin.
-    """
-    entreprise = forms.CharField(
-        label="Nom de l'entreprise",
-        max_length=150,
-        widget=forms.TextInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Ex: Hôtel Atlantique SARL'
-        })
-    )
-    num_registre_commerce = forms.CharField(
-        label="N° de registre de commerce",
-        max_length=50,
-        widget=forms.TextInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Ex: RC/YAO/2024/A/1234'
-        })
-    )
-
-    # On retire le champ "nationalite" hérité du formulaire touriste
-    nationalite = None
-
-    def clean_num_registre_commerce(self):
-        """Vérifie l'unicité du numéro de registre."""
-        num = self.cleaned_data['num_registre_commerce'].upper().strip()
-        if Gestionnaire.objects.filter(num_registre_commerce=num).exists():
-            raise forms.ValidationError(
-                "Ce numéro de registre est déjà utilisé."
-            )
-        return num
-
-    def save(self, commit=True):
-        """Crée User + profil Gestionnaire (en attente de validation)."""
-        user = forms.ModelForm.save(self, commit=False)
-        user.email = user.email.lower()
-        user.set_password(self.cleaned_data['password'])
-        user.type_user = User.UserType.GESTIONNAIRE
-        user.is_active = False  # désactivé tant que pas validé
-
-        if commit:
-            user.save()
+        elif type_user == 'gestionnaire':
             Gestionnaire.objects.create(
                 user=user,
-                entreprise=self.cleaned_data['entreprise'],
-                num_registre_commerce=self.cleaned_data['num_registre_commerce'],
+                entreprise=data['entreprise'],
+                num_registre_commerce=data['num_registre_commerce'],
+                # statut_validation = 'en_attente' par défaut (cf. modèle)
             )
+
+        elif type_user == 'guide':
+            Guide.objects.create(
+                user=user,
+                licence_pro=data['licence_pro'],
+                tarif_journalier=data['tarif_journalier'],
+                annees_experience=data.get('annees_experience', 0),
+                bio=data.get('bio', ''),
+                # statut_validation = 'en_attente' par défaut
+            )
+
         return user
 
 
 # ============================================================
-# 4. MISE À JOUR DU PROFIL UTILISATEUR
+# 3. PROFIL USER (infos communes)
 # ============================================================
-class ProfilForm(forms.ModelForm):
+class ProfilUserForm(forms.ModelForm):
     """
-    Formulaire de mise à jour du profil de base (commun à tous les types).
-    Le mot de passe n'est PAS modifiable ici (formulaire dédié).
+    Modification des infos communes du User (nom, prénom, téléphone, photo).
+    L'email n'est PAS modifiable ici (sécurité).
     """
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'telephone', 'photo_profil']
-        widgets = {
-            'first_name': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'last_name': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'email': forms.EmailInput(attrs={'class': INPUT_CLASS}),
-            'telephone': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'photo_profil': forms.ClearableFileInput(attrs={
-                'class': 'block w-full text-sm text-gray-600 '
-                         'file:mr-4 file:py-2 file:px-4 file:rounded-lg '
-                         'file:border-0 file:bg-green-50 file:text-green-700 '
-                         'hover:file:bg-green-100'
-            }),
-        }
+        fields = ['first_name', 'last_name', 'telephone', 'photo_profil']
+
+    def clean_telephone(self):
+        telephone = self.cleaned_data.get('telephone', '').strip()
+        if telephone and not telephone.replace(' ', '').replace('+', '').isdigit():
+            raise ValidationError("Le téléphone doit contenir uniquement des chiffres.")
+        return telephone
 
 
+# ============================================================
+# 4. PROFIL TOURISTE
+# ============================================================
 class ProfilTouristeForm(forms.ModelForm):
     """Champs spécifiques au profil touriste."""
     class Meta:
         model = Touriste
-        fields = ['nationalite', 'cni_passeport', 'type',
-                  'langue_pref', 'date_naissance']
-        widgets = {
-            'nationalite': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'cni_passeport': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'type': forms.Select(attrs={'class': SELECT_CLASS}),
-            'langue_pref': forms.Select(attrs={'class': SELECT_CLASS}),
-            'date_naissance': forms.DateInput(attrs={
-                'class': INPUT_CLASS, 'type': 'date'
-            }),
-        }
+        fields = ['nationalite', 'cni_passeport', 'type', 'langue_pref', 'date_naissance']
 
 
 # ============================================================
-# 5. CHANGEMENT DE MOT DE PASSE
+# 5. PROFIL GESTIONNAIRE
 # ============================================================
-class ChangerPasswordForm(PasswordChangeForm):
+class ProfilGestionnaireForm(forms.ModelForm):
     """
-    Hérite du PasswordChangeForm de Django (gère déjà la vérification
-    de l'ancien mot de passe + la mise à jour de la session).
+    Champs spécifiques au profil gestionnaire.
+
+    Le n° de registre de commerce est en lecture seule
+    (sécurité : on ne change pas son identité légale après inscription).
+    """
+    class Meta:
+        model = Gestionnaire
+        fields = ['entreprise']  # SEUL le nom est modifiable
+        # num_registre_commerce : volontairement EXCLU
+        # statut_validation : géré par l'admin uniquement
+
+
+# ============================================================
+# 6. PROFIL GUIDE
+# ============================================================
+class ProfilGuideForm(forms.ModelForm):
+    """Champs spécifiques au profil guide."""
+    class Meta:
+        model = Guide
+        fields = ['bio', 'tarif_journalier', 'annees_experience', 'disponible']
+        # licence_pro : en lecture seule (identité pro)
+        # note_moyenne : calculée automatiquement
+        # statut_validation : géré par l'admin
+
+
+# ============================================================
+# 7. CHANGEMENT DE MOT DE PASSE
+# ============================================================
+class ChangerPasswordForm(forms.Form):
+    """
+    Form de changement de mot de passe.
+
+    Pédago : 3 champs (ancien, nouveau, confirmation) — l'ancien est
+    obligatoire pour la sécurité (si quelqu'un vole votre session sur
+    un poste public, il ne peut pas changer votre mdp sans le connaître).
     """
     old_password = forms.CharField(
         label="Mot de passe actuel",
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Votre mot de passe actuel',
-            'autocomplete': 'current-password',
-        })
+        widget=forms.PasswordInput(),
     )
     new_password1 = forms.CharField(
         label="Nouveau mot de passe",
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Au moins 8 caractères',
-            'autocomplete': 'new-password',
-        }),
-        help_text="Min. 8 caractères, avec 1 chiffre et 1 caractère spécial."
+        widget=forms.PasswordInput(),
+        min_length=8,
     )
     new_password2 = forms.CharField(
-        label="Confirmer le nouveau mot de passe",
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Retapez le nouveau mot de passe',
-            'autocomplete': 'new-password',
-        })
+        label="Confirmation",
+        widget=forms.PasswordInput(),
     )
 
+    def __init__(self, user, *args, **kwargs):
+        # Pédago : on injecte le user via __init__ pour pouvoir
+        # vérifier l'ancien mdp dans clean_old_password().
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_old_password(self):
+        """Vérifier que l'ancien mdp est correct."""
+        old = self.cleaned_data['old_password']
+        # check_password() compare le mdp en clair avec le hash en BDD
+        if not self.user.check_password(old):
+            raise ValidationError("Mot de passe actuel incorrect.")
+        return old
+
     def clean_new_password1(self):
-        """Politique de mot de passe identique à l'inscription."""
-        pwd = self.cleaned_data['new_password1']
-        if len(pwd) < 8:
-            raise forms.ValidationError("8 caractères minimum.")
-        if not re.search(r'\d', pwd):
-            raise forms.ValidationError("Au moins un chiffre requis.")
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=]', pwd):
-            raise forms.ValidationError("Au moins un caractère spécial requis.")
-        return pwd
+        new = self.cleaned_data['new_password1']
+        try:
+            validate_password(new, self.user)
+        except ValidationError as e:
+            raise ValidationError(e.messages)
+        return new
+
+    def clean_new_password2(self):
+        new1 = self.cleaned_data.get('new_password1')
+        new2 = self.cleaned_data.get('new_password2')
+        if new1 and new2 and new1 != new2:
+            raise ValidationError("Les deux nouveaux mots de passe ne correspondent pas.")
+        return new2
+
+    def save(self):
+        """Applique le nouveau mot de passe (hash automatique)."""
+        # Pédago : set_password() hash automatiquement avec PBKDF2 + salt.
+        # NE JAMAIS assigner self.user.password = new (laisse en clair !).
+        self.user.set_password(self.cleaned_data['new_password1'])
+        self.user.save(update_fields=['password'])
+        return self.user

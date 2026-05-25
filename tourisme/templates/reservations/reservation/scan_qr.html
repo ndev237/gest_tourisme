@@ -1,0 +1,224 @@
+<!--
+  Scanner QR — caméra (html5-qrcode) ou saisie manuelle, résultat success/error.
+-->
+{% extends "base.html" %}
+
+{% block title %}Scanner un QR Code{% endblock %}
+
+{% block extra_head %}
+<style>
+  #qr-reader {
+    max-width: 500px;
+    margin: 0 auto;
+    border-radius: 1.5rem;
+    overflow: hidden;
+  }
+  #qr-reader video { border-radius: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-3xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-foret-900">Dashboard</a>
+      <span>/</span>
+      <span class="text-accent">Scan QR</span>
+    </nav>
+
+    <div class="mb-8">
+      <p class="eyebrow mb-3">Validation à l'entrée</p>
+      <h1 class="font-display text-4xl font-light text-foret-900 leading-tight">
+        Scanner un <em class="font-display-italic text-accent">QR Code</em>
+      </h1>
+      <p class="text-sm text-foret-700/70 mt-2">Validez les bons de réservation à l'entrée du site</p>
+    </div>
+
+    <!-- ===== Résultat success ===== -->
+    {% if bon_valide %}
+    <div class="bg-success/10 border-2 border-success rounded-3xl p-8 mb-8">
+      <div class="flex items-start gap-5">
+        <div class="w-16 h-16 rounded-full bg-success text-base-100 grid place-items-center font-display text-3xl flex-shrink-0">✓</div>
+        <div class="flex-1">
+          <p class="eyebrow text-success mb-2">Entrée validée</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-4">
+            Bon № <em class="font-display-italic">{{ bon_valide.reservation.numero }}</em>
+          </h2>
+
+          <dl class="space-y-2 text-sm mb-5">
+            <div class="flex gap-3">
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider text-xs min-w-[100px]">Visiteur</dt>
+              <dd class="text-foret-900 font-medium">{{ bon_valide.reservation.touriste.user.nom_complet }}</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider text-xs min-w-[100px]">Personnes</dt>
+              <dd class="text-foret-900">{{ bon_valide.reservation.nb_adultes }} adulte{{ bon_valide.reservation.nb_adultes|pluralize }}{% if bon_valide.reservation.nb_enfants %} + {{ bon_valide.reservation.nb_enfants }} enfant{{ bon_valide.reservation.nb_enfants|pluralize }}{% endif %}</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider text-xs min-w-[100px]">Site</dt>
+              <dd class="text-foret-900">{{ bon_valide.reservation.site.nom }}</dd>
+            </div>
+            <div class="flex gap-3">
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider text-xs min-w-[100px]">Validé à</dt>
+              <dd class="font-mono-num text-foret-900">{{ bon_valide.date_utilisation|date:"H:i:s" }}</dd>
+            </div>
+          </dl>
+
+          <a href="{% url 'reservation:scan_qr' %}"
+             class="btn-carnet inline-flex items-center gap-2 bg-success text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+            ↻ Scanner un autre QR
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== Résultat erreur ===== -->
+    {% if erreur %}
+    <div class="bg-error/10 border-2 border-error rounded-3xl p-8 mb-8">
+      <div class="flex items-start gap-5">
+        <div class="w-16 h-16 rounded-full bg-error text-base-100 grid place-items-center font-display text-3xl flex-shrink-0">×</div>
+        <div class="flex-1">
+          <p class="eyebrow text-error mb-2">Validation refusée</p>
+          <h2 class="font-display text-2xl text-foret-900 mb-3">{{ erreur }}</h2>
+          <a href="{% url 'reservation:scan_qr' %}"
+             class="btn-carnet inline-flex items-center gap-2 bg-error text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+            ↻ Réessayer
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not bon_valide %}
+    <!-- Scanner -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-7 mb-6"
+         x-data="{
+           cameraActive: false,
+           manualMode: false,
+           async startCamera() {
+             this.cameraActive = true;
+             this.manualMode = false;
+             await $nextTick();
+             initScanner();
+           },
+           stopCamera() {
+             this.cameraActive = false;
+             if (window.html5QrCode) { window.html5QrCode.stop().catch(e => console.warn(e)); }
+           },
+           showManual() {
+             this.stopCamera();
+             this.manualMode = true;
+           }
+         }">
+
+      <p class="eyebrow mb-4">Méthode de scan</p>
+
+      <div class="flex gap-2 mb-6">
+        <button type="button" @click="startCamera()" x-show="!cameraActive && !manualMode"
+                class="btn-carnet flex-1 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+          Activer la caméra
+        </button>
+        <button type="button" @click="stopCamera()" x-show="cameraActive" x-cloak
+                class="bg-error text-base-100 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">
+          ⏹ Arrêter
+        </button>
+        <button type="button" @click="showManual()" x-show="!manualMode"
+                class="border border-foret-900 text-foret-900 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+          Saisie manuelle
+        </button>
+      </div>
+
+      <!-- Caméra -->
+      <div x-show="cameraActive" x-cloak>
+        <div id="qr-reader"></div>
+        <p class="text-xs text-foret-700/70 font-mono uppercase tracking-wider text-center mt-4">
+          Placez le QR Code dans le cadre — la détection est automatique
+        </p>
+      </div>
+
+      <!-- Saisie manuelle -->
+      <div x-show="manualMode" x-cloak>
+        <form method="post" class="space-y-4">
+          {% csrf_token %}
+          <div>
+            <label for="id_qr_code_data" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Contenu du QR</label>
+            <input type="text" name="qr_code_data" id="id_qr_code_data" required autofocus autocomplete="off"
+                   placeholder="UUID:token…"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.qr_code_data.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.qr_code_data.errors %}<p class="mt-1.5 text-xs text-error">{{ form.qr_code_data.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="flex gap-2">
+            <button type="button" @click="manualMode = false" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</button>
+            <button type="submit" class="btn-carnet flex-1 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">Valider</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Form caché pour auto-submit caméra -->
+      <form method="post" id="auto-form" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="qr_code_data" id="auto-qr-data">
+      </form>
+    </div>
+
+    <div class="bg-info/10 border border-info/30 rounded-2xl p-5 flex gap-4">
+      <span class="font-mono text-info text-base flex-shrink-0">i</span>
+      <div class="text-sm text-foret-900">
+        <p class="eyebrow text-info mb-2">Comment ça marche</p>
+        <ol class="list-decimal list-inside space-y-1 text-foret-900/85">
+          <li>Activez la caméra du téléphone ou de la tablette</li>
+          <li>Pointez vers le QR Code (papier ou écran du touriste)</li>
+          <li>La détection est automatique — pas besoin de cliquer</li>
+          <li>En cas de souci, utilisez la saisie manuelle</li>
+        </ol>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+function initScanner() {
+  const target = document.getElementById('qr-reader');
+  if (!target) { console.error('Element #qr-reader introuvable'); return; }
+
+  if (window.html5QrCode) {
+    try { window.html5QrCode.stop(); } catch (e) { /* ignore */ }
+  }
+
+  window.html5QrCode = new Html5Qrcode('qr-reader');
+
+  const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+
+  const onSuccess = (decodedText) => {
+    window.html5QrCode.stop().then(() => {
+      document.getElementById('auto-qr-data').value = decodedText;
+      document.getElementById('auto-form').submit();
+    }).catch(err => console.error('Erreur arret scanner:', err));
+  };
+
+  const onError = () => { /* silencieux */ };
+
+  window.html5QrCode.start(
+    { facingMode: 'environment' },
+    config,
+    onSuccess,
+    onError
+  ).catch(err => {
+    console.error('Erreur demarrage camera:', err);
+    alert("Impossible d'acceder a la camera : " + err.message
+      + "\n\nVerifiez que :\n"
+      + "- Vous etes en HTTPS (obligatoire en production)\n"
+      + "- Vous avez autorise l'acces a la camera\n"
+      + "- Une camera est connectee");
+  });
+}
+</script>
+{% endblock %}

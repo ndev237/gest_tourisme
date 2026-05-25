@@ -1,0 +1,72 @@
+<!--
+  Liste publique des catégories — grille de cartes éditoriales.
+  Chaque carte mène à la liste filtrée par cette catégorie.
+-->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Explorer par catégorie — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-accent">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">Catégories</span>
+    </nav>
+    <p class="eyebrow text-accent mb-4">Chapitre 02 — Thématiques</p>
+    <h1 class="font-display text-4xl lg:text-6xl font-light leading-tight max-w-3xl">
+      Explorer le pays<br>
+      par <em class="font-display-italic text-accent">thématique</em>.
+    </h1>
+    <p class="text-base-100/70 mt-5 max-w-xl">
+      Plages dorées, parcs nationaux, chefferies royales, musées… Trouvez le site
+      parfait selon vos envies du moment.
+    </p>
+  </div>
+</section>
+
+<section class="bg-base-100 py-16 lg:py-24">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    {% if categories %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 stagger">
+      {% for cat in categories %}
+      <a href="{% url 'catalogue:liste_sites' %}?categorie={{ cat.id }}"
+         class="card-editorial group p-7 text-center relative">
+        <!-- Bandeau coloré -->
+        <span class="absolute top-0 left-0 right-0 h-1 rounded-t-3xl"
+              style="background-color: {{ cat.couleur|default:'#15803d' }};"></span>
+
+        <div class="font-display italic text-5xl text-accent mb-4">{{ cat.icone|default:"◈" }}</div>
+        <h2 class="font-display text-xl font-medium text-foret-900 group-hover:text-accent transition">
+          {{ cat.nom|default:cat.libelle }}
+        </h2>
+        <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mt-2">
+          {{ cat.nb_sites }} site{{ cat.nb_sites|pluralize }}
+        </p>
+
+        {% if cat.description %}
+        <p class="text-xs text-foret-700/70 mt-3 line-clamp-2 leading-relaxed">
+          {{ cat.description }}
+        </p>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-base-100 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune catégorie disponible</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">
+        Les catégories apparaîtront ici dès qu'elles seront créées par l'équipe.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

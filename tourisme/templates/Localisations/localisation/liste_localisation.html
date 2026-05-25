@@ -1,10 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Liste localisations (gestionnaire) — tableau avec coordonnées + stats régions.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Mes localisations — Gestionnaire{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-accent">Dashboard</a>
+        <span>/</span>
+        <span class="text-accent">Mes localisations</span>
+      </nav>
+      <p class="eyebrow text-accent mb-2">Cartographie</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light">Mes localisations</h1>
+      <p class="text-sm text-base-100/60 mt-2 font-mono">
+        Adresses GPS de vos <span class="text-accent">{{ total }}</span> site{{ total|pluralize }}
+      </p>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if regions_count %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 mb-6">
+      <p class="eyebrow mb-4">Répartition par région</p>
+      <div class="flex flex-wrap gap-2">
+        {% for region, count in regions_count.items %}
+        <span class="badge-stamp text-foret-700 border-foret-700/40">
+          {{ region }} <span class="opacity-60 ml-1">({{ count }})</span>
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sites %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-7 py-4 text-left">Site</th>
+              <th class="px-3 py-4 text-left">Région</th>
+              <th class="px-3 py-4 text-left">Ville · quartier</th>
+              <th class="px-3 py-4 text-left">Coordonnées GPS</th>
+              <th class="px-7 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for site in sites %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-7 py-4">
+                <div class="flex items-center gap-3">
+                  {% if site.photo_principale %}
+                  <img src="{{ site.photo_principale.image.url }}" alt="" class="w-10 h-10 rounded-xl object-cover">
+                  {% else %}
+                  <div class="w-10 h-10 bg-pattern-kente rounded-xl grid place-items-center text-base opacity-50">◈</div>
+                  {% endif %}
+                  <div>
+                    <p class="font-display text-base text-foret-900">{{ site.nom }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">{{ site.categorie.libelle }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-4">
+                <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px] mr-1.5">{{ site.localisation.region.code }}</span>
+                <span class="text-sm text-foret-900">{{ site.localisation.region.nom }}</span>
+              </td>
+              <td class="px-3 py-4">
+                <p class="text-sm font-medium text-foret-900">{{ site.localisation.ville }}</p>
+                {% if site.localisation.quartier %}
+                <p class="text-xs text-foret-700/60">{{ site.localisation.quartier }}</p>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                <code class="text-xs font-mono text-foret-700">
+                  {{ site.localisation.latitude|floatformat:4 }}° / {{ site.localisation.longitude|floatformat:4 }}°
+                </code>
+              </td>
+              <td class="px-7 py-4 text-right">
+                <div class="inline-flex gap-2 text-[10px] uppercase tracking-wider">
+                  <a href="{% url 'localisation:detail_localisation' localisation_id=site.localisation.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Carte</a>
+                  <a href="{% url 'localisation:update_localisation' localisation_id=site.localisation.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-info/10 border border-info/30 rounded-2xl p-5 mt-6 flex gap-4">
+      <span class="font-mono text-info text-base flex-shrink-0">i</span>
+      <p class="text-sm text-foret-900">
+        <strong>Pourquoi pas de bouton "Créer" ou "Supprimer" ?</strong>
+        Chaque localisation est liée à un site. Pour ajouter une localisation,
+        <a href="{% url 'catalogue:add_sites' %}" class="link-editorial">créez un nouveau site</a>.
+        Pour la supprimer, supprimez le site associé.
+      </p>
+    </div>
+
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune localisation</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Vous n'avez pas encore de site. Créez votre premier site touristique,
+        sa localisation sera automatiquement enregistrée.
+      </p>
+      <a href="{% url 'catalogue:add_sites' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Créer un site
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

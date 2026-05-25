@@ -1,0 +1,269 @@
+<!--
+  Détail réservation — header, timeline, facturation, actions contextuelles.
+-->
+{% extends "base.html" %}
+
+{% block title %}{{ reservation.numero }} — Réservation{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'reservation:liste_reservation' %}" class="hover:text-accent">Mes réservations</a>
+        <span>/</span>
+        <span class="text-accent">{{ reservation.numero }}</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-wider text-base-100/60 mb-2">{{ reservation.numero }}</p>
+          <h1 class="font-display text-3xl lg:text-5xl font-light leading-tight">{{ reservation.site.nom }}</h1>
+          <p class="text-sm text-base-100/70 mt-3 font-mono uppercase tracking-wider">
+            {{ reservation.site.localisation.ville }}, {{ reservation.site.localisation.region.nom }}
+          </p>
+        </div>
+        <div>
+          {% if reservation.statut == 'en_attente' %}<span class="badge-stamp text-warning border-warning bg-base-100/10 text-sm px-4 py-2">En attente de paiement</span>
+          {% elif reservation.statut == 'confirmee' %}<span class="badge-stamp text-success border-success bg-base-100/10 text-sm px-4 py-2">Confirmée</span>
+          {% elif reservation.statut == 'terminee' %}<span class="badge-stamp text-accent border-accent bg-base-100/10 text-sm px-4 py-2">Terminée</span>
+          {% elif reservation.statut == 'annulee' %}<span class="badge-stamp text-error border-error bg-base-100/10 text-sm px-4 py-2">Annulée</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if reservation.statut == 'annulee' %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-5 mb-6 flex gap-4">
+      <span class="font-mono text-error text-base flex-shrink-0">×</span>
+      <div>
+        <p class="eyebrow text-error mb-1">Réservation annulée</p>
+        <p class="text-sm text-foret-900">
+          Annulée le {{ reservation.date_annulation|date:"d/m/Y à H:i" }}
+          {% if reservation.motif_annulation %}<br><em class="text-foret-700/80">Motif : {{ reservation.motif_annulation }}</em>{% endif %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <!-- Colonne principale -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Timeline -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+          <p class="eyebrow mb-5">Suivi de la réservation</p>
+
+          <ol class="space-y-4 sm:space-y-0 sm:flex sm:items-start sm:gap-2">
+            <!-- Étape 1 : Créée -->
+            <li class="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 flex-1 relative">
+              <div class="w-9 h-9 rounded-full bg-foret-900 text-base-100 grid place-items-center font-mono text-xs flex-shrink-0">✓</div>
+              <div class="sm:text-center">
+                <p class="font-display text-sm text-foret-900">Créée</p>
+                <p class="text-[10px] font-mono text-foret-700/60 mt-0.5">{{ reservation.created_at|date:"d/m/Y H:i" }}</p>
+              </div>
+              <span class="hidden sm:block absolute left-1/2 top-4 w-full h-px bg-foret-100/60 -z-10"></span>
+            </li>
+
+            <!-- Étape 2 : Payée -->
+            <li class="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 flex-1 relative">
+              <div class="w-9 h-9 rounded-full grid place-items-center font-mono text-xs flex-shrink-0
+                          {% if reservation.statut == 'confirmee' or reservation.statut == 'terminee' %}bg-foret-900 text-base-100
+                          {% elif reservation.statut == 'annulee' %}bg-error text-base-100
+                          {% else %}bg-foret-100 text-foret-700{% endif %}">
+                {% if reservation.statut == 'confirmee' or reservation.statut == 'terminee' %}✓{% elif reservation.statut == 'annulee' %}×{% else %}?{% endif %}
+              </div>
+              <div class="sm:text-center">
+                <p class="font-display text-sm text-foret-900">Payée</p>
+                {% if reservation.date_confirmation %}
+                <p class="text-[10px] font-mono text-foret-700/60 mt-0.5">{{ reservation.date_confirmation|date:"d/m/Y H:i" }}</p>
+                {% endif %}
+              </div>
+              <span class="hidden sm:block absolute left-1/2 top-4 w-full h-px bg-foret-100/60 -z-10"></span>
+            </li>
+
+            <!-- Étape 3 : Visite -->
+            <li class="flex sm:flex-col items-start sm:items-center gap-3 sm:gap-2 flex-1">
+              <div class="w-9 h-9 rounded-full grid place-items-center font-mono text-xs flex-shrink-0
+                          {% if reservation.statut == 'terminee' %}bg-foret-900 text-base-100
+                          {% else %}bg-foret-100 text-foret-700{% endif %}">
+                {% if reservation.statut == 'terminee' %}✓{% else %}?{% endif %}
+              </div>
+              <div class="sm:text-center">
+                <p class="font-display text-sm text-foret-900">Visite</p>
+                <p class="text-[10px] font-mono text-foret-700/60 mt-0.5">{{ reservation.date_visite|date:"d/m/Y" }}</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <!-- Facturation -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+          <p class="eyebrow mb-5">Détails du paiement</p>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-xs font-mono uppercase tracking-wider text-foret-700/70 border-b border-foret-100/60">
+                <tr>
+                  <th class="pb-3 text-left">Désignation</th>
+                  <th class="pb-3 text-right">Qté</th>
+                  <th class="pb-3 text-right">P.U.</th>
+                  <th class="pb-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-foret-100/60">
+                {% for ligne in reservation.lignes.all %}
+                <tr>
+                  <td class="py-3 text-foret-900">{{ ligne.designation }}</td>
+                  <td class="py-3 text-right font-mono-num text-foret-700">{{ ligne.quantite }}</td>
+                  <td class="py-3 text-right font-mono-num text-foret-700">{{ ligne.prix_unitaire|floatformat:0 }}</td>
+                  <td class="py-3 text-right font-mono-num font-semibold text-foret-900">{{ ligne.sous_total|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="border-t-2 border-foret-900">
+                <tr>
+                  <td colspan="3" class="pt-4 text-right text-xs font-mono uppercase tracking-wider text-foret-700">Total TTC</td>
+                  <td class="pt-4 text-right">
+                    <span class="font-display text-2xl text-foret-900">{{ reservation.montant_total|floatformat:0 }}</span>
+                    <span class="text-xs text-foret-700/60 ml-1">FCFA</span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {% if reservation.paiements.all %}
+          <div class="mt-6 pt-6 border-t border-foret-100/60">
+            <p class="eyebrow mb-4">Historique paiements</p>
+            <div class="space-y-2">
+              {% for p in reservation.paiements.all %}
+              <div class="flex items-center justify-between p-3 bg-sable-50 border border-foret-100/60 rounded-2xl text-sm">
+                <div class="flex items-center gap-3">
+                  <code class="text-xs font-mono text-foret-700">{{ p.reference_interne }}</code>
+                  <span class="badge-stamp text-[10px]
+                              {% if p.statut == 'reussi' %}text-success border-success/40
+                              {% elif p.statut == 'echoue' %}text-error border-error/40
+                              {% elif p.statut == 'rembourse' %}text-info border-info/40
+                              {% else %}text-warning border-warning/40{% endif %}">{{ p.get_statut_display }}</span>
+                </div>
+                <div class="text-right">
+                  <p class="font-mono-num font-semibold text-foret-900">{{ p.montant|floatformat:0 }} FCFA</p>
+                  <p class="text-[10px] font-mono text-foret-700/60">{{ p.moyen.libelle }} · {{ p.created_at|date:"d/m H:i" }}</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </section>
+
+        {% if reservation.notes_touriste %}
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+          <p class="eyebrow mb-3">Notes & demandes</p>
+          <p class="text-foret-900 italic leading-relaxed">« {{ reservation.notes_touriste }} »</p>
+        </section>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6 lg:sticky lg:top-28 self-start">
+
+        <!-- Actions contextuelles -->
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <div class="relative space-y-3">
+            {% if reservation.statut == 'en_attente' %}
+            <a href="{% url 'paiements:choix_moyen' reservation_id=reservation.id %}"
+               class="btn-carnet block w-full bg-accent text-foret-900 text-center rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Payer maintenant
+            </a>
+            <p class="text-xs text-center text-base-100/60 font-mono">Votre place sera réservée après paiement</p>
+            {% elif reservation.statut == 'confirmee' %}
+            <a href="{% url 'reservation:bon_pdf' reservation_id=reservation.id %}"
+               class="btn-carnet block w-full bg-accent text-foret-900 text-center rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Télécharger le bon PDF
+            </a>
+            {% if bon %}
+            <p class="text-xs text-center text-base-100/60 font-mono">QR Code à présenter à l'entrée</p>
+            {% endif %}
+            {% elif reservation.statut == 'terminee' %}
+            <div class="bg-success/10 border border-success/40 rounded-2xl p-4 text-center">
+              <p class="font-display text-base text-accent">Visite effectuée</p>
+              <p class="text-xs text-base-100/60 mt-1">Merci de partager votre expérience</p>
+            </div>
+            {% endif %}
+
+            {% if reservation.peut_etre_annulee %}
+            <a href="{% url 'reservation:annuler_reservation' reservation_id=reservation.id %}"
+               class="block w-full border border-base-100/40 text-base-100 text-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
+              Annuler la réservation
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Infos visite -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Infos visite</p>
+          <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-foret-700/70">Date</dt>
+              <dd class="font-mono-num font-semibold text-foret-900">{{ reservation.date_visite|date:"d/m/Y" }}</dd>
+            </div>
+            {% if reservation.heure_visite %}
+            <div class="flex justify-between">
+              <dt class="text-foret-700/70">Heure</dt>
+              <dd class="font-mono-num font-semibold text-foret-900">{{ reservation.heure_visite|time:"H:i" }}</dd>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+              <dt class="text-foret-700/70">Adultes</dt>
+              <dd class="font-mono-num font-semibold text-foret-900">{{ reservation.nb_adultes }}</dd>
+            </div>
+            {% if reservation.nb_enfants %}
+            <div class="flex justify-between">
+              <dt class="text-foret-700/70">Enfants</dt>
+              <dd class="font-mono-num font-semibold text-foret-900">{{ reservation.nb_enfants }}</dd>
+            </div>
+            {% endif %}
+          </dl>
+
+          {% if reservation.hebergement %}
+          <div class="pt-4 mt-4 border-t border-foret-100/60">
+            <p class="eyebrow mb-2">Hébergement</p>
+            <p class="font-display text-sm text-foret-900">{{ reservation.hebergement.nom }}</p>
+            {% if reservation.date_arrivee and reservation.date_depart %}
+            <p class="text-xs text-foret-700/60 font-mono mt-1">{{ reservation.date_arrivee|date:"d/m" }} → {{ reservation.date_depart|date:"d/m" }}</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if reservation.guide %}
+          <div class="pt-4 mt-4 border-t border-foret-100/60">
+            <p class="eyebrow mb-2">Guide</p>
+            <p class="font-display text-sm text-foret-900">{{ reservation.guide.user.nom_complet }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- À propos du site -->
+        <div class="bg-pattern-kente border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-3">À propos du site</p>
+          <p class="text-sm text-foret-900/85 leading-relaxed line-clamp-3 mb-4">
+            {{ reservation.site.description_courte|default:reservation.site.description|truncatechars:140 }}
+          </p>
+          <a href="{% url 'catalogue:detail_site' slug=reservation.site.slug %}"
+             class="link-editorial inline-flex items-center gap-2 text-sm">
+            Voir la fiche complète →
+          </a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

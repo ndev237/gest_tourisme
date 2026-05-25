@@ -1,10 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Liste disponibilités — tableau chronologique avec barre de capacité.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Disponibilités — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-accent">Mes sites</a>
+        <span>/</span>
+        <span>{{ site.nom }}</span>
+        <span>/</span>
+        <span class="text-accent">Disponibilités</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Agenda</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Calendrier</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            Capacité max : {{ site.capacite_max }} pers./jour
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_disponibilite' slug=site.slug %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouvelle date
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if disponibilites %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-7 py-4 text-left">Date</th>
+              <th class="px-3 py-4 text-left">Jour</th>
+              <th class="px-3 py-4 text-left">Places</th>
+              <th class="px-3 py-4 text-left">Tarif spécial</th>
+              <th class="px-3 py-4 text-left">Statut</th>
+              <th class="px-7 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for dispo in disponibilites %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-7 py-4 font-mono-num text-foret-900">{{ dispo.date|date:"d/m/Y" }}</td>
+              <td class="px-3 py-4 text-foret-700">{{ dispo.date|date:"l"|capfirst }}</td>
+              <td class="px-3 py-4">
+                {% if dispo.est_ferme %}
+                  <span class="text-xs font-mono uppercase tracking-wider text-error">Fermé</span>
+                {% elif dispo.places_restantes == 0 %}
+                  <span class="text-xs font-mono uppercase tracking-wider text-warning">Complet</span>
+                {% else %}
+                  <div class="flex items-center gap-3">
+                    <span class="font-mono-num font-semibold text-foret-900">{{ dispo.places_restantes }}<span class="text-foret-700/50">/{{ site.capacite_max }}</span></span>
+                    <div class="w-20 h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                      <div class="h-full bg-success" style="width: {% widthratio dispo.places_restantes site.capacite_max 100 %}%;"></div>
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                {% if dispo.tarif_special %}
+                  <span class="badge-stamp text-accent border-accent/40">{{ dispo.tarif_special|floatformat:0 }} F</span>
+                {% else %}
+                  <span class="text-foret-700/40 font-mono text-xs">Normal</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                {% if dispo.est_ferme %}
+                  <span class="badge-stamp text-error border-error/40 text-[10px]">Fermé</span>
+                {% elif dispo.places_restantes == 0 %}
+                  <span class="badge-stamp text-warning border-warning/40 text-[10px]">Saturé</span>
+                {% else %}
+                  <span class="badge-stamp text-success border-success/40 text-[10px]">Ouvert</span>
+                {% endif %}
+              </td>
+              <td class="px-7 py-4 text-right">
+                <div class="inline-flex gap-2 text-[10px] uppercase tracking-wider">
+                  <a href="{% url 'catalogue:update_disponibilite' dispo_id=dispo.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+                  <a href="{% url 'catalogue:delete_disponibilite' dispo_id=dispo.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune disponibilité</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Configurez vos disponibilités jour par jour pour permettre les réservations.
+        Sans calendrier, votre site ne peut pas accepter de visites.
+      </p>
+      <a href="{% url 'catalogue:add_disponibilite' slug=site.slug %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Première date
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

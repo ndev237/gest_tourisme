@@ -1,10 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Liste gestionnaires (admin) — tableau editorial.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Gestionnaires - Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span><span class="text-accent">Gestionnaires</span>
+      </nav>
+      <p class="eyebrow text-accent mb-2">Utilisateurs</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light">Gestionnaires</h1>
+      <p class="text-sm text-base-100/60 mt-2 font-mono">{{ gestionnaires|length|default:0 }} gestionnaire{{ gestionnaires|length|pluralize }}</p>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+    {% if gestionnaires %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-7 py-4 text-left">Gestionnaire</th>
+              <th class="px-3 py-4 text-left">Email</th>
+              <th class="px-3 py-4 text-left">Telephone</th>
+              <th class="px-3 py-4 text-left">Statut</th>
+              <th class="px-7 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for item in gestionnaires %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-7 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-sm">{{ item.user.first_name|first|upper|default:item.user.email|first|upper }}</div>
+                  <div>
+                    <p class="font-display text-base text-foret-900">{{ item.user.nom_complet|default:item.user.username }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">N {{ item.id|stringformat:"04d" }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-4 font-mono text-xs text-foret-700">{{ item.user.email }}</td>
+              <td class="px-3 py-4 font-mono-num text-xs text-foret-700">{{ item.user.telephone|default:"-" }}</td>
+              <td class="px-3 py-4">
+                {% if item.user.is_active %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Actif</span>
+                {% else %}
+                <span class="badge-stamp text-error border-error/40 text-[10px]">Suspendu</span>
+                {% endif %}
+              </td>
+              <td class="px-7 py-4 text-right text-[10px] uppercase tracking-wider">
+                <a href="/backoffice/compte/gestionnaire/{{ item.id }}/" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Backoffice</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">o</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun gestionnaire</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        La gestion detaillee des utilisateurs est centralisee dans le backoffice Django pour la securite et la tracabilite.
+      </p>
+      <a href="/backoffice/" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">Ouvrir le backoffice</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

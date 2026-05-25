@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Carte interactive" }} — Tourisme Cameroun{% endblock %}
+{% block meta_description %}Découvrez tous les sites touristiques du Cameroun sur une carte interactive. Filtrez par région et catégorie pour planifier votre voyage.{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="">
+<style>
+  #carte-cameroun {
+    height: calc(100vh - 5rem);
+    min-height: 540px;
+    z-index: 0;
+    background: var(--color-sable-50);
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 1rem;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 24px 48px -16px oklch(20% 0.03 145 / 0.35);
+    border: 1px solid color-mix(in oklch, var(--color-foret-900) 12%, transparent);
+  }
+  .leaflet-popup-content {
+    margin: 0 !important;
+    min-width: 280px;
+    font-family: var(--font-sans);
+  }
+  .leaflet-popup-tip {
+    background: var(--color-base-100);
+    border: 1px solid color-mix(in oklch, var(--color-foret-900) 12%, transparent);
+  }
+  .popup-photo {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+  }
+  .popup-body { padding: 1rem; }
+  .popup-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; }
+  .popup-cat {
+    display:inline-block; padding:0.15rem 0.6rem; border-radius:999px;
+    color:white; font-size:0.65rem; letter-spacing:0.1em;
+    text-transform:uppercase; font-weight:600;
+  }
+  .popup-rating { color: var(--color-accent); font-weight: 600; }
+  .popup-title { font-family: var(--font-display); font-size:1.15rem; font-weight:500; color: var(--color-foret-900); margin-bottom:0.25rem; line-height:1.2; }
+  .popup-place { font-size:0.75rem; color: var(--color-foret-700); font-family: var(--font-mono); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem; }
+  .popup-desc { font-size:0.8rem; color: rgb(60 70 60 / 0.85); line-height:1.5; margin-bottom:0.75rem; }
+  .popup-foot { display:flex; align-items:center; justify-content:space-between; padding-top:0.75rem; border-top:1px solid color-mix(in oklch, var(--color-foret-900) 10%, transparent); }
+  .popup-price { font-family: var(--font-mono); font-weight:600; color: var(--color-foret-900); }
+  .popup-link {
+    display:inline-flex; align-items:center; gap:0.35rem;
+    background: var(--color-foret-900); color: var(--color-base-100);
+    padding:0.4rem 1rem; border-radius:999px; font-size:0.7rem;
+    text-transform:uppercase; letter-spacing:0.1em; font-weight:500;
+    text-decoration:none;
+  }
+
+  .leaflet-control-attribution {
+    background: rgba(255,255,255,0.85) !important;
+    backdrop-filter: blur(8px);
+    font-size: 10px !important;
+    font-family: var(--font-mono);
+  }
+
+  .leaflet-bar a {
+    background: var(--color-base-100) !important;
+    color: var(--color-foret-900) !important;
+    border: 1px solid color-mix(in oklch, var(--color-foret-900) 12%, transparent) !important;
+    font-weight: 600;
+  }
+  .leaflet-bar a:hover {
+    background: var(--color-foret-900) !important;
+    color: var(--color-base-100) !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bg-base-100">
+  {{ sites_json|json_script:"sites-data" }}
+
+  <div class="flex flex-col lg:flex-row h-[calc(100vh-5rem)]"
+       x-data="{ sidebarOuverte: false }">
+
+    {# === SIDEBAR === #}
+    <aside class="lg:w-[400px] lg:flex-shrink-0 bg-base-100 overflow-y-auto border-r border-foret-100/60 relative"
+           :class="sidebarOuverte ? 'block' : 'hidden lg:block'">
+
+      <div class="p-7 space-y-7">
+
+        <header>
+          <nav class="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-4">
+            <a href="{% url 'home' %}" class="hover:text-foret-900">Accueil</a>
+            <span>/</span>
+            <span class="text-accent">Carte</span>
+          </nav>
+
+          <p class="eyebrow mb-2">Atlas</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light text-foret-900 leading-tight">
+            <em class="font-display-italic text-accent">Cartographie</em><br>
+            vivante du pays.
+          </h1>
+          <p class="text-sm text-foret-700/70 mt-4 leading-relaxed">
+            <span class="font-mono-num text-accent text-base">{{ total_sites }}</span>
+            site{{ total_sites|pluralize }} géolocalisé{{ total_sites|pluralize }}
+            {% if region_active or categorie_active %}<span class="text-foret-700">après filtrage</span>{% endif %}.
+          </p>
+        </header>
+
+        <button type="button" id="btn-ma-position"
+                class="w-full inline-flex items-center justify-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+          <span class="text-base">◉</span>
+          <span class="btn-label">Centrer sur ma position</span>
+        </button>
+
+        <form method="get" class="space-y-5 pt-7 border-t border-foret-100/60">
+          <p class="eyebrow">Affiner</p>
+
+          <div>
+            <label for="filter-region" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Région</label>
+            <select name="region" id="filter-region"
+                    class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+              <option value="">Toutes les régions</option>
+              {% for region in regions %}
+              <option value="{{ region.pk }}" {% if region_active and region_active.pk == region.pk %}selected{% endif %}>
+                {{ region.nom }} ({{ region.nb_sites }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="filter-categorie" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Catégorie</label>
+            <select name="categorie" id="filter-categorie"
+                    class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+              <option value="">Toutes les catégories</option>
+              {% for cat in categories %}
+              <option value="{{ cat.pk }}" {% if categorie_active and categorie_active.pk == cat.pk %}selected{% endif %}>
+                {{ cat.libelle }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button type="submit" class="flex-1 btn-carnet bg-foret-900 text-base-100 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Appliquer
+            </button>
+            {% if region_active or categorie_active %}
+            <a href="{% url 'localisation:carte' %}" class="text-xs text-foret-700 hover:text-foret-900 self-center px-3 underline decoration-dotted underline-offset-4">
+              Réinitialiser
+            </a>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if categories %}
+        <div class="pt-7 border-t border-foret-100/60">
+          <p class="eyebrow mb-4">Légende</p>
+          <ul class="space-y-2.5">
+            {% for cat in categories %}
+            <li class="flex items-center gap-3 text-sm">
+              <span class="w-4 h-4 rounded-full ring-2 ring-base-100 flex-shrink-0"
+                    style="background-color: {{ cat.couleur|default:'#15803D' }};"></span>
+              <span class="text-foret-900">{{ cat.libelle }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="pt-7 border-t border-foret-100/60">
+          <p class="eyebrow mb-4">Sites visibles</p>
+          <div id="liste-sites-visibles" class="space-y-2 max-h-[400px] overflow-y-auto -mx-2 px-2">
+            <p class="text-xs text-foret-700/50 italic font-mono">Chargement de la carte…</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+
+    {# === ZONE CARTE === #}
+    <div class="flex-1 relative">
+      <button @click="sidebarOuverte = !sidebarOuverte"
+              class="lg:hidden absolute top-4 left-4 z-[1000] bg-foret-900 text-base-100 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider shadow-xl">
+        <span x-text="sidebarOuverte ? '🗺 Voir la carte' : '☰ Filtres'"></span>
+      </button>
+
+      <div id="carte-cameroun"></div>
+
+      {% if total_sites == 0 %}
+      <div class="absolute inset-0 flex items-center justify-center bg-base-100/95 z-[500] backdrop-blur-sm">
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-10 max-w-md text-center shadow-2xl">
+          <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 items-center justify-center text-3xl mb-5">◯</div>
+          <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun site à pointer</h3>
+          <p class="text-sm text-foret-700/70 mb-6">
+            Aucun site ne correspond à vos critères. Essayez d'élargir vos filtres ou réinitialisez la recherche.
+          </p>
+          <a href="{% url 'localisation:carte' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider">
+            Réinitialiser
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // Helper : crée un élément avec attributs + textContent (sûr contre XSS)
+  function el(tag, opts = {}, children = []) {
+    const node = document.createElement(tag);
+    if (opts.cls) node.className = opts.cls;
+    if (opts.style) node.style.cssText = opts.style;
+    if (opts.text != null) node.textContent = String(opts.text);
+    if (opts.href != null) node.href = opts.href;
+    if (opts.src != null) node.src = opts.src;
+    if (opts.alt != null) node.alt = opts.alt;
+    if (opts.type) node.type = opts.type;
+    if (opts.dataset) Object.assign(node.dataset, opts.dataset);
+    if (opts.title) node.title = opts.title;
+    children.forEach(c => c && node.appendChild(c));
+    return node;
+  }
+
+  const sitesData = JSON.parse(document.getElementById('sites-data').textContent);
+
+  const carte = L.map('carte-cameroun', {
+    center: [7.37, 12.35],
+    zoom: 6,
+    minZoom: 5,
+    maxZoom: 17,
+    zoomControl: false,
+  });
+
+  L.control.zoom({ position: 'bottomright' }).addTo(carte);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap · © Carto',
+    maxZoom: 19,
+    subdomains: 'abcd',
+  }).addTo(carte);
+
+  // Marker custom avec glyph
+  function creerMarker(couleur, glyph) {
+    const wrap = el('div', { cls: 'marker-cameroun', style: 'background-color:' + couleur });
+    wrap.appendChild(el('span', { text: glyph || '◈' }));
+    return L.divIcon({
+      className: '',
+      html: wrap.outerHTML,
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -34],
+    });
+  }
+
+  // Popup construit en DOM puis converti — protection XSS
+  function genererPopupNode(site) {
+    const root = el('div');
+
+    if (site.photo) {
+      root.appendChild(el('img', { cls: 'popup-photo', src: site.photo, alt: site.nom }));
+    } else {
+      const ph = el('div', {
+        cls: 'popup-photo',
+        style: 'display:flex;align-items:center;justify-content:center;background:var(--color-sable-100);font-size:36px;opacity:0.5',
+        text: '◈',
+      });
+      root.appendChild(ph);
+    }
+
+    const body = el('div', { cls: 'popup-body' });
+
+    const head = el('div', { cls: 'popup-head' });
+    head.appendChild(el('span', {
+      cls: 'popup-cat',
+      style: 'background-color:' + site.couleur,
+      text: site.categorie,
+    }));
+    if (site.note > 0) {
+      head.appendChild(el('span', { cls: 'popup-rating', text: '★ ' + site.note.toFixed(1) }));
+    }
+    body.appendChild(head);
+
+    body.appendChild(el('h3', { cls: 'popup-title', text: site.nom }));
+    body.appendChild(el('p', {
+      cls: 'popup-place',
+      text: site.ville + (site.region ? ' · ' + site.region : ''),
+    }));
+
+    if (site.description) {
+      body.appendChild(el('p', { cls: 'popup-desc', text: site.description }));
+    }
+
+    const foot = el('div', { cls: 'popup-foot' });
+    const price = el('span', { cls: 'popup-price' });
+    price.appendChild(document.createTextNode(site.tarif.toLocaleString('fr-FR') + ' '));
+    price.appendChild(el('span', {
+      style: 'font-size:0.7rem;color:var(--color-foret-700);font-family:var(--font-sans);font-weight:400;',
+      text: 'FCFA',
+    }));
+    foot.appendChild(price);
+    foot.appendChild(el('a', { cls: 'popup-link', href: site.url, text: 'Découvrir →' }));
+    body.appendChild(foot);
+
+    root.appendChild(body);
+    return root;
+  }
+
+  const markers = [];
+  const groupeMarkers = L.layerGroup().addTo(carte);
+
+  sitesData.forEach(site => {
+    const marker = L.marker(
+      [site.lat, site.lng],
+      { icon: creerMarker(site.couleur, '◈'), title: site.nom }
+    ).bindPopup(genererPopupNode(site), {
+      maxWidth: 300,
+      closeButton: true,
+      autoPanPadding: [40, 80],
+    });
+
+    marker.addTo(groupeMarkers);
+    markers.push(marker);
+  });
+
+  if (markers.length > 0) {
+    const groupe = L.featureGroup(markers);
+    carte.fitBounds(groupe.getBounds(), {
+      padding: [50, 50],
+      maxZoom: 12,
+    });
+  }
+
+  // Liste latérale — construction DOM intégrale
+  const listeContainer = document.getElementById('liste-sites-visibles');
+  while (listeContainer.firstChild) listeContainer.removeChild(listeContainer.firstChild);
+
+  if (sitesData.length === 0) {
+    listeContainer.appendChild(el('p', {
+      cls: 'text-xs text-foret-700/50 italic font-mono',
+      text: 'Aucun site visible',
+    }));
+  } else {
+    sitesData.forEach((site, index) => {
+      const btn = el('button', {
+        cls: 'site-mini-card w-full text-left p-3 rounded-xl hover:bg-sable-50 transition flex gap-3 items-center group',
+        type: 'button',
+        dataset: { index: String(index) },
+      });
+
+      btn.appendChild(el('span', {
+        cls: 'w-3 h-3 rounded-full mt-1 flex-shrink-0 ring-2 ring-base-100',
+        style: 'background-color:' + site.couleur,
+      }));
+
+      const text = el('div', { cls: 'flex-1 min-w-0' });
+      text.appendChild(el('p', {
+        cls: 'font-display text-sm font-medium text-foret-900 truncate group-hover:text-accent transition',
+        text: site.nom,
+      }));
+      text.appendChild(el('p', {
+        cls: 'text-[10px] text-foret-700/60 font-mono uppercase tracking-wider truncate',
+        text: site.ville,
+      }));
+      btn.appendChild(text);
+
+      btn.appendChild(el('span', {
+        cls: 'text-foret-700/40 group-hover:text-accent transition',
+        text: '→',
+      }));
+
+      btn.addEventListener('click', () => {
+        carte.setView([site.lat, site.lng], 13, { animate: true });
+        markers[index].openPopup();
+      });
+
+      listeContainer.appendChild(btn);
+    });
+  }
+
+  // Géolocalisation
+  const btnPosition = document.getElementById('btn-ma-position');
+  const btnLabel = btnPosition.querySelector('.btn-label');
+  let markerUtilisateur = null;
+
+  btnPosition.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert("La géolocalisation n'est pas disponible sur votre navigateur.");
+      return;
+    }
+
+    btnPosition.disabled = true;
+    btnLabel.textContent = 'Localisation…';
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        if (markerUtilisateur) carte.removeLayer(markerUtilisateur);
+
+        const popupNode = el('strong', {
+          style: 'font-family:var(--font-display)',
+          text: 'Vous êtes ici',
+        });
+
+        markerUtilisateur = L.marker([lat, lng], {
+          icon: creerMarker('#3B82F6', '◉'),
+        }).addTo(carte).bindPopup(popupNode).openPopup();
+
+        carte.setView([lat, lng], 11, { animate: true });
+
+        btnPosition.disabled = false;
+        btnLabel.textContent = 'Centrer sur ma position';
+      },
+      (error) => {
+        alert("Impossible d'obtenir votre position : " + error.message);
+        btnPosition.disabled = false;
+        btnLabel.textContent = 'Centrer sur ma position';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+});
+</script>
+{% endblock %}

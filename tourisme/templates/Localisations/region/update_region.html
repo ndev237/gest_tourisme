@@ -1,10 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Modifier région — image actuelle + remplacement optionnel.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Modifier {{ region.nom }} — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'localisation:liste_region' %}" class="hover:text-foret-900">Régions</a>
+      <span>/</span>
+      <span class="text-accent">{{ region.nom }}</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Édition</p>
+        <h1 class="relative font-display text-2xl font-light">
+          <span class="badge-stamp text-accent border-accent/60 align-middle mr-2">{{ region.code }}</span>
+          {{ region.nom }}
+        </h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data"
+              x-data="{
+                previewUrl: null,
+                handleFile(event) {
+                  const file = event.target.files[0];
+                  if (!file) { this.previewUrl = null; return; }
+                  if (file.size > 5 * 1024 * 1024) { alert('Max 5 Mo'); event.target.value = ''; return; }
+                  const reader = new FileReader();
+                  reader.onload = (e) => { this.previewUrl = e.target.result; };
+                  reader.readAsDataURL(file);
+                }
+              }"
+              class="space-y-5">
+          {% csrf_token %}
+
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+              <label for="id_nom" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom <span class="text-error">*</span></label>
+              <input type="text" name="nom" id="id_nom" value="{{ form.nom.value }}" required minlength="3" maxlength="50"
+                     class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.nom.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              {% if form.nom.errors %}<p class="mt-1.5 text-xs text-error">{{ form.nom.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="id_code" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Code <span class="text-error">*</span></label>
+              <select name="code" id="id_code" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none">
+                {% for value, label in form.code.field.choices %}{% if value %}
+                  <option value="{{ value }}" {% if form.code.value == value %}selected{% endif %}>{{ value }} — {{ label }}</option>
+                {% endif %}{% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="id_chef_lieu" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Chef-lieu <span class="text-error">*</span></label>
+            <input type="text" name="chef_lieu" id="id_chef_lieu" value="{{ form.chef_lieu.value }}" required maxlength="80"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div>
+            <label for="id_description" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description touristique</label>
+            <textarea name="description" id="id_description" rows="5"
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.description.value|default:'' }}</textarea>
+          </div>
+
+          {% if region.image %}
+          <div>
+            <p class="eyebrow mb-3">Image actuelle</p>
+            <div class="rounded-2xl overflow-hidden bg-sable-50 border border-foret-100/60">
+              <img src="{{ region.image.url }}" alt="{{ region.nom }}" class="w-full max-h-64 object-cover">
+            </div>
+          </div>
+          {% endif %}
+
+          <div>
+            <label for="id_image" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Remplacer l'image</label>
+            <input type="file" name="image" id="id_image" accept="image/*" @change="handleFile($event)"
+                   class="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-mono file:uppercase file:tracking-wider file:bg-foret-900 file:text-base-100 hover:file:bg-foret-700 file:cursor-pointer">
+            <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Laissez vide pour conserver</p>
+          </div>
+
+          <div x-show="previewUrl" x-cloak x-transition>
+            <p class="eyebrow mb-2">Nouvelle image (aperçu)</p>
+            <div class="rounded-2xl overflow-hidden bg-sable-50 border border-foret-100/60">
+              <img :src="previewUrl" class="w-full max-h-64 object-contain">
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'localisation:liste_region' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

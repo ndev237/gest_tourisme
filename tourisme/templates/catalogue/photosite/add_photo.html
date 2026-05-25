@@ -1,10 +1,98 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Ajouter photo — formulaire avec aperçu instantané (Alpine + FileReader).
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Nouvelle photo — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-foret-900">Mes sites</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:liste_photosite' slug=site.slug %}" class="hover:text-foret-900">Photos</a>
+      <span>/</span>
+      <span class="text-accent">Nouvelle</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Galerie</p>
+        <h1 class="relative font-display text-2xl font-light">Nouvelle photographie</h1>
+        <p class="relative text-sm text-base-100/60 mt-1 font-mono">Pour {{ site.nom }}</p>
+      </div>
+
+      <div class="p-8 lg:p-10">
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data"
+              x-data="{
+                previewUrl: null,
+                handleFile(event) {
+                  const file = event.target.files[0];
+                  if (!file) { this.previewUrl = null; return; }
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert('Image trop volumineuse (max 5 Mo)');
+                    event.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (e) => { this.previewUrl = e.target.result; };
+                  reader.readAsDataURL(file);
+                }
+              }"
+              class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_image" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Image <span class="text-error">*</span></label>
+            <input type="file" name="image" id="id_image" accept="image/*" required @change="handleFile($event)"
+                   class="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-mono file:uppercase file:tracking-wider file:bg-foret-900 file:text-base-100 hover:file:bg-foret-700 file:cursor-pointer">
+            <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">JPG/PNG, max 5 Mo</p>
+            {% if form.image.errors %}<p class="mt-1 text-xs text-error">{{ form.image.errors.0 }}</p>{% endif %}
+          </div>
+
+          <!-- Aperçu -->
+          <div x-show="previewUrl" x-cloak x-transition>
+            <p class="eyebrow mb-2">Aperçu</p>
+            <div class="rounded-2xl overflow-hidden bg-sable-50 border border-foret-100/60">
+              <img :src="previewUrl" class="w-full max-h-96 object-contain">
+            </div>
+          </div>
+
+          <div>
+            <label for="id_legende" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Légende (optionnel)</label>
+            <input type="text" name="legende" id="id_legende" value="{{ form.legende.value|default:'' }}" maxlength="200"
+                   placeholder="Vue panoramique depuis le sommet"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_ordre" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ordre d'affichage</label>
+              <input type="number" name="ordre" id="id_ordre" value="{{ form.ordre.value|default:'0' }}" min="0"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+            <label class="flex items-center gap-3 self-end mb-3 cursor-pointer text-sm text-foret-900">
+              <input type="checkbox" name="est_principale" value="on" class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+              <span>★ Photo principale</span>
+            </label>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:liste_photosite' slug=site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Ajouter
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

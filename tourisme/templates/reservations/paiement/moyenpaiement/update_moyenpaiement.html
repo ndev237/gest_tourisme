@@ -1,0 +1,205 @@
+<!--
+ ============================================================
+   MODIFIER MOYEN PAIEMENT (admin) :
+   paiements/moyenpaiement/update_moyenpaiement.html
+   ============================================================ 
+-->
+{% extends "base.html" %}
+
+{% block title %}Modifier {{ moyen.libelle }} — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-base-200 min-h-screen py-6">
+    <div class="container mx-auto px-4 max-w-3xl">
+
+        <nav class="text-sm breadcrumbs mb-4">
+            <ul>
+                <li><a href="{% url 'paiement:liste_moyenpaiement' %}">Moyens de paiement</a></li>
+                <li>{{ moyen.libelle }}</li>
+            </ul>
+        </nav>
+
+        <header class="mb-6">
+            <h1 class="font-display text-3xl font-bold">✏️ Modifier le moyen</h1>
+            <p class="text-base-content/70 mt-1">
+                {{ moyen.libelle }} ({{ moyen.code }})
+            </p>
+        </header>
+
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <span>{{ form.non_field_errors.0 }}</span>
+                </div>
+                {% endif %}
+
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="id_libelle" class="label">
+                                <span class="label-text font-semibold">Libellé <span class="text-error">*</span></span>
+                            </label>
+                            <input type="text" name="libelle" id="id_libelle"
+                                   value="{{ form.libelle.value }}"
+                                   required maxlength="80"
+                                   class="input input-bordered {% if form.libelle.errors %}input-error{% endif %}">
+                        </div>
+
+                        <div class="form-control">
+                            <label for="id_code" class="label">
+                                <span class="label-text font-semibold">Code interne <span class="text-error">*</span></span>
+                            </label>
+                            <input type="text" name="code" id="id_code"
+                                   value="{{ form.code.value }}"
+                                   required maxlength="30"
+                                   class="input input-bordered font-mono {% if form.code.errors %}input-error{% endif %}">
+                            <label class="label">
+                                <span class="label-text-alt text-warning">⚠️ Modifier le code peut casser les webhooks existants</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="id_type" class="label">
+                                <span class="label-text font-semibold">Type <span class="text-error">*</span></span>
+                            </label>
+                            <select name="type" id="id_type" required class="select select-bordered">
+                                {% for value, label in form.type.field.choices %}
+                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-control">
+                            <label for="id_provider" class="label">
+                                <span class="label-text font-semibold">Provider <span class="text-error">*</span></span>
+                            </label>
+                            <select name="provider" id="id_provider" required class="select select-bordered">
+                                {% for value, label in form.provider.field.choices %}
+                                <option value="{{ value }}" {% if form.provider.value == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label for="id_description" class="label">
+                            <span class="label-text font-semibold">Description publique</span>
+                        </label>
+                        <textarea name="description" id="id_description" rows="2"
+                                  class="textarea textarea-bordered">{{ form.description.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="form-control">
+                        <label for="id_instructions" class="label">
+                            <span class="label-text font-semibold">Instructions</span>
+                        </label>
+                        <textarea name="instructions" id="id_instructions" rows="3"
+                                  class="textarea textarea-bordered">{{ form.instructions.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="form-control">
+                        <label for="id_devises_supportees" class="label">
+                            <span class="label-text font-semibold">Devises supportées (JSON)</span>
+                        </label>
+                        <input type="text" name="devises_supportees" id="id_devises_supportees"
+                               value='{{ form.devises_supportees.value|default:"[\"XAF\"]" }}'
+                               class="input input-bordered font-mono">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="id_montant_min" class="label">
+                                <span class="label-text font-semibold">Montant min</span>
+                            </label>
+                            <input type="number" name="montant_min" id="id_montant_min"
+                                   value="{{ form.montant_min.value }}"
+                                   min="0" step="100"
+                                   class="input input-bordered font-mono">
+                        </div>
+
+                        <div class="form-control">
+                            <label for="id_montant_max" class="label">
+                                <span class="label-text font-semibold">Montant max</span>
+                            </label>
+                            <input type="number" name="montant_max" id="id_montant_max"
+                                   value="{{ form.montant_max.value }}"
+                                   min="0" step="1000"
+                                   class="input input-bordered font-mono">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="id_frais_pourcentage" class="label">
+                                <span class="label-text font-semibold">Frais %</span>
+                            </label>
+                            <input type="number" name="frais_pourcentage" id="id_frais_pourcentage"
+                                   value="{{ form.frais_pourcentage.value }}"
+                                   min="0" max="100" step="0.01"
+                                   class="input input-bordered">
+                        </div>
+
+                        <div class="form-control">
+                            <label for="id_frais_fixe" class="label">
+                                <span class="label-text font-semibold">Frais fixe</span>
+                            </label>
+                            <input type="number" name="frais_fixe" id="id_frais_fixe"
+                                   value="{{ form.frais_fixe.value }}"
+                                   min="0" step="50"
+                                   class="input input-bordered">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="id_icone" class="label">
+                                <span class="label-text font-semibold">Icône</span>
+                            </label>
+                            <input type="text" name="icone" id="id_icone"
+                                   value="{{ form.icone.value|default:'' }}"
+                                   class="input input-bordered">
+                        </div>
+
+                        <div class="form-control">
+                            <label for="id_ordre_affichage" class="label">
+                                <span class="label-text font-semibold">Ordre</span>
+                            </label>
+                            <input type="number" name="ordre_affichage" id="id_ordre_affichage"
+                                   value="{{ form.ordre_affichage.value }}"
+                                   min="0" class="input input-bordered">
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3 bg-base-200 rounded-lg p-3">
+                            <input type="checkbox" name="est_actif" value="on"
+                                   {% if form.est_actif.value %}checked{% endif %}
+                                   class="toggle toggle-success">
+                            <span class="label-text font-semibold">Actif (visible par les touristes)</span>
+                        </label>
+                    </div>
+
+                    <div class="card-actions justify-end pt-4 border-t border-base-200">
+                        <a href="{% url 'paiement:liste_moyenpaiement' %}" class="btn btn-ghost">
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            💾 Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

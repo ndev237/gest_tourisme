@@ -1,0 +1,71 @@
+<!--
+  Modifier tag — formulaire compact.
+-->
+{% extends "base.html" %}
+
+{% block title %}Modifier {{ tag.libelle }} — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:liste_tag' %}" class="hover:text-foret-900">Tags</a>
+      <span>/</span>
+      <span class="text-accent">{{ tag.libelle }}</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Édition</p>
+        <h1 class="relative font-display text-2xl font-light">#{{ tag.libelle }}</h1>
+      </div>
+
+      <div class="p-8">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_libelle" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Libellé <span class="text-error">*</span>
+            </label>
+            <input type="text" name="libelle" id="id_libelle"
+                   value="{{ form.libelle.value }}"
+                   required minlength="2" maxlength="50"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.libelle.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.libelle.errors %}<p class="mt-1.5 text-xs text-error">{{ form.libelle.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="id_categorie_tag" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Catégorie du tag</label>
+            <input type="text" name="categorie_tag" id="id_categorie_tag"
+                   value="{{ form.categorie_tag.value|default:'' }}"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div>
+            <label for="id_icone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Icône</label>
+            <input type="text" name="icone" id="id_icone"
+                   value="{{ form.icone.value|default:'' }}"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:liste_tag' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

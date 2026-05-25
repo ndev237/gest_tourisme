@@ -1,0 +1,143 @@
+<!--
+ ============================================================
+   LISTE MOYENS DE PAIEMENT (admin) :
+   paiements/moyenpaiement/liste_moyenpaiement.html
+   ============================================================ 
+-->
+{% extends "base.html" %}
+
+{% block title %}Moyens de paiement — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-base-200 min-h-screen py-6">
+    <div class="container mx-auto px-4 max-w-6xl">
+
+        <div class="mb-4 flex items-center gap-2">
+            <span class="badge badge-error">Administration</span>
+        </div>
+
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+            <div>
+                <nav class="text-sm breadcrumbs">
+                    <ul>
+                        <li><a href="{% url 'compte:dashbord_admin' %}">Dashboard admin</a></li>
+                        <li>Moyens de paiement</li>
+                    </ul>
+                </nav>
+                <h1 class="font-display text-3xl font-bold mt-1">💳 Moyens de paiement</h1>
+                <p class="text-base-content/70 mt-1">
+                    {{ stats.actifs }} actifs sur {{ stats.total }} configurés
+                </p>
+            </div>
+
+            <a href="{% url 'paiement:add_moyenpaiement' %}" class="btn btn-primary">
+                ➕ Ajouter un moyen
+            </a>
+        </header>
+
+        {% if moyens %}
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ordre</th>
+                                <th>Libellé</th>
+                                <th>Type</th>
+                                <th>Provider</th>
+                                <th>Limites</th>
+                                <th>Frais</th>
+                                <th>Stats</th>
+                                <th>État</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in moyens %}
+                            <tr class="hover">
+                                <td><span class="badge badge-neutral">{{ m.ordre_affichage }}</span></td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-2xl">
+                                            {% if m.provider == 'mtn_momo' %}📱
+                                            {% elif m.provider == 'orange_money' %}🟠
+                                            {% elif m.provider == 'stripe' %}💳
+                                            {% elif m.provider == 'flutterwave' %}🌍
+                                            {% elif m.provider == 'manuel' %}💵
+                                            {% else %}💰{% endif %}
+                                        </span>
+                                        <div>
+                                            <p class="font-semibold text-sm">{{ m.libelle }}</p>
+                                            <p class="text-xs text-base-content/60 font-mono">{{ m.code }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-outline badge-sm">{{ m.get_type_display }}</span>
+                                </td>
+                                <td class="text-xs">{{ m.get_provider_display }}</td>
+                                <td class="text-xs font-mono">
+                                    {{ m.montant_min|floatformat:0 }}<br>
+                                    → {{ m.montant_max|floatformat:0 }}
+                                </td>
+                                <td class="text-xs">
+                                    {% if m.frais_pourcentage or m.frais_fixe %}
+                                        {% if m.frais_pourcentage %}{{ m.frais_pourcentage }}%{% endif %}
+                                        {% if m.frais_pourcentage and m.frais_fixe %}<br>+{% endif %}
+                                        {% if m.frais_fixe %}{{ m.frais_fixe|floatformat:0 }}{% endif %}
+                                    {% else %}
+                                        <span class="text-success">Gratuit</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs">
+                                    <p>{{ m.nb_paiements }} total</p>
+                                    {% if m.nb_paiements > 0 %}
+                                    <p class="text-success">{{ m.nb_reussis }} OK</p>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if m.est_actif %}
+                                        <span class="badge badge-success badge-sm">✓ Actif</span>
+                                    {% else %}
+                                        <span class="badge badge-ghost badge-sm">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">
+                                    <div class="join">
+                                        <a href="{% url 'paiement:update_moyenpaiement' moyen_id=m.id %}"
+                                           class="btn btn-sm btn-ghost join-item" title="Modifier">
+                                            ✏️
+                                        </a>
+                                        <a href="{% url 'paiement:delete_moyenpaiement' moyen_id=m.id %}"
+                                           class="btn btn-sm btn-ghost join-item text-error" title="Supprimer">
+                                            🗑
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body items-center text-center py-12">
+                <div class="text-7xl mb-3">💳</div>
+                <h3 class="card-title">Aucun moyen de paiement</h3>
+                <p class="text-base-content/70 mb-4 max-w-md">
+                    Configurez au moins un moyen de paiement (MTN MoMo, Orange Money, Stripe, ou Cash)
+                    pour que les touristes puissent payer leurs réservations.
+                </p>
+                <a href="{% url 'paiement:add_moyenpaiement' %}" class="btn btn-primary">
+                    ➕ Premier moyen
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

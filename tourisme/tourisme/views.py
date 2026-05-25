@@ -143,3 +143,4 @@ def page_404(request, exception):
 def page_500(request):
     """Page 500 personnalisée (erreur serveur)."""
     return render(request, '500.html', status=500)
+

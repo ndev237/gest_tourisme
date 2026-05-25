@@ -1,0 +1,249 @@
+<!--
+  Ajouter un site — wizard 3 étapes (infos / tarifs / localisation).
+-->
+{% extends "base.html" %}
+
+{% block title %}Nouveau site — Gestionnaire{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12" x-data="{ etape: 1 }">
+  <div class="max-w-4xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-foret-900">Dashboard</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-foret-900">Mes sites</a>
+      <span>/</span>
+      <span class="text-accent">Nouveau</span>
+    </nav>
+
+    <div class="text-center mb-8">
+      <p class="eyebrow mb-3">Wizard</p>
+      <h1 class="font-display text-4xl font-light text-foret-900 leading-tight">Nouveau site touristique</h1>
+      <p class="text-sm text-foret-700/70 mt-2">Remplissez les informations en 3 étapes</p>
+    </div>
+
+    <!-- Stepper -->
+    <div class="flex items-center justify-center gap-3 mb-10 text-xs font-mono uppercase tracking-[0.18em]">
+      <button type="button" @click="etape = 1" class="flex items-center gap-2"
+              :class="etape >= 1 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 1 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">01</span>
+        <span class="hidden sm:inline">Infos</span>
+      </button>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <button type="button" @click="etape = 2" class="flex items-center gap-2"
+              :class="etape >= 2 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 2 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">02</span>
+        <span class="hidden sm:inline">Tarifs</span>
+      </button>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <button type="button" @click="etape = 3" class="flex items-center gap-2"
+              :class="etape >= 3 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 3 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">03</span>
+        <span class="hidden sm:inline">Localisation</span>
+      </button>
+    </div>
+
+    {% if site_form.non_field_errors or localisation_form.non_field_errors %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">
+      {% for err in site_form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+      {% for err in localisation_form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Étape 1 : Infos -->
+      <div x-show="etape === 1" class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10 space-y-5">
+        <p class="eyebrow">Étape 01 · Informations générales</p>
+
+        <div>
+          <label for="id_nom" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom du site <span class="text-error">*</span></label>
+          <input type="text" name="nom" id="id_nom" value="{{ site_form.nom.value|default:'' }}" required minlength="3" maxlength="150"
+                 class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                        {% if site_form.nom.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+          {% if site_form.nom.errors %}<p class="mt-1.5 text-xs text-error">{{ site_form.nom.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_categorie" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Catégorie <span class="text-error">*</span></label>
+            <select name="categorie" id="id_categorie" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <option value="">— Choisir —</option>
+              {% for choice in site_form.categorie.field.queryset %}
+              <option value="{{ choice.pk }}" {% if site_form.categorie.value|stringformat:'s' == choice.pk|stringformat:'s' %}selected{% endif %}>{{ choice.libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="id_type" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Type</label>
+            <select name="type" id="id_type" class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              {% for value, label in site_form.type.field.choices %}
+              <option value="{{ value }}" {% if site_form.type.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="id_description_courte" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description courte (250 car.)</label>
+          <textarea name="description_courte" id="id_description_courte" rows="2" maxlength="250"
+                    class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ site_form.description_courte.value|default:'' }}</textarea>
+        </div>
+
+        <div>
+          <label for="id_description" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description complète <span class="text-error">*</span></label>
+          <textarea name="description" id="id_description" rows="6" required
+                    class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ site_form.description.value|default:'' }}</textarea>
+        </div>
+
+        <div>
+          <p class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-3">Tags thématiques</p>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {% for choice in site_form.tags.field.queryset %}
+            <label class="flex items-center gap-2 bg-sable-50 border border-foret-100/60 rounded-xl px-3 py-2 cursor-pointer hover:border-foret-700 transition">
+              <input type="checkbox" name="tags" value="{{ choice.pk }}" class="w-3.5 h-3.5 rounded border-foret-300 text-accent focus:ring-accent">
+              <span class="text-xs text-foret-900">{{ choice.libelle }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-4 border-t border-foret-100/60">
+          <button type="button" @click="etape = 2" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Suivant →
+          </button>
+        </div>
+      </div>
+
+      <!-- Étape 2 : Tarifs -->
+      <div x-show="etape === 2" x-cloak class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10 space-y-5">
+        <p class="eyebrow">Étape 02 · Tarifs & capacité</p>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_tarif_adulte" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Tarif adulte (FCFA) <span class="text-error">*</span></label>
+            <input type="number" name="tarif_adulte" id="id_tarif_adulte" value="{{ site_form.tarif_adulte.value|default:'' }}" required min="0" step="500"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+          <div>
+            <label for="id_tarif_enfant" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Tarif enfant (FCFA) <span class="text-error">*</span></label>
+            <input type="number" name="tarif_enfant" id="id_tarif_enfant" value="{{ site_form.tarif_enfant.value|default:'' }}" required min="0" step="500"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if site_form.tarif_enfant.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">≤ tarif adulte</p>
+            {% if site_form.tarif_enfant.errors %}<p class="text-xs text-error">{{ site_form.tarif_enfant.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_capacite_max" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Capacité max (pers./jour)</label>
+            <input type="number" name="capacite_max" id="id_capacite_max" value="{{ site_form.capacite_max.value|default:'100' }}" min="1"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+          <div>
+            <label for="id_duree_visite_moyenne" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Durée moyenne (minutes)</label>
+            <input type="number" name="duree_visite_moyenne" id="id_duree_visite_moyenne" value="{{ site_form.duree_visite_moyenne.value|default:'120' }}" min="15" step="15"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+        </div>
+
+        <div>
+          <label for="id_horaires_ouverture" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Horaires d'ouverture (JSON)</label>
+          <textarea name="horaires_ouverture" id="id_horaires_ouverture" rows="3"
+                    placeholder='{"lundi":"08:00-17:00","dimanche":"ferme"}'
+                    class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ site_form.horaires_ouverture.value|default:'{}' }}</textarea>
+        </div>
+
+        <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer">
+          <input type="checkbox" name="accessibilite_pmr" value="on" {% if site_form.accessibilite_pmr.value %}checked{% endif %}
+                 class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+          <span>Site accessible aux personnes à mobilité réduite</span>
+        </label>
+
+        <div class="flex justify-between pt-4 border-t border-foret-100/60">
+          <button type="button" @click="etape = 1" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</button>
+          <button type="button" @click="etape = 3" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Suivant →
+          </button>
+        </div>
+      </div>
+
+      <!-- Étape 3 : Localisation -->
+      <div x-show="etape === 3" x-cloak class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10 space-y-5">
+        <p class="eyebrow">Étape 03 · Localisation</p>
+        <p class="text-sm text-foret-700/70">Emplacement précis du site. Coordonnées GPS dans le périmètre du Cameroun.</p>
+
+        <div>
+          <label for="id_region" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Région <span class="text-error">*</span></label>
+          <select name="region" id="id_region" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+            <option value="">— Choisir une région —</option>
+            {% for choice in localisation_form.region.field.queryset %}
+            <option value="{{ choice.pk }}" {% if localisation_form.region.value|stringformat:'s' == choice.pk|stringformat:'s' %}selected{% endif %}>{{ choice.nom }} ({{ choice.chef_lieu }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_ville" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ville <span class="text-error">*</span></label>
+            <input type="text" name="ville" id="id_ville" value="{{ localisation_form.ville.value|default:'' }}" required
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+          <div>
+            <label for="id_quartier" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Quartier</label>
+            <input type="text" name="quartier" id="id_quartier" value="{{ localisation_form.quartier.value|default:'' }}"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+        </div>
+
+        <div>
+          <label for="id_adresse" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Adresse détaillée</label>
+          <textarea name="adresse" id="id_adresse" rows="2"
+                    class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ localisation_form.adresse.value|default:'' }}</textarea>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_latitude" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Latitude <span class="text-error">*</span> <span class="text-foret-700/40 normal-case ml-2">(1.5 → 13.5)</span></label>
+            <input type="number" name="latitude" id="id_latitude" value="{{ localisation_form.latitude.value|default:'' }}" required step="0.000001" min="1.5" max="13.5" placeholder="Ex : 3.848"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if localisation_form.latitude.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if localisation_form.latitude.errors %}<p class="mt-1.5 text-xs text-error">{{ localisation_form.latitude.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_longitude" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Longitude <span class="text-error">*</span> <span class="text-foret-700/40 normal-case ml-2">(8.0 → 16.5)</span></label>
+            <input type="number" name="longitude" id="id_longitude" value="{{ localisation_form.longitude.value|default:'' }}" required step="0.000001" min="8.0" max="16.5" placeholder="Ex : 11.502"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if localisation_form.longitude.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if localisation_form.longitude.errors %}<p class="mt-1.5 text-xs text-error">{{ localisation_form.longitude.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="bg-info/10 border border-info/30 rounded-2xl p-4 text-sm text-foret-900 flex gap-3">
+          <span class="font-mono text-info">i</span>
+          <p>Récupérez les coordonnées GPS sur <a href="https://maps.google.com" target="_blank" class="text-info underline decoration-dotted underline-offset-4">Google Maps</a> : clic droit sur le lieu → les coordonnées s'affichent.</p>
+        </div>
+
+        <div>
+          <label for="id_point_repere" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Point de repère</label>
+          <input type="text" name="point_repere" id="id_point_repere" value="{{ localisation_form.point_repere.value|default:'' }}" placeholder="À 200m de l'hôtel Mont Fébé"
+                 class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+        </div>
+
+        <div class="flex justify-between pt-4 border-t border-foret-100/60">
+          <button type="button" @click="etape = 2" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</button>
+          <button type="submit" class="btn-carnet bg-accent text-foret-900 rounded-full px-8 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+            ✓ Créer le site
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

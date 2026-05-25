@@ -1,337 +1,421 @@
 {% extends "base.html" %}
 {% load static %}
+{% load string_filters %}
 
-{% comment %}
-==============================================================
-templates/home.html — PAGE D'ACCUEIL PUBLIQUE
-==============================================================
-Reproduit fidèlement le Wireframe 1 (homepage touriste).
+{% block title %}Tourisme Cameroun — Le carnet de voyage{% endblock %}
 
-Sections (de haut en bas) :
-1. HERO  — gradient vert avec slogan + barre de recherche
-2. STRIP catégories (Plages, Montagnes, Parcs, etc.)
-3. SECTION sites populaires (grille 3x2 cards)
-4. SECTION régions à découvrir
-5. SECTION pourquoi nous choisir
-6. CTA — appel à devenir gestionnaire
-
-Le template gère le cas "base de données vide" (sites_populaires=[])
-pour rester affichable même en début de projet.
-{% endcomment %}
-
-{% block title %}Accueil — Découvrez le Cameroun{% endblock %}
+{% block extra_head %}
+<style>
+  /* Animation subtile pour le hero — kenburns lent */
+  .hero-photo {
+    animation: slow-zoom 22s ease-out forwards;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 
 <!-- ============================================================
-     HERO — bandeau d'accroche principal
-     ============================================================ -->
-<section class="relative overflow-hidden bg-gradient-to-br from-green-700 via-green-600 to-emerald-700">
-  <!-- Motif décoratif en fond -->
-  <div class="absolute inset-0 opacity-10">
-    <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-          <circle cx="20" cy="20" r="1.5" fill="white"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#pattern)"/>
-    </svg>
+   1. HERO — Composition éditoriale plein écran
+   ============================================================ -->
+<section class="relative h-[88vh] min-h-[640px] overflow-hidden bg-foret-900 text-base-100">
+
+  {# Image de fond avec ken burns #}
+  <div class="absolute inset-0">
+    <img src="{% static 'images/hero-bg.jpg' %}"
+         alt="Paysage du Cameroun"
+         class="hero-photo w-full h-full object-cover"
+         onerror="this.style.display='none'">
+    <div class="absolute inset-0 hero-overlay"></div>
+    <div class="absolute inset-0 bg-grain opacity-40"></div>
   </div>
 
-  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 text-center text-white">
-    <span class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium mb-6">
-      🇨🇲 L'Afrique en miniature
-    </span>
+  {# Bandeau supérieur — coordonnées + saison #}
+  <div class="absolute inset-x-0 top-6 z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+              flex justify-between items-center text-xs font-mono uppercase tracking-[0.2em] text-base-100/70">
+    <span>07.3697° N · 12.3547° E</span>
+    <span class="hidden md:inline">Édition № <span class="text-accent">{% now "Y" %}</span></span>
+    <span>Saison sèche · {% now "F" %}</span>
+  </div>
 
-    <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight">
-      Découvrez le Cameroun<br>
-      <span class="text-yellow-300">en quelques clics</span>
-    </h1>
+  {# Contenu principal #}
+  <div class="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-20 lg:pb-28">
+    <div class="max-w-3xl animate-rise">
+      <p class="eyebrow text-accent mb-6">№ 01 — Le carnet de voyage</p>
+      <h1 class="font-display font-light text-5xl sm:text-6xl lg:text-7xl xl:text-8xl leading-[0.95] text-base-100">
+        L'Afrique<br>
+        <em class="font-display-italic text-accent">en miniature</em>,<br>
+        <span class="font-medium">en grand format.</span>
+      </h1>
+      <p class="text-lg lg:text-xl text-base-100/85 mt-8 max-w-xl leading-relaxed">
+        Du Mont Cameroun aux plages de Kribi, des chefferies Bamilékés aux savanes du Nord —
+        choisissez votre prochain chapitre, réservez en quelques clics.
+      </p>
 
-    <p class="max-w-2xl mx-auto text-lg sm:text-xl text-green-50 mb-10">
-      Explorez et réservez les plus beaux sites touristiques du pays :
-      plages, montagnes, parcs nationaux, sites culturels et bien plus encore.
-    </p>
+      {# Barre de recherche élargie — design carnet #}
+      <form method="get" action="{% url 'catalogue:liste_sites' %}"
+            class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-2xl">
+        <div class="flex-1 relative">
+          <svg class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-foret-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+          </svg>
+          <input type="text" name="q"
+                 placeholder="Mont Cameroun, Lac Nyos, Kribi…"
+                 class="w-full bg-base-100 text-foret-900 placeholder:text-foret-700/40
+                        rounded-full pl-14 pr-5 py-5 text-base focus:outline-none focus:ring-2 focus:ring-accent shadow-2xl">
+        </div>
+        <button type="submit" class="btn-carnet bg-accent text-foret-900 font-medium uppercase tracking-wider rounded-full px-8 py-5 hover:bg-accent/90 transition whitespace-nowrap">
+          Explorer
+        </button>
+      </form>
 
-    <!-- BARRE DE RECHERCHE -->
-    <form action="#" method="get"
-          class="max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl p-2 flex flex-col sm:flex-row gap-2">
-      <div class="flex-1 flex items-center px-4 py-2">
-        <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-        <input type="text" name="q" placeholder="Rechercher un site, une ville..."
-               class="w-full outline-none text-gray-900 placeholder-gray-400">
+      {# Suggestions — petits tampons #}
+      <div class="flex flex-wrap items-center gap-2 mt-6">
+        <span class="text-xs font-mono uppercase tracking-wider text-base-100/50">Suggestions :</span>
+        <a href="{% url 'catalogue:liste_sites' %}?q=plage" class="badge-stamp text-base-100/80 hover:text-accent border-base-100/30 hover:border-accent transition">Plages</a>
+        <a href="{% url 'catalogue:liste_sites' %}?q=parc" class="badge-stamp text-base-100/80 hover:text-accent border-base-100/30 hover:border-accent transition">Parcs</a>
+        <a href="{% url 'catalogue:liste_sites' %}?q=montagne" class="badge-stamp text-base-100/80 hover:text-accent border-base-100/30 hover:border-accent transition">Montagnes</a>
+        <a href="{% url 'catalogue:liste_sites' %}?q=culturel" class="badge-stamp text-base-100/80 hover:text-accent border-base-100/30 hover:border-accent transition">Culture</a>
       </div>
+    </div>
+  </div>
 
-      <select name="region" class="px-4 py-2 text-gray-700 border-l border-gray-200 outline-none">
-        <option value="">Toutes régions</option>
-        {% for region in regions %}
-          <option value="{{ region.id }}">{{ region.nom }}</option>
-        {% empty %}
-          <option>Centre</option>
-          <option>Littoral</option>
-          <option>Sud</option>
-          <option>Ouest</option>
-        {% endfor %}
-      </select>
+  {# Scroll indicator décoratif #}
+  <div class="absolute bottom-6 right-6 lg:right-12 z-10 hidden md:flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60">
+    <span>Continuer le récit</span>
+    <span class="w-px h-12 bg-accent/60"></span>
+  </div>
+</section>
 
-      <button type="submit"
-              class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition shadow-lg">
-        Rechercher
-      </button>
-    </form>
 
-    <!-- Stats rapides sous la recherche -->
-    <div class="flex justify-center gap-8 mt-10 text-sm text-green-50">
-      <div><span class="block text-2xl font-bold text-white">50+</span> Sites</div>
-      <div><span class="block text-2xl font-bold text-white">10</span> Régions</div>
-      <div><span class="block text-2xl font-bold text-white">100%</span> Sécurisé</div>
+<!-- ============================================================
+   2. STATS — Composition asymétrique, chiffres en serif
+   ============================================================ -->
+<section class="relative -mt-12 z-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="bg-base-100 rounded-3xl shadow-2xl border border-foret-100/60 overflow-hidden">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+      <div class="p-6 md:p-8 group hover:bg-sable-50 transition">
+        <p class="eyebrow mb-3">Catalogue</p>
+        <p class="font-display text-5xl font-medium text-foret-900 group-hover:text-accent transition">
+          {{ stats.nb_sites|default:"50" }}<span class="text-accent">+</span>
+        </p>
+        <p class="text-sm text-foret-700/70 mt-2">Sites touristiques publiés</p>
+      </div>
+      <div class="p-6 md:p-8 group hover:bg-sable-50 transition">
+        <p class="eyebrow mb-3">Géographie</p>
+        <p class="font-display text-5xl font-medium text-foret-900 group-hover:text-accent transition">10</p>
+        <p class="text-sm text-foret-700/70 mt-2">Régions du pays couvertes</p>
+      </div>
+      <div class="p-6 md:p-8 group hover:bg-sable-50 transition">
+        <p class="eyebrow mb-3">Communauté</p>
+        <p class="font-display text-5xl font-medium text-foret-900 group-hover:text-accent transition">
+          {{ stats.note_moyenne|default:"4.7"|floatformat:1 }}
+          <span class="text-accent text-2xl align-top">/5</span>
+        </p>
+        <p class="text-sm text-foret-700/70 mt-2">Note moyenne vérifiée</p>
+      </div>
+      <div class="p-6 md:p-8 group hover:bg-sable-50 transition">
+        <p class="eyebrow mb-3">Activité</p>
+        <p class="font-display text-5xl font-medium text-foret-900 group-hover:text-accent transition">
+          {{ stats.nb_reservations|default:"1k" }}<span class="text-accent">+</span>
+        </p>
+        <p class="text-sm text-foret-700/70 mt-2">Réservations confirmées</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============================================================
-     STRIP DES CATÉGORIES
-     ============================================================ -->
-<section class="bg-white border-b border-gray-200 py-6 sticky top-16 z-30">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex gap-3 overflow-x-auto pb-2 -mb-2 scrollbar-thin">
-      <a href="#"
-         class="flex-shrink-0 px-5 py-2.5 bg-green-600 text-white font-medium rounded-full text-sm hover:bg-green-700 transition">
-        Tous
+
+<!--============================================================
+   3. SITES POPULAIRES — Grille bento éditoriale
+   ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+
+  <div class="grid lg:grid-cols-12 gap-8 mb-12 items-end">
+    <div class="lg:col-span-7">
+      <p class="eyebrow mb-4">Chapitre 02 — Coups de cœur</p>
+      <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight text-foret-900">
+        Les destinations <em class="font-display-italic text-accent">les plus aimées</em>
+        de la communauté.
+      </h2>
+    </div>
+    <div class="lg:col-span-5 lg:text-right">
+
+      <a href="{% url 'catalogue:liste_sites' %}" class="link-editorial inline-flex items-center gap-2">
+        Voir le catalogue complet
+        <span>→</span>
       </a>
-      {% for cat in categories %}
-        <a href="{% url 'catalogue:liste_site' %}?categorie={{ cat.id }}"
-           class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">
-          {{ cat.icone|default:"📍" }} {{ cat.nom }}
-          <span class="ml-1 text-xs text-gray-500">({{ cat.nb_sites }})</span>
-        </a>
-      {% empty %}
-        <!-- Fallback si la base est vide : on affiche les catégories du wireframe -->
-        <a href="#" class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">🏖 Plages</a>
-        <a href="#" class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">🌋 Montagnes</a>
-        <a href="#" class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">🦁 Parcs nationaux</a>
-        <a href="#" class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">🏛 Sites culturels</a>
-        <a href="#" class="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-full text-sm hover:bg-gray-200 transition">🏔 Aventure</a>
-      {% endfor %}
     </div>
   </div>
-</section>
 
-<!-- ============================================================
-     SITES POPULAIRES
-     ============================================================ -->
-<section class="py-16 bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
-      <div>
-        <h2 class="font-display text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-          Sites populaires
-        </h2>
-        <p class="text-gray-600">Les destinations les mieux notées par notre communauté.</p>
-      </div>
-      <a href="#S"
-         class="text-green-700 hover:text-green-800 font-semibold inline-flex items-center gap-1">
-        Voir tous les sites
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-        </svg>
-      </a>
-    </div>
-
-    {% if sites_populaires %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for site in sites_populaires %}
-          <a href="{% url 'catalogue:detail_site' site.id %}"
-             class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow border border-gray-100">
-            <!-- Image -->
-            <div class="relative h-52 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
-              {% with photo=site.photos.first %}
-                {% if photo %}
-                  <img src="{{ photo.image.url }}" alt="{{ site.nom }}"
-                       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+  {% if sites_populaires %}
+    {# Bento : 1 grande à gauche, 4 plus petites à droite #}
+    <div class="grid lg:grid-cols-12 gap-6 stagger">
+      {% for site in sites_populaires|slice:":6" %}
+        {% if forloop.first %}
+          {# Card héroïne — colonne 7 hauteur 2 #}
+          <article class="lg:col-span-7 lg:row-span-2 card-editorial">
+            <a href="{% url 'catalogue:detail_site' slug=site.slug %}" class="block group">
+              <div class="relative h-72 lg:h-[480px] overflow-hidden bg-sable-100">
+                {% if site.photo_couverture %}
+                  <img src="{{ site.photo_couverture.url }}" alt="{{ site.nom }}"
+                       loading="lazy"
+                       class="img-hover-bloom w-full h-full object-cover">
                 {% else %}
-                  <div class="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
-                    {{ site.nom }}
-                  </div>
+                  <div class="bg-pattern-kente w-full h-full grid place-items-center text-7xl opacity-40">◈</div>
                 {% endif %}
-              {% endwith %}
-              <!-- Badge catégorie -->
-              {% if site.categorie %}
-                <span class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-gray-800">
-                  {{ site.categorie.nom }}
-                </span>
-              {% endif %}
-              <!-- Bouton favori -->
-              <button class="absolute top-3 right-3 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition">
-                <svg class="w-4 h-4 text-gray-600 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-              </button>
-            </div>
-            <!-- Contenu -->
-            <div class="p-5">
-              <h3 class="font-semibold text-gray-900 text-lg mb-1 group-hover:text-green-700 transition">
-                {{ site.nom }}
-              </h3>
-              <p class="text-sm text-gray-500 mb-3 flex items-center gap-1">
-                📍 {{ site.localisation.ville|default:"Cameroun" }}{% if site.localisation.region %}, {{ site.localisation.region.nom }}{% endif %}
-              </p>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1 text-sm">
-                  <span class="text-yellow-500">★</span>
-                  <span class="font-semibold text-gray-900">{{ site.note_moyenne|floatformat:1|default:"—" }}</span>
-                  <span class="text-gray-500">({{ site.nb_avis }} avis)</span>
+
+                <div class="absolute inset-0 bg-gradient-to-t from-foret-900/85 via-foret-900/10 to-transparent"></div>
+
+                <div class="absolute top-6 left-6 right-6 flex items-center justify-between">
+                  <span class="badge-stamp text-base-100 border-base-100/50 backdrop-blur-sm">№ 01</span>
+                  {% if site.note_moyenne %}
+                  <span class="bg-base-100/95 text-foret-900 rounded-full px-3.5 py-1.5 text-xs font-mono font-semibold flex items-center gap-1">
+                    ★ {{ site.note_moyenne|floatformat:1 }}
+                  </span>
+                  {% endif %}
                 </div>
-                <div class="text-right">
-                  <span class="text-xs text-gray-500">À partir de</span>
-                  <span class="block font-bold text-green-700">{{ site.tarif_adulte|default:0|floatformat:0 }} FCFA</span>
+
+                <div class="absolute bottom-6 left-6 right-6 text-base-100">
+                  {% if site.localisation %}
+                  <p class="eyebrow text-accent mb-3">{{ site.localisation.ville }}, {{ site.localisation.region.nom|default:'Cameroun' }}</p>
+                  {% endif %}
+                  <h3 class="font-display text-3xl lg:text-4xl font-medium leading-tight mb-2 group-hover:translate-x-1 transition-transform">
+                    {{ site.nom }}
+                  </h3>
+                  <p class="text-sm text-base-100/85 max-w-md line-clamp-2">{{ site.description|truncatechars:140 }}</p>
+
+                  <div class="flex items-center justify-between mt-6 pt-5 border-t border-base-100/20">
+                    <span class="font-mono-num text-lg">{{ site.tarif_adulte|floatformat:0 }} <span class="text-xs text-base-100/60">FCFA / pers.</span></span>
+                    <span class="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-accent">
+                      Découvrir <span>→</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </a>
-        {% endfor %}
-      </div>
-    {% else %}
-      <!-- État vide : aucun site en base -->
-      <div class="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-gray-300">
-        <div class="text-6xl mb-4">🏞️</div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Les premiers sites arrivent bientôt !</h3>
-        <p class="text-gray-600 mb-6 max-w-md mx-auto">
-          Nous référençons actuellement les plus beaux sites touristiques du Cameroun.
-          Revenez très vite ou inscrivez-vous pour être notifié.
-        </p>
-        {% if not user.is_authenticated %}
-          <a href="{% url 'compte:inscription' %}"
-             class="inline-block px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
-            S'inscrire gratuitement
-          </a>
+            </a>
+          </article>
+        {% else %}
+          {# Cards secondaires — grille 2x2 colonne 5 #}
+          <article class="lg:col-span-5 card-editorial relative
+                          {% if forloop.counter == 2 or forloop.counter == 3 %}{% endif %}">
+            <a href="{% url 'catalogue:detail_site' slug=site.slug %}" class="flex group h-full">
+              <div class="relative w-2/5 overflow-hidden bg-sable-100 flex-shrink-0">
+                {% if site.photo_couverture %}
+                  <img src="{{ site.photo_couverture.url }}" alt="{{ site.nom }}"
+                       loading="lazy"
+                       class="img-hover-bloom w-full h-full object-cover">
+                {% else %}
+                  <div class="bg-pattern-kente w-full h-full grid place-items-center text-4xl opacity-50">◈</div>
+                {% endif %}
+                <span class="absolute top-3 left-3 badge-stamp text-base-100 border-base-100/50 backdrop-blur-sm text-[10px]">№ {{ forloop.counter|stringformat:"02d" }}</span>
+              </div>
+              <div class="flex-1 p-5 flex flex-col justify-between">
+                <div>
+                  {% if site.localisation %}
+                  <p class="eyebrow text-foret-700/70 mb-2">{{ site.localisation.ville }}</p>
+                  {% endif %}
+                  <h3 class="font-display text-xl font-medium text-foret-900 leading-tight group-hover:text-accent transition mb-2">{{ site.nom }}</h3>
+                  <p class="text-xs text-foret-700/70 line-clamp-2">{{ site.description|truncatechars:80 }}</p>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-3 border-t border-foret-100/60">
+                  <span class="font-mono-num text-sm font-semibold text-foret-900">{{ site.tarif_adulte|floatformat:0 }} <span class="text-[10px] text-foret-700/60">FCFA</span></span>
+                  {% if site.note_moyenne %}
+                  <span class="text-xs text-accent">★ {{ site.note_moyenne|floatformat:1 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          </article>
         {% endif %}
-      </div>
-    {% endif %}
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# État vide #}
+    <div class="bg-pattern-kente rounded-3xl border border-foret-100/60 p-16 text-center">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-base-100 text-4xl mb-6 shadow-lg">◈</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Le carnet est en cours de rédaction</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">
+        Les premiers sites apparaîtront ici dès leur publication par nos partenaires locaux.
+      </p>
+    </div>
+  {% endif %}
 </section>
 
+
 <!-- ============================================================
-     RÉGIONS À DÉCOUVRIR
-     ============================================================ -->
-<section class="py-16 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-10">
-      <h2 class="font-display text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-        Explorez par région
+   4. EXPLORER PAR RÉGION — Bandeau horizontal, hover réactif
+   ============================================================ -->
+<section class="bg-foret-900 text-base-100 relative overflow-hidden py-24 lg:py-32">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl">
+      <p class="eyebrow text-accent mb-4">Chapitre 03 — Cartographie</p>
+      <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+        Dix régions, dix <em class="font-display-italic text-accent">paysages</em>,
+        dix histoires à raconter.
       </h2>
-      <p class="text-gray-600 max-w-2xl mx-auto">
-        Le Cameroun compte 10 régions, chacune avec ses paysages, sa culture et son patrimoine unique.
+      <p class="text-base-100/70 mt-5 max-w-xl leading-relaxed">
+        Du désert sahélien aux forêts équatoriales, le Cameroun condense en un seul pays
+        une variété de climats et de cultures qu'on ne trouve nulle part ailleurs.
       </p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {% for region in regions %}
-        <a href="{% url 'localisation:detail_region' region.id %}"
-           class="group relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-green-600 to-emerald-700 hover:shadow-xl transition">
-          <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
-          <div class="relative h-full p-5 flex flex-col justify-end text-white">
-            <h3 class="font-display font-bold text-xl">{{ region.nom }}</h3>
-            <p class="text-sm text-green-50">{{ region.nb_sites }} site{{ region.nb_sites|pluralize }}</p>
+    <div class="mt-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px bg-base-100/10 rounded-2xl overflow-hidden border border-base-100/15">
+      {% if regions %}
+        {% for region in regions %}
+        <a href="#" class="group relative bg-foret-900 hover:bg-foret-700 transition-colors p-6 min-h-[170px] flex flex-col justify-between overflow-hidden">
+          <div class="absolute top-3 right-3 text-[10px] font-mono opacity-40 group-hover:opacity-100 group-hover:text-accent transition">№ {{ forloop.counter|stringformat:"02d" }}</div>
+          <p class="eyebrow text-base-100/40 group-hover:text-accent transition">Région</p>
+          <div>
+            <h3 class="font-display text-xl font-medium leading-tight">{{ region.nom }}</h3>
+            <p class="text-xs text-base-100/50 mt-1 font-mono">
+              {{ region.nb_sites|default:0 }} site{{ region.nb_sites|pluralize }}
+            </p>
           </div>
         </a>
-      {% empty %}
-        <!-- Fallback : on affiche les 4 régions principales -->
-        {% for nom in "Centre,Littoral,Sud,Ouest"|cut:" "|slice:":4" %}{% endfor %}
-        <a href="#" class="group relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-green-600 to-emerald-700 hover:shadow-xl transition">
-          <div class="absolute inset-0 bg-black/20"></div>
-          <div class="relative h-full p-5 flex flex-col justify-end text-white">
-            <h3 class="font-display font-bold text-xl">Centre</h3>
-            <p class="text-sm text-green-50">Yaoundé, la capitale</p>
+        {% endfor %}
+      {% else %}
+        {% for nom_region in "Adamaoua,Centre,Est,Extrême-Nord,Littoral,Nord,Nord-Ouest,Ouest,Sud,Sud-Ouest"|split:"," %}
+        <div class="group relative bg-foret-900 hover:bg-foret-700 transition-colors p-6 min-h-[170px] flex flex-col justify-between cursor-pointer">
+          <div class="absolute top-3 right-3 text-[10px] font-mono opacity-40">№ {{ forloop.counter|stringformat:"02d" }}</div>
+          <p class="eyebrow text-base-100/40 group-hover:text-accent transition">Région</p>
+          <div>
+            <h3 class="font-display text-xl font-medium leading-tight">{{ nom_region }}</h3>
+            <p class="text-xs text-base-100/40 mt-1 font-mono">À découvrir</p>
           </div>
-        </a>
-        <a href="#" class="group relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-700 hover:shadow-xl transition">
-          <div class="absolute inset-0 bg-black/20"></div>
-          <div class="relative h-full p-5 flex flex-col justify-end text-white">
-            <h3 class="font-display font-bold text-xl">Littoral</h3>
-            <p class="text-sm text-blue-50">Douala, plages</p>
-          </div>
-        </a>
-        <a href="#" class="group relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-500 to-amber-700 hover:shadow-xl transition">
-          <div class="absolute inset-0 bg-black/20"></div>
-          <div class="relative h-full p-5 flex flex-col justify-end text-white">
-            <h3 class="font-display font-bold text-xl">Sud</h3>
-            <p class="text-sm text-orange-50">Kribi, Lobé</p>
-          </div>
-        </a>
-        <a href="#" class="group relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-600 to-pink-700 hover:shadow-xl transition">
-          <div class="absolute inset-0 bg-black/20"></div>
-          <div class="relative h-full p-5 flex flex-col justify-end text-white">
-            <h3 class="font-display font-bold text-xl">Ouest</h3>
-            <p class="text-sm text-purple-50">Chefferies</p>
-          </div>
-        </a>
-      {% endfor %}
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="mt-10 flex justify-end">
+      <a href="{% url 'localisation:carte' %}" class="inline-flex items-center gap-3 text-sm uppercase tracking-wider text-accent hover:text-base-100 transition">
+        <span>Voir sur la carte interactive</span>
+        <span class="w-12 h-px bg-current"></span>
+        <span>→</span>
+      </a>
     </div>
   </div>
 </section>
 
+
 <!-- ============================================================
-     POURQUOI NOUS CHOISIR (Trust badges)
-     ============================================================ -->
-<section class="py-16 bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 class="font-display text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-12">
-      Pourquoi Tourisme Cameroun&nbsp;?
+   5. COMMENT ÇA MARCHE — Étapes magazine
+   ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+
+  <div class="text-center max-w-2xl mx-auto mb-16">
+    <p class="eyebrow mb-4">Chapitre 04 — Le mode d'emploi</p>
+    <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight text-foret-900">
+      Réserver une <em class="font-display-italic text-accent">aventure</em>
+      en trois mouvements.
     </h2>
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-2xl mb-4">📱</div>
-        <h3 class="font-semibold text-lg text-gray-900 mb-2">Mobile Money</h3>
-        <p class="text-gray-600 text-sm">
-          Payez avec MTN MoMo, Orange Money ou carte bancaire. Tous les moyens sont sécurisés.
-        </p>
+  <div class="grid md:grid-cols-3 gap-8 lg:gap-12 stagger">
+    {# Étape 1 #}
+    <div class="relative group">
+      <div class="aspect-square bg-sable-50 rounded-3xl border border-foret-100/60 p-8 overflow-hidden relative group-hover:border-accent transition-colors">
+        <span class="step-numeral absolute -top-4 -left-2">01</span>
+        <div class="absolute inset-0 bg-pattern-kente opacity-20"></div>
+        <div class="relative h-full flex flex-col justify-end">
+          <h3 class="font-display text-2xl font-medium text-foret-900 mb-3">Choisissez votre destination</h3>
+          <p class="text-sm text-foret-700/80 leading-relaxed">
+            Plus de cinquante sites à parcourir. Filtrez par région, catégorie, prix
+            ou accessibilité pour trouver celui qui vous ressemble.
+          </p>
+        </div>
       </div>
+    </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-2xl mb-4">🎫</div>
-        <h3 class="font-semibold text-lg text-gray-900 mb-2">Bon de réservation PDF</h3>
-        <p class="text-gray-600 text-sm">
-          QR Code unique à scanner à l'entrée du site. Plus besoin d'imprimer, tout est sur votre téléphone.
-        </p>
+    {# Étape 2 #}
+    <div class="relative group md:translate-y-12">
+      <div class="aspect-square bg-foret-900 text-base-100 rounded-3xl p-8 overflow-hidden relative group-hover:bg-foret-700 transition-colors">
+        <span class="step-numeral absolute -top-4 -left-2 text-accent">02</span>
+        <div class="absolute inset-0 bg-grain opacity-30"></div>
+        <div class="relative h-full flex flex-col justify-end">
+          <h3 class="font-display text-2xl font-medium mb-3">Réservez et payez sereinement</h3>
+          <p class="text-sm text-base-100/75 leading-relaxed">
+            Sélectionnez votre date, le nombre de participants. Payez par
+            Mobile Money, carte bancaire ou en espèces sur place.
+          </p>
+        </div>
       </div>
+    </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">⭐</div>
-        <h3 class="font-semibold text-lg text-gray-900 mb-2">Avis vérifiés</h3>
-        <p class="text-gray-600 text-sm">
-          Seuls les vrais visiteurs peuvent laisser un avis. Pas de faux commentaires, jamais.
-        </p>
+    {# Étape 3 #}
+    <div class="relative group">
+      <div class="aspect-square bg-accent rounded-3xl p-8 overflow-hidden relative group-hover:bg-accent/90 transition-colors">
+        <span class="step-numeral absolute -top-4 -left-2 text-foret-900">03</span>
+        <div class="relative h-full flex flex-col justify-end">
+          <h3 class="font-display text-2xl font-medium text-foret-900 mb-3">Visitez avec votre QR Code</h3>
+          <p class="text-sm text-foret-900/80 leading-relaxed">
+            Recevez un bon de réservation avec QR Code unique. Présentez-le
+            à l'entrée du site et profitez de votre journée.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
+
 <!-- ============================================================
-     CTA — Devenir gestionnaire
-     ============================================================ -->
-<section class="py-16 bg-gradient-to-r from-green-700 to-emerald-700 text-white">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">
-      Vous gérez un site touristique&nbsp;?
-    </h2>
-    <p class="text-lg text-green-50 mb-8 max-w-2xl mx-auto">
-      Rejoignez la première plateforme du Cameroun, gagnez en visibilité
-      et recevez vos premières réservations en ligne dès aujourd'hui.
-    </p>
-    <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <a href="{% url 'compte:inscription' %}?type=gestionnaire"
-         class="inline-block px-8 py-4 bg-white text-green-700 font-bold rounded-xl hover:bg-gray-100 transition shadow-lg">
-        Devenir gestionnaire
-      </a>
-      <a href="{% url 'a_propos' %}"
-         class="inline-block px-8 py-4 bg-white/10 backdrop-blur border-2 border-white text-white font-bold rounded-xl hover:bg-white/20 transition">
-        En savoir plus
-      </a>
+   6. CALL TO ACTION FINAL — Composition split
+   ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-32">
+  <div class="bg-pattern-kente border border-foret-100/60 rounded-3xl overflow-hidden">
+    <div class="grid lg:grid-cols-2">
+
+      <div class="p-10 lg:p-16 flex flex-col justify-between min-h-[400px]">
+        <p class="eyebrow">Final — Embarquement</p>
+        <div class="mt-12 lg:mt-20">
+          <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight text-foret-900">
+            Prêt à <em class="font-display-italic text-accent">tourner la page</em> ?
+          </h2>
+          <p class="text-foret-700/75 mt-5 max-w-md leading-relaxed">
+            Créez votre compte en deux minutes et recevez immédiatement un crédit
+            de bienvenue à utiliser sur votre première réservation.
+          </p>
+          <div class="flex flex-wrap gap-3 mt-8">
+            {% if not user.is_authenticated %}
+            <a href="{% url 'compte:inscription' %}"
+               class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-4 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Créer mon carnet
+            </a>
+            {% endif %}
+            <a href="{% url 'catalogue:liste_sites' %}"
+               class="border border-foret-900 text-foret-900 hover:bg-foret-900 hover:text-base-100 rounded-full px-7 py-4 text-sm font-medium uppercase tracking-wider transition">
+              Voir le catalogue
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative bg-foret-900 text-base-100 p-10 lg:p-16 flex flex-col justify-between min-h-[400px]">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-30"></div>
+        <p class="relative eyebrow text-accent">Pour les pros</p>
+        <div class="relative mt-12 lg:mt-20">
+          <h3 class="font-display text-3xl lg:text-4xl font-light leading-tight">
+            Vous êtes propriétaire<br>
+            d'un site touristique ?
+          </h3>
+          <p class="text-base-100/70 mt-5 leading-relaxed max-w-md">
+            Rejoignez le réseau, mettez en ligne vos disponibilités et vos tarifs,
+            recevez des réservations payées d'avance.
+          </p>
+          <a href="{% url 'compte:inscription' %}?type=gestionnaire"
+             class="inline-flex items-center gap-3 text-sm uppercase tracking-wider text-accent mt-8 hover:text-base-100 transition group">
+            <span>Devenir partenaire</span>
+            <span class="w-10 h-px bg-current group-hover:w-16 transition-all"></span>
+            <span>→</span>
+          </a>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>

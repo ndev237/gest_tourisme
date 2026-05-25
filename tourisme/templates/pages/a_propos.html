@@ -1,0 +1,192 @@
+<!--
+  Page À propos — narrative éditoriale en 3 actes :
+  manifeste, chiffres, équipe/valeurs.
+-->
+{% extends "base.html" %}
+
+{% block title %}À propos — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================
+     1. BANDEAU MANIFESTE
+     ============================================================ -->
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-8">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">À propos</span>
+    </nav>
+
+    <div class="grid lg:grid-cols-12 gap-12 items-end">
+      <div class="lg:col-span-7">
+        <p class="eyebrow text-accent mb-5">Manifeste — Édition {% now "Y" %}</p>
+        <h1 class="font-display text-5xl lg:text-7xl font-light leading-[0.95]">
+          Raconter le Cameroun,<br>
+          un <em class="font-display-italic text-accent">site</em> à la fois.
+        </h1>
+      </div>
+      <div class="lg:col-span-5 lg:pl-12 border-l border-base-100/15">
+        <p class="text-base-100/80 text-lg leading-relaxed">
+          Tourisme Cameroun est la plateforme officielle de réservation des sites
+          touristiques du pays. Notre mission : faire découvrir la richesse
+          culturelle et naturelle du Cameroun, et permettre aux acteurs locaux
+          d'en vivre dignement.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     2. NOTRE HISTOIRE — récit éditorial
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+  <div class="grid lg:grid-cols-12 gap-12">
+
+    <div class="lg:col-span-4">
+      <p class="eyebrow mb-4">Chapitre 01</p>
+      <h2 class="font-display text-3xl lg:text-4xl font-light leading-tight text-foret-900 sticky top-28">
+        Pourquoi cette <em class="font-display-italic text-accent">plateforme</em> ?
+      </h2>
+    </div>
+
+    <div class="lg:col-span-8 space-y-6 text-foret-900/85 leading-[1.85] text-lg">
+      <p class="first-letter:font-display first-letter:font-medium first-letter:text-6xl first-letter:text-accent first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
+        Le Cameroun condense en un seul pays une variété de climats, de paysages
+        et de cultures qui n'existe nulle part ailleurs en Afrique. Des sables du
+        Sahara aux forêts équatoriales, des chefferies Bamilékés aux plages atlantiques,
+        chaque région recèle une histoire à raconter.
+      </p>
+      <p>
+        Pourtant, ce patrimoine peine à trouver son public. Les sites touristiques
+        manquent souvent de visibilité, les acteurs locaux n'ont pas les outils
+        pour gérer leurs réservations, et les voyageurs — Camerounais comme étrangers —
+        ne savent pas par où commencer.
+      </p>
+      <p>
+        Nous avons construit cette plateforme pour combler ce fossé. Un endroit
+        unique où les sites se présentent dignement, où les paiements sont sécurisés
+        par Mobile Money et carte, où les voyageurs trouvent un récit cohérent du
+        pays — pas juste une liste d'adresses.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     3. CHIFFRES CLÉS
+     ============================================================ -->
+<section class="bg-sable-50 py-24 lg:py-32 border-y border-foret-100/60">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 stagger">
+      <div>
+        <p class="eyebrow mb-3">Catalogue</p>
+        <p class="font-display text-6xl font-light text-foret-900">50<span class="text-accent">+</span></p>
+        <p class="text-sm text-foret-700/70 mt-2">Sites référencés à travers les 10 régions du Cameroun.</p>
+      </div>
+      <div>
+        <p class="eyebrow mb-3">Partenaires</p>
+        <p class="font-display text-6xl font-light text-foret-900">30<span class="text-accent">+</span></p>
+        <p class="text-sm text-foret-700/70 mt-2">Gestionnaires et guides locaux validés sur la plateforme.</p>
+      </div>
+      <div>
+        <p class="eyebrow mb-3">Voyageurs</p>
+        <p class="font-display text-6xl font-light text-foret-900">1k<span class="text-accent">+</span></p>
+        <p class="text-sm text-foret-700/70 mt-2">Réservations confirmées depuis le lancement.</p>
+      </div>
+      <div>
+        <p class="eyebrow mb-3">Satisfaction</p>
+        <p class="font-display text-6xl font-light text-foret-900">4.7<span class="text-accent text-3xl align-top">/5</span></p>
+        <p class="text-sm text-foret-700/70 mt-2">Note moyenne calculée sur les avis vérifiés.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     4. VALEURS
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+  <div class="text-center max-w-2xl mx-auto mb-16">
+    <p class="eyebrow mb-4">Chapitre 02 — Boussole</p>
+    <h2 class="font-display text-4xl lg:text-5xl font-light leading-tight text-foret-900">
+      Trois principes qui <em class="font-display-italic text-accent">guident</em>
+      notre travail.
+    </h2>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-6 stagger">
+    <div class="card-editorial p-8">
+      <span class="step-numeral block mb-4">01</span>
+      <h3 class="font-display text-2xl font-medium text-foret-900 mb-3">Local d'abord</h3>
+      <p class="text-foret-700/80 leading-relaxed">
+        Nous travaillons avec des gestionnaires et guides camerounais.
+        Les revenus restent au pays, l'expertise vient du terrain.
+      </p>
+    </div>
+
+    <div class="card-editorial p-8 md:translate-y-8">
+      <span class="step-numeral block mb-4">02</span>
+      <h3 class="font-display text-2xl font-medium text-foret-900 mb-3">Paiement souverain</h3>
+      <p class="text-foret-700/80 leading-relaxed">
+        MTN Mobile Money, Orange Money, Visa, Mastercard, espèces.
+        Les moyens que les Camerounais utilisent vraiment.
+      </p>
+    </div>
+
+    <div class="card-editorial p-8">
+      <span class="step-numeral block mb-4">03</span>
+      <h3 class="font-display text-2xl font-medium text-foret-900 mb-3">Récit honnête</h3>
+      <p class="text-foret-700/80 leading-relaxed">
+        Pas de photos retouchées au-delà de la décence, pas d'avis manipulés.
+        Les visiteurs trouvent ce qu'on leur a promis.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     5. CTA DOUBLE
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-32">
+  <div class="bg-foret-900 text-base-100 rounded-3xl overflow-hidden relative">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+
+    <div class="relative grid lg:grid-cols-2">
+      <div class="p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-base-100/15">
+        <p class="eyebrow text-accent mb-4">Pour les voyageurs</p>
+        <h3 class="font-display text-3xl lg:text-4xl font-light leading-tight mb-5">
+          Commencez votre carnet de bord.
+        </h3>
+        <p class="text-base-100/70 mb-8 leading-relaxed">
+          Inscription en deux minutes. Catalogue complet, réservation et paiement sécurisés.
+        </p>
+        <a href="{% url 'compte:inscription' %}"
+           class="btn-carnet inline-flex items-center gap-2 bg-accent text-foret-900 rounded-full px-7 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+          Créer mon compte
+        </a>
+      </div>
+
+      <div class="p-10 lg:p-16">
+        <p class="eyebrow text-accent mb-4">Pour les acteurs locaux</p>
+        <h3 class="font-display text-3xl lg:text-4xl font-light leading-tight mb-5">
+          Vendez vos visites à grande échelle.
+        </h3>
+        <p class="text-base-100/70 mb-8 leading-relaxed">
+          Mise en ligne gratuite, paiements anticipés, tableau de bord complet.
+        </p>
+        <a href="{% url 'compte:inscription' %}?type=gestionnaire"
+           class="inline-flex items-center gap-2 border border-base-100/40 text-base-100 rounded-full px-7 py-4 text-sm font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
+          Devenir partenaire →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

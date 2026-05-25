@@ -1,0 +1,110 @@
+<!--
+ ============================================================
+   SUPPRIMER MOYEN PAIEMENT (admin) :
+   paiements/moyenpaiement/delete_moyenpaiement.html
+   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+   PÉDAGOGIE :
+   - Si des paiements existent : BLOQUE et propose de DÉSACTIVER plutôt
+   - Sinon : confirmation classique
+   ============================================================ 
+-->
+{% extends "base.html" %}
+
+{% block title %}Supprimer {{ moyen.libelle }}{% endblock %}
+
+{% block content %}
+<section class="bg-base-200 min-h-screen py-12">
+    <div class="container mx-auto px-4 max-w-2xl">
+
+        <nav class="text-sm breadcrumbs mb-4">
+            <ul>
+                <li><a href="{% url 'paiement:liste_moyenpaiement' %}">Moyens</a></li>
+                <li>Supprimer</li>
+            </ul>
+        </nav>
+
+        <div class="card bg-base-100 shadow-xl border-t-4 border-error">
+            <div class="card-body">
+
+                <div class="text-center mb-4">
+                    <div class="text-6xl mb-3">⚠️</div>
+                    <h1 class="text-2xl font-bold text-error">Supprimer ce moyen ?</h1>
+                </div>
+
+                <!-- Récap -->
+                <div class="my-4 p-4 bg-base-200 rounded-lg flex items-center gap-3">
+                    <span class="text-4xl">
+                        {% if moyen.provider == 'mtn_momo' %}📱
+                        {% elif moyen.provider == 'orange_money' %}🟠
+                        {% elif moyen.provider == 'stripe' %}💳
+                        {% elif moyen.provider == 'manuel' %}💵
+                        {% else %}💰{% endif %}
+                    </span>
+                    <div>
+                        <h2 class="font-bold">{{ moyen.libelle }}</h2>
+                        <p class="text-xs text-base-content/60 font-mono">{{ moyen.code }}</p>
+                        <p class="text-sm text-base-content/70">
+                            {{ nb_paiements }} paiement{{ nb_paiements|pluralize }} effectué{{ nb_paiements|pluralize }}
+                        </p>
+                    </div>
+                </div>
+
+                {% if nb_paiements > 0 %}
+                <!-- ===== BLOCAGE ===== -->
+                <div class="alert alert-error">
+                    <span>🚫</span>
+                    <div>
+                        <h3 class="font-bold">Suppression impossible</h3>
+                        <p class="text-sm">
+                            Ce moyen est lié à <strong>{{ nb_paiements }} paiement{{ nb_paiements|pluralize }}</strong>
+                            (transactions historiques). Vous ne pouvez pas le supprimer
+                            sans casser l'historique financier.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <span>💡</span>
+                    <div class="text-sm">
+                        <strong>Solution recommandée :</strong> au lieu de supprimer,
+                        <strong>désactivez-le</strong>. Il restera disponible pour les
+                        statistiques mais ne sera plus proposé aux touristes.
+                    </div>
+                </div>
+
+                <div class="card-actions justify-end pt-4 gap-2">
+                    <a href="{% url 'paiement:liste_moyenpaiement' %}" class="btn btn-ghost">
+                        ← Retour
+                    </a>
+                    <a href="{% url 'paiement:update_moyenpaiement' moyen_id=moyen.id %}"
+                       class="btn btn-primary">
+                        ✏️ Modifier (désactiver)
+                    </a>
+                </div>
+
+                {% else %}
+                <!-- ===== Suppression possible ===== -->
+                <div class="alert alert-warning">
+                    <span>💡</span>
+                    <span class="text-sm">
+                        Aucun paiement n'a encore utilisé ce moyen. La suppression est possible.
+                    </span>
+                </div>
+
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="card-actions justify-end gap-2">
+                        <a href="{% url 'paiement:liste_moyenpaiement' %}" class="btn btn-ghost">
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-error">
+                            🗑 Confirmer la suppression
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

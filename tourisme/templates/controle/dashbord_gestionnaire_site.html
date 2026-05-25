@@ -1,10 +1,233 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Dashboard gestionnaire — KPI, graphique 30j, dernières réservations, sites.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Dashboard gestionnaire — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <!-- Bandeau -->
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+          <p class="eyebrow text-accent mb-3">Espace gestionnaire</p>
+          <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+            Bonjour, <em class="font-display-italic text-accent">{{ user.first_name|default:user.email }}</em>.
+          </h1>
+          <p class="text-base-100/70 mt-3 text-sm font-mono uppercase tracking-wider">
+            {{ user.profil_gestionnaire.entreprise|default:"Mon entreprise" }}
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_sites' %}"
+           class="btn-carnet self-start bg-accent text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition whitespace-nowrap">
+          + Nouveau site
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8">
+
+    <!-- Alerte statut -->
+    {% if user.profil_gestionnaire.statut_validation == 'en_attente' %}
+    <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-8 flex gap-4">
+      <span class="font-display italic text-3xl text-warning leading-none">⏳</span>
+      <div>
+        <p class="eyebrow text-warning mb-1">Validation en cours</p>
+        <p class="text-sm text-foret-900">Notre équipe vérifie vos documents. Vous pourrez publier vos sites dès validation (sous 48h ouvrées).</p>
+      </div>
+    </div>
+    {% elif user.profil_gestionnaire.statut_validation == 'rejete' %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-5 mb-8 flex gap-4">
+      <span class="font-display italic text-3xl text-error leading-none">!</span>
+      <div>
+        <p class="eyebrow text-error mb-1">Compte rejeté</p>
+        <p class="text-sm text-foret-900">{{ user.profil_gestionnaire.motif_rejet|default:"Contactez le support pour plus d'informations." }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- KPIs -->
+    <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-10">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Réservations</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.resa_mois|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">
+            {% if stats.evolution_resa %}
+              {% if stats.evolution_resa >= 0 %}<span class="text-success">↗ +{{ stats.evolution_resa }}%</span>
+              {% else %}<span class="text-error">↘ {{ stats.evolution_resa }}%</span>{% endif %}
+              vs mois précédent
+            {% else %}Ce mois-ci{% endif %}
+          </p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Revenus</p>
+          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.revenu_mois|default:0|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Ce mois-ci</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Occupation</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.taux_occupation|default:0 }}<span class="text-xl text-accent">%</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Moyenne 30 jours</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Note</p>
+          <p class="font-display text-4xl font-medium text-accent">{{ stats.note_moyenne|default:0|floatformat:1 }}<span class="text-xl text-foret-700/60">/5</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">{{ stats.nb_avis|default:0 }} avis</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Graphique 30j -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
+          <p class="eyebrow mb-2">Tendance</p>
+          <h2 class="font-display text-2xl text-foret-900 mb-2">Évolution sur 30 jours</h2>
+          <p class="text-sm text-foret-700/70 mb-6">Nombre de réservations confirmées par jour.</p>
+
+          <!-- Placeholder Chart.js : à brancher en V2 -->
+          <div class="bg-pattern-kente rounded-2xl h-64 grid place-items-center border border-dashed border-foret-100/80">
+            <div class="text-center">
+              <p class="font-display text-3xl text-foret-700/50">◢◤◢◤◢◤</p>
+              <p class="eyebrow mt-3">Graphique Chart.js</p>
+              <p class="text-xs font-mono text-foret-700/60 mt-1">À intégrer avec un canvas + chart.js</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dernières réservations -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden">
+          <div class="flex items-center justify-between p-7 border-b border-foret-100/60">
+            <div>
+              <p class="eyebrow mb-2">Activité</p>
+              <h2 class="font-display text-2xl text-foret-900">Dernières réservations</h2>
+            </div>
+            <a href="#" class="link-editorial text-sm">Tout voir →</a>
+          </div>
+
+          {% if dernieres_reservations %}
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+                <tr>
+                  <th class="px-7 py-3 text-left">№</th>
+                  <th class="px-3 py-3 text-left">Touriste</th>
+                  <th class="px-3 py-3 text-left">Site</th>
+                  <th class="px-3 py-3 text-left">Date</th>
+                  <th class="px-3 py-3 text-right">Montant</th>
+                  <th class="px-7 py-3 text-right">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-foret-100/60">
+                {% for reservation in dernieres_reservations %}
+                <tr class="hover:bg-sable-50/50 transition">
+                  <td class="px-7 py-4 font-mono-num text-xs text-foret-700">{{ reservation.num_reservation|default:reservation.id }}</td>
+                  <td class="px-3 py-4 text-foret-900">{{ reservation.touriste.user.nom_complet|default:"—" }}</td>
+                  <td class="px-3 py-4 text-foret-900">{{ reservation.site.nom|truncatechars:24 }}</td>
+                  <td class="px-3 py-4 text-foret-700 font-mono-num text-xs">{{ reservation.date_visite|date:"d/m/y" }}</td>
+                  <td class="px-3 py-4 text-right font-mono-num font-semibold text-foret-900">{{ reservation.montant_total|floatformat:0 }} F</td>
+                  <td class="px-7 py-4 text-right">
+                    {% if reservation.statut == 'confirmee' %}
+                      <span class="badge-stamp text-success border-success/40 text-[10px]">Confirmée</span>
+                    {% elif reservation.statut == 'en_attente' %}
+                      <span class="badge-stamp text-warning border-warning/40 text-[10px]">Attente</span>
+                    {% elif reservation.statut == 'annulee' %}
+                      <span class="badge-stamp text-error border-error/40 text-[10px]">Annulée</span>
+                    {% else %}
+                      <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">{{ reservation.statut }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-12">
+            <div class="inline-flex w-16 h-16 rounded-full bg-sable-100 grid place-items-center text-3xl mb-4">◇</div>
+            <p class="text-foret-700/70">Aucune réservation pour le moment.</p>
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Actions</p>
+          <div class="space-y-2">
+            <a href="{% url 'catalogue:add_sites' %}" class="block w-full text-left px-4 py-3 rounded-xl bg-foret-900 text-base-100 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              + Nouveau site
+            </a>
+            <a href="{% url 'catalogue:mes_sites' %}" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">◈</span> Mes sites
+            </a>
+            <a href="#" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">◇</span> Réservations
+            </a>
+            <a href="#" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">★</span> Avis reçus
+            </a>
+          </div>
+        </div>
+
+        <!-- Mes sites (résumé) -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Mes sites</p>
+          {% if mes_sites %}
+          <ul class="space-y-2">
+            {% for site in mes_sites|slice:":5" %}
+            <li class="flex items-center justify-between p-3 bg-sable-50 rounded-xl hover:bg-foret-100/40 transition">
+              <div class="flex-1 min-w-0">
+                <p class="font-display text-sm text-foret-900 truncate">{{ site.nom }}</p>
+                <p class="text-[10px] font-mono uppercase tracking-wider mt-0.5">
+                  {% if site.est_publie %}<span class="text-success">● Publié</span>
+                  {% else %}<span class="text-warning">● Brouillon</span>{% endif %}
+                </p>
+              </div>
+              <a href="#" class="text-foret-700/50 hover:text-foret-900">→</a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-sm text-foret-700/60 text-center py-4">Aucun site publié.</p>
+          <a href="{% url 'catalogue:add_sites' %}" class="block bg-foret-900 text-base-100 rounded-full px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-center hover:bg-foret-700 transition">
+            Créer mon premier site
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Info entreprise -->
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-7 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <p class="relative eyebrow text-accent mb-4">Entreprise</p>
+          <dl class="relative space-y-3 text-sm">
+            <div>
+              <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50">Raison sociale</dt>
+              <dd class="font-display text-base mt-0.5">{{ user.profil_gestionnaire.entreprise|default:"—" }}</dd>
+            </div>
+            <div>
+              <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50">N° RC</dt>
+              <dd class="font-mono-num text-xs mt-0.5">{{ user.profil_gestionnaire.num_registre_commerce|default:"—" }}</dd>
+            </div>
+          </dl>
+          <a href="{% url 'compte:profil' %}" class="relative inline-flex items-center gap-2 mt-5 text-xs uppercase tracking-wider font-medium text-accent hover:text-base-100 transition">
+            Modifier →
+          </a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

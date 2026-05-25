@@ -1,10 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Ajouter localisation — placeholder (les localisations sont créées via add_sites).
+  Ce template existe pour respecter la convention CRUD mais redirige vers la création de site.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Ajouter une localisation — Gestionnaire{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-16">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'localisation:liste_localisation' %}" class="hover:text-foret-900">Mes localisations</a>
+      <span>/</span>
+      <span class="text-accent">Nouvelle</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl p-10 text-center">
+      <p class="eyebrow mb-4">Information</p>
+      <div class="inline-flex w-20 h-20 rounded-full bg-info/10 grid place-items-center mb-6">
+        <span class="font-display italic text-3xl text-info">i</span>
+      </div>
+
+      <h1 class="font-display text-3xl text-foret-900 mb-4">
+        Les <em class="font-display-italic text-accent">localisations</em> se créent avec les sites
+      </h1>
+      <p class="text-foret-700/80 leading-relaxed max-w-md mx-auto mb-8">
+        Une localisation est toujours rattachée à un site touristique. Pour ajouter une localisation,
+        créez d'abord un nouveau site — son adresse GPS sera enregistrée automatiquement.
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="{% url 'catalogue:add_sites' %}"
+           class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+          + Créer un site
+        </a>
+        <a href="{% url 'localisation:liste_localisation' %}"
+           class="border border-foret-900 text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+          ← Retour à la liste
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

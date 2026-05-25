@@ -1,10 +1,77 @@
+<!--
+  Page 500 — N'hérite PAS de base.html pour éviter une boucle si un
+  context processor échoue. Tout est inlined, URLs en dur.
+-->
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr" data-theme="cameroun">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Erreur serveur — Tourisme Cameroun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
 </head>
-<body>
+<body class="min-h-screen bg-foret-900 text-base-100 flex items-center justify-center relative overflow-hidden">
 
+  <!-- Texture grain -->
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-30"></div>
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-error/20 blur-3xl"></div>
+  <div aria-hidden="true" class="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-accent/10 blur-3xl"></div>
+
+  <main class="relative max-w-3xl mx-auto px-4 py-16 w-full">
+    <div class="text-center">
+
+      <p class="eyebrow text-accent mb-4">№ 500 — Incident technique</p>
+
+      <!-- Illustration SVG -->
+      <img src="{% static 'images/500.svg' %}" alt="Erreur serveur"
+           class="w-full max-w-md mx-auto mb-8 drop-shadow-2xl"
+           aria-hidden="true">
+
+      <div class="font-display font-light leading-[0.85] mb-8 hidden sm:block">
+        <span class="block text-7xl text-base-100">
+          5<em class="font-display-italic text-error">0</em>0
+        </span>
+      </div>
+
+      <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight mb-5">
+        Une <em class="font-display-italic text-accent">panne de moteur</em><br>
+        de notre côté.
+      </h1>
+      <p class="text-base-100/70 text-lg leading-relaxed mb-2 max-w-xl mx-auto">
+        Ce n'est pas vous, c'est nous. Notre équipe technique a été automatiquement
+        prévenue et travaille déjà à la résolution.
+      </p>
+      <p class="text-sm text-base-100/50 mb-10 font-mono">
+        Veuillez réessayer dans quelques instants.
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-3 mb-10">
+        <a href="/" class="btn-carnet bg-accent text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+          Retour à l'accueil
+        </a>
+        <a href="javascript:location.reload()"
+           class="border border-base-100/40 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
+          Réessayer
+        </a>
+      </div>
+
+      <div class="inline-flex items-center gap-3 bg-base-100/5 border border-base-100/15 rounded-2xl px-6 py-4">
+        <span class="text-2xl">✉</span>
+        <div class="text-left text-sm">
+          <p class="font-semibold text-base-100">Le problème persiste ?</p>
+          <p class="text-base-100/70">
+            <a href="mailto:support@tourisme-cameroun.cm" class="text-accent underline decoration-dotted underline-offset-4 hover:text-base-100">
+              support@tourisme-cameroun.cm
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
 </body>
 </html>

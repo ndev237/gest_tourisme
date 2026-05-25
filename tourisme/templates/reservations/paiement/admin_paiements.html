@@ -1,0 +1,254 @@
+<!--
+ ============================================================
+   ADMIN PAIEMENTS : paiements/admin_paiements.html
+   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+   Vue admin globale des paiements avec KPIs financiers et filtres.
+
+   STRUCTURE :
+   - 4 KPIs (total / réussis / CA brut / CA net après remboursements)
+   - Filtres : recherche / statut / moyen / plage de dates
+   - Tableau avec actions (voir, rembourser)
+   ============================================================ 
+-->
+{% extends "base.html" %}
+
+{% block title %}Paiements — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-base-200 min-h-screen py-6">
+    <div class="container mx-auto px-4 max-w-7xl">
+
+        <div class="mb-4 flex items-center gap-2">
+            <span class="badge badge-error">Administration</span>
+        </div>
+
+        <header class="mb-6">
+            <nav class="text-sm breadcrumbs mb-2">
+                <ul>
+                    <li><a href="{% url 'compte:dashbord_admin' %}">Dashboard admin</a></li>
+                    <li>Paiements</li>
+                </ul>
+            </nav>
+            <h1 class="font-display text-3xl font-bold">💰 Paiements</h1>
+            <p class="text-base-content/70 mt-1">
+                Vue globale de tous les paiements sur la plateforme
+            </p>
+        </header>
+
+        <!-- - -- -- KPIs - -- -- -->
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full bg-base-100 mb-6">
+            <div class="stat">
+                <div class="stat-figure text-info text-3xl">📊</div>
+                <div class="stat-title">Total</div>
+                <div class="stat-value text-info">{{ stats.total }}</div>
+                <div class="stat-desc">Transactions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-figure text-success text-3xl">✅</div>
+                <div class="stat-title">Réussis</div>
+                <div class="stat-value text-success">{{ stats.reussis }}</div>
+                <div class="stat-desc">
+                    {% if stats.total > 0 %}
+                        {% widthratio stats.reussis stats.total 100 %}% de réussite
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat">
+                <div class="stat-figure text-primary text-2xl">💰</div>
+                <div class="stat-title">CA brut</div>
+                <div class="stat-value text-primary text-2xl">{{ stats.ca_total|floatformat:0 }}</div>
+                <div class="stat-desc">FCFA encaissés</div>
+            </div>
+            <div class="stat">
+                <div class="stat-figure text-accent text-2xl">📈</div>
+                <div class="stat-title">CA net</div>
+                <div class="stat-value text-accent text-2xl">{{ stats.ca_net|floatformat:0 }}</div>
+                <div class="stat-desc">
+                    Après remboursements ({{ stats.rembourses|floatformat:0 }})
+                </div>
+            </div>
+        </div>
+
+        <!-- - -- -- Filtres - -- -- -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body p-4">
+                <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+
+                    <div class="form-control md:col-span-2">
+                        <label class="label py-1"><span class="label-text text-sm">🔍 Recherche</span></label>
+                        <input type="text" name="q"
+                               value="{{ filtre_form.q.value|default:'' }}"
+                               placeholder="Réf, n° résa, n° tél..."
+                               class="input input-bordered input-sm">
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-sm">Statut</span></label>
+                        <select name="statut" class="select select-bordered select-sm">
+                            {% for value, label in filtre_form.statut.field.choices %}
+                            <option value="{{ value }}" {% if filtre_form.statut.value == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-sm">Moyen</span></label>
+                        <select name="moyen" class="select select-bordered select-sm">
+                            <option value="">Tous les moyens</option>
+                            {% for m in filtre_form.moyen.field.queryset %}
+                            <option value="{{ m.pk }}"
+                                    {% if filtre_form.moyen.value|stringformat:'s' == m.pk|stringformat:'s' %}selected{% endif %}>
+                                {{ m.libelle }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-sm">Du</span></label>
+                        <input type="date" name="date_debut"
+                               value="{{ filtre_form.date_debut.value|date:'Y-m-d'|default:'' }}"
+                               class="input input-bordered input-sm">
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-sm">Au</span></label>
+                        <input type="date" name="date_fin"
+                               value="{{ filtre_form.date_fin.value|date:'Y-m-d'|default:'' }}"
+                               class="input input-bordered input-sm">
+                    </div>
+
+                    <div class="md:col-span-5 flex justify-end gap-2">
+                        <a href="{% url 'paiement:admin_paiements' %}" class="btn btn-ghost btn-sm">
+                            Réinitialiser
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            Filtrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- - -- -- Tableau - -- -- -->
+        {% if paiements %}
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Réservation</th>
+                                <th>Moyen</th>
+                                <th class="text-right">Montant</th>
+                                <th>Statut</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in paiements %}
+                            <tr class="hover">
+                                <td>
+                                    <p class="font-mono text-xs">{{ p.reference_interne }}</p>
+                                    {% if p.reference_externe %}
+                                    <p class="text-xs text-base-content/50 font-mono truncate max-w-[140px]"
+                                       title="{{ p.reference_externe }}">
+                                        {{ p.reference_externe }}
+                                    </p>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs">
+                                    <p>{{ p.created_at|date:'d/m/Y' }}</p>
+                                    <p class="text-base-content/50">{{ p.created_at|time:'H:i' }}</p>
+                                </td>
+                                <td>
+                                    {% if p.type_transaction == 'paiement' %}
+                                        <span class="badge badge-info badge-sm">💳 Paiement</span>
+                                    {% else %}
+                                        <span class="badge badge-accent badge-sm">↩ Remb.</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs">
+                                    <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}"
+                                       class="link font-mono">{{ p.reservation.numero }}</a>
+                                    <p class="text-base-content/50 truncate max-w-[120px]">
+                                        {{ p.reservation.touriste.user.nom_complet }}
+                                    </p>
+                                </td>
+                                <td class="text-xs">{{ p.moyen.libelle|truncatechars:18 }}</td>
+                                <td class="text-right font-mono font-semibold">
+                                    {% if p.type_transaction == 'remboursement' %}
+                                        <span class="text-accent">-</span>
+                                    {% endif %}
+                                    {{ p.montant|floatformat:0 }}
+                                </td>
+                                <td>
+                                    {% if p.statut == 'reussi' %}
+                                        <span class="badge badge-success badge-sm">✅</span>
+                                    {% elif p.statut == 'echoue' %}
+                                        <span class="badge badge-error badge-sm">❌</span>
+                                    {% elif p.statut == 'en_cours' %}
+                                        <span class="badge badge-warning badge-sm">⏳</span>
+                                    {% elif p.statut == 'rembourse' %}
+                                        <span class="badge badge-info badge-sm">↩</span>
+                                    {% else %}
+                                        <span class="badge badge-ghost badge-sm">{{ p.get_statut_display|truncatechars:8 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">
+                                    <div class="join">
+                                        <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}"
+                                           class="btn btn-xs btn-ghost join-item" title="Voir réservation">
+                                            👁
+                                        </a>
+                                        {% if p.peut_etre_rembourse %}
+                                        <a href="{% url 'paiement:rembourser' paiement_id=p.id %}"
+                                           class="btn btn-xs btn-ghost join-item text-accent" title="Rembourser">
+                                            ↩
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if paginator.num_pages > 1 %}
+        <nav class="flex justify-center mt-6">
+            <div class="join">
+                {% if paiements.has_previous %}
+                <a href="?page={{ paiements.previous_page_number }}" class="join-item btn btn-sm">«</a>
+                {% else %}
+                <button class="join-item btn btn-sm btn-disabled">«</button>
+                {% endif %}
+                <button class="join-item btn btn-sm">{{ paiements.number }} / {{ paginator.num_pages }}</button>
+                {% if paiements.has_next %}
+                <a href="?page={{ paiements.next_page_number }}" class="join-item btn btn-sm">»</a>
+                {% else %}
+                <button class="join-item btn btn-sm btn-disabled">»</button>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body items-center text-center py-12">
+                <div class="text-7xl mb-3">💰</div>
+                <h3 class="card-title">Aucun paiement</h3>
+                <p class="text-base-content/70">Aucun paiement ne correspond aux filtres sélectionnés.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

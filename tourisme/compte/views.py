@@ -1,141 +1,183 @@
 """
 compte/views.py
 ===============
-Vues d'authentification, profil et tableaux de bord par type d'utilisateur.
+Vues pour l'app compte.
 
-Initiatives prises :
-1. On utilise les décorateurs `@login_required` et `@user_passes_test`
-   pour protéger les vues sensibles. C'est plus simple et sûr que
-   de vérifier manuellement `request.user.is_authenticated`.
-2. Les dashboards sont SÉPARÉS par rôle (touriste/gestionnaire/guide/admin)
-   car les KPIs affichés sont très différents.
-3. Audit log : chaque connexion/déconnexion est tracée (cf. cahier
-   des charges §9.3 — conformité loi 2010/012 sur les données personnelles).
-4. Messages flash (`messages.success`, `messages.error`) pour le feedback
-   utilisateur après chaque action (UX : on confirme ou on signale l'erreur).
-5. Redirection intelligente après login selon le type_user (le touriste
-   va sur son dashboard touriste, le gestionnaire sur le sien, etc.).
+ORGANISATION :
+- AUTHENTIFICATION : connexion, inscription, déconnexion
+- COMPTE : profil, changer password, compte suspendu
+- DASHBOARDS : 4 dashboards spécifiques par type d'utilisateur
+- DISPATCHER : vue qui redirige vers le bon dashboard selon type_user
+
+INITIATIVES PÉDAGOGIQUES :
+1. Vues MINCES : on délègue la logique aux forms.
+2. Décorateurs `@login_required` et `@user_passes_test` pour la sécurité.
+3. `@transaction.atomic` sur l'inscription : si la création du profil
+   échoue, on rollback le User aussi.
+4. Pattern PRG (Post-Redirect-Get) : après un POST réussi, on REDIRECT
+   plutôt que de render. Évite la double soumission au refresh.
+5. `update_session_auth_hash` après changement de mdp : maintient
+   l'user connecté (sinon Django invalide la session).
 """
 
+import logging
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, Sum, Avg, Q
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse, reverse_lazy
+from django.db import transaction
+from django.db.models import Count, Sum, Q, Avg
+from django.http import HttpResponseForbidden
+from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
 
-from core.models import AuditLog
-from .forms import (
-    ConnexionForm, InscriptionForm, InscriptionGestionnaireForm,
-    ProfilForm, ProfilTouristeForm, ChangerPasswordForm,
+from compte.forms import (
+    ConnexionForm, InscriptionForm,
+    ProfilUserForm, ProfilTouristeForm,
+    ProfilGestionnaireForm, ProfilGuideForm,
+    ChangerPasswordForm,
 )
-from .models import Touriste, Gestionnaire, Guide
+from compte.models import User, Touriste, Gestionnaire, Guide, Administrateur
+
+# Imports défensifs : les autres apps peuvent ne pas encore être migrées
+try:
+    from reservation.models import Reservation
+except ImportError:  # pragma: no cover
+    Reservation = None
+
+try:
+    from catalogue.models import SiteTouristique
+except ImportError:  # pragma: no cover
+    SiteTouristique = None
+
+try:
+    from core.models import AuditLog
+except ImportError:  # pragma: no cover
+    AuditLog = None
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# HELPERS — fonctions utilitaires réutilisées
+# HELPERS
 # ============================================================
 def get_client_ip(request):
-    """
-    Récupère l'IP réelle du visiteur (utile derrière Nginx/reverse proxy).
-    X-Forwarded-For contient la chaîne d'IPs : on prend la première.
-    """
-    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded:
-        return x_forwarded.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', '')
+    """Récupère l'IP réelle du client (gère X-Forwarded-For)."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
 
 
-def log_action(user, action, ressource='', ressource_id='', request=None):
-    """
-    Wrapper pour insérer une ligne dans AuditLog.
-    On l'appelle pour les actions sensibles : connexion, paiement, etc.
-    """
-    AuditLog.objects.create(
-        utilisateur=user,
-        action=action,
-        ressource=ressource,
-        ressource_id=str(ressource_id) if ressource_id else '',
-        ip_adresse=get_client_ip(request) if request else '',
-        user_agent=request.META.get('HTTP_USER_AGENT', '')[:300] if request else '',
-    )
+def log_action(user, action, ressource, id_ressource='', request=None, details=None):
+    """Wrapper de création d'AuditLog (DRY) — défensif si l'app core n'est pas dispo."""
+    if AuditLog is None:
+        return
+    try:
+        AuditLog.objects.create(
+            utilisateur=user if user and user.is_authenticated else None,
+            action=action,
+            ressource=ressource,
+            id_ressource=str(id_ressource),
+            ip_address=get_client_ip(request) if request else None,
+            user_agent=request.META.get('HTTP_USER_AGENT', '') if request else '',
+            details=details or {},
+        )
+    except Exception as e:
+        logger.warning(f"Échec audit log : {e}")
 
 
-def redirect_dashboard(user):
+def get_dashboard_url(user):
     """
-    Redirige l'utilisateur vers SON dashboard selon son type.
-    Évite de mettre du if/else dans chaque vue.
+    Retourne l'URL du dashboard adapté au type d'user.
+
+    Pédago : fonction centralisée pour le routage post-connexion.
+    Si on ajoute un type d'user demain, on modifie 1 seul endroit.
     """
-    User = user.__class__
     mapping = {
-        User.UserType.TOURISTE: 'compte:dashboard_touriste',
-        User.UserType.GESTIONNAIRE: 'compte:dashboard_gestionnaire',
-        User.UserType.GUIDE: 'compte:dashboard_guide',
-        User.UserType.ADMIN: 'compte:dashboard_admin',
+        'touriste': 'compte:dashbord_touriste',
+        'gestionnaire': 'compte:dashbord_gestionnaire_site',
+        'guide': 'compte:dashbord_guide',
+        'admin': 'compte:dashbord_admin',
     }
-    return redirect(mapping.get(user.type_user, 'home'))
+    return reverse(mapping.get(user.type_user, 'catalogue:accueil'))
 
 
 # ============================================================
-# 1. CONNEXION
+# TESTS D'AUTORISATION (pour @user_passes_test)
 # ============================================================
-@require_http_methods(["GET", "POST"])
+def est_touriste(user):
+    return user.is_authenticated and user.type_user == 'touriste'
+
+
+def est_gestionnaire(user):
+    return user.is_authenticated and user.type_user == 'gestionnaire'
+
+
+def est_guide(user):
+    return user.is_authenticated and user.type_user == 'guide'
+
+
+def est_admin(user):
+    return user.is_authenticated and user.type_user == 'admin'
+
+
+# ============================================================
+# A. AUTHENTIFICATION
+# ============================================================
+
 def connexion_view(request):
     """
-    Vue de connexion.
+    Connexion par email + mot de passe.
 
-    GET  → affiche le formulaire
-    POST → authentifie et redirige vers le bon dashboard.
-
-    Sécurité :
-    - Verrouillage compte après 5 échecs (à implémenter avec django-axes)
-    - Compte inactif → message dédié (ex: gestionnaire en attente de validation)
+    Pédago : si user déjà connecté, on redirige vers son dashboard
+    (évite qu'il voie la page de connexion par erreur).
     """
-    # Déjà connecté ? On le renvoie vers son dashboard.
+    # Si déjà connecté → redirect vers dashboard
     if request.user.is_authenticated:
-        return redirect_dashboard(request.user)
+        return redirect(get_dashboard_url(request.user))
 
     if request.method == 'POST':
-        form = ConnexionForm(request, data=request.POST)
+        form = ConnexionForm(request.POST, request=request)
         if form.is_valid():
             user = form.get_user()
 
-            # Cas 1 : compte suspendu/désactivé
-            if not user.is_active:
-                log_action(user, AuditLog.ActionType.LOGIN,
-                           ressource='auth', request=request)
-                return redirect('compte:compte_suspendu')
-
-            # Cas 2 : gestionnaire en attente de validation
-            if user.type_user == user.UserType.GESTIONNAIRE:
-                profil = getattr(user, 'profil_gestionnaire', None)
-                if profil and not profil.est_valide:
-                    messages.warning(request,
-                        "Votre compte gestionnaire est en attente de validation "
-                        "par un administrateur. Vous serez notifié par email."
-                    )
-                    return redirect('compte:connexion')
-
-            # Cas 3 : connexion OK
+            # ---- Connexion Django (crée la session) ----
             login(request, user)
-            # "Se souvenir de moi" → session de 30 jours, sinon par défaut
-            if not form.cleaned_data.get('remember_me'):
-                request.session.set_expiry(0)  # session fermée à la fermeture du navigateur
 
-            log_action(user, AuditLog.ActionType.LOGIN,
-                       ressource='auth', request=request)
-            messages.success(request, f"Bienvenue {user.first_name} !")
+            # ---- "Se souvenir de moi" : durée de session ----
+            if form.cleaned_data.get('remember_me'):
+                # 30 jours
+                request.session.set_expiry(60 * 60 * 24 * 30)
+            else:
+                # Expire à la fermeture du navigateur
+                request.session.set_expiry(0)
 
-            # Redirection après login : on respecte le ?next= s'il existe
+            # ---- Audit log ----
+            log_action(user, 'login', 'User', user.id, request)
+
+            # ---- Vérification statut (gestionnaire/guide rejeté) ----
+            if user.type_user == 'gestionnaire':
+                if hasattr(user, 'profil_gestionnaire'):
+                    if user.profil_gestionnaire.statut_validation == 'rejete':
+                        return redirect('compte:compte_suspendu')
+            elif user.type_user == 'guide':
+                if hasattr(user, 'profil_guide'):
+                    if user.profil_guide.statut_validation == 'rejete':
+                        return redirect('compte:compte_suspendu')
+
+            messages.success(request, f"Bienvenue {user.first_name or user.email} ! 👋")
+
+            # ---- Redirection : ?next= ou dashboard ----
+            # Pédago : ?next=/page-protegee/ est mis automatiquement par
+            # @login_required quand un user non connecté tente d'accéder à
+            # une vue protégée. On le respecte pour une UX fluide.
             next_url = request.GET.get('next') or request.POST.get('next')
-            if next_url:
-                return HttpResponseRedirect(next_url)
-            return redirect_dashboard(user)
+            if next_url and next_url.startswith('/'):  # sécurité : URL relative seulement
+                return redirect(next_url)
+            return redirect(get_dashboard_url(user))
     else:
-        form = ConnexionForm(request)
+        form = ConnexionForm(request=request)
 
     return render(request, 'controle/connexion.html', {
         'form': form,
@@ -143,137 +185,167 @@ def connexion_view(request):
     })
 
 
-# ============================================================
-# 2. INSCRIPTION
-# ============================================================
-@require_http_methods(["GET", "POST"])
 def inscription_view(request):
     """
-    Inscription publique (touriste par défaut).
-    Pour s'inscrire comme gestionnaire/guide, on aura des URLs dédiées.
+    Inscription d'un nouvel utilisateur (touriste/gestionnaire/guide).
+
+    Pédago : @transaction.atomic garantit que si la création du profil
+    échoue, le User est aussi rollback. Pas d'user orphelin sans profil.
     """
     if request.user.is_authenticated:
-        return redirect_dashboard(request.user)
-
-    type_compte = request.GET.get('type', 'touriste')
-
-    # On choisit dynamiquement le formulaire selon le type
-    if type_compte == 'gestionnaire':
-        FormClass = InscriptionGestionnaireForm
-    else:
-        FormClass = InscriptionForm
+        return redirect(get_dashboard_url(request.user))
 
     if request.method == 'POST':
-        form = FormClass(request.POST)
+        form = InscriptionForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            log_action(user, AuditLog.ActionType.CREATE,
-                       ressource='User', ressource_id=user.id, request=request)
+            try:
+                with transaction.atomic():
+                    user = form.save()
+                log_action(user, 'create', 'User', user.id, request,
+                           details={'type': user.type_user})
 
-            # Message différent selon le type
-            if type_compte == 'gestionnaire':
-                messages.info(request,
-                    "Inscription enregistrée. Votre compte sera activé "
-                    "après vérification de votre registre de commerce (24-48h)."
-                )
-                return redirect('compte:connexion')
+                # Connexion automatique après inscription
+                login(request, user)
 
-            # Touriste : login automatique
-            login(request, user)
-            messages.success(request,
-                f"Bienvenue sur Tourisme Cameroun, {user.first_name} ! "
-                "Découvrez dès maintenant nos plus beaux sites."
-            )
-            return redirect_dashboard(user)
+                # Message adapté selon le type
+                if user.type_user == 'touriste':
+                    messages.success(
+                        request,
+                        f"✅ Bienvenue {user.first_name} ! Votre compte est créé."
+                    )
+                else:
+                    messages.info(
+                        request,
+                        f"✅ Votre compte est créé. "
+                        f"Notre équipe va valider votre profil sous 48h."
+                    )
+
+                return redirect(get_dashboard_url(user))
+
+            except Exception as e:
+                logger.error(f"Erreur inscription : {e}", exc_info=True)
+                messages.error(request, "Erreur lors de la création du compte. Réessayez.")
     else:
-        form = FormClass()
+        # Préremplir le type depuis l'URL : /inscription/?type=gestionnaire
+        initial = {}
+        if request.GET.get('type') in ['touriste', 'gestionnaire', 'guide']:
+            initial['type_user'] = request.GET.get('type')
+        form = InscriptionForm(initial=initial)
 
     return render(request, 'controle/inscription.html', {
         'form': form,
-        'type_compte': type_compte,
         'page_title': 'Inscription',
     })
 
 
-# ============================================================
-# 3. DÉCONNEXION
-# ============================================================
 @login_required
 def deconnexion_view(request):
-    """Déconnexion + audit log + flash message."""
-    log_action(request.user, AuditLog.ActionType.LOGOUT,
-               ressource='auth', request=request)
-    logout(request)
-    messages.success(request, "Vous avez été déconnecté avec succès.")
-    return redirect('home')
+    """Déconnexion (POST uniquement pour la sécurité CSRF)."""
+    if request.method == 'POST':
+        user_id = request.user.id
+        log_action(request.user, 'logout', 'User', user_id, request)
+        logout(request)
+        messages.info(request, "Vous êtes déconnecté. À bientôt ! 👋")
+        return redirect('catalogue:accueil')
+
+    # GET : page de confirmation (optionnelle, on peut aussi POST direct)
+    return redirect('catalogue:accueil')
 
 
 # ============================================================
-# 4. PROFIL UTILISATEUR
+# B. GESTION DU COMPTE
 # ============================================================
+
 @login_required
 def profil_view(request):
-    """
-    Affiche et permet de modifier le profil de l'utilisateur connecté.
-    Affiche aussi les infos spécifiques au type (touriste/gestionnaire/guide).
-    """
-    user = request.user
-
-    if request.method == 'POST':
-        form_user = ProfilForm(request.POST, request.FILES, instance=user)
-        # Sous-formulaire selon le type
-        form_profil = None
-        if user.type_user == user.UserType.TOURISTE:
-            touriste = getattr(user, 'profil_touriste', None)
-            if touriste:
-                form_profil = ProfilTouristeForm(request.POST, instance=touriste)
-
-        if form_user.is_valid() and (form_profil is None or form_profil.is_valid()):
-            form_user.save()
-            if form_profil:
-                form_profil.save()
-            log_action(user, AuditLog.ActionType.UPDATE,
-                       ressource='User', ressource_id=user.id, request=request)
-            messages.success(request, "Profil mis à jour avec succès.")
-            return redirect('compte:profil')
-    else:
-        form_user = ProfilForm(instance=user)
-        form_profil = None
-        if user.type_user == user.UserType.TOURISTE:
-            touriste = getattr(user, 'profil_touriste', None)
-            if touriste:
-                form_profil = ProfilTouristeForm(instance=touriste)
-
+    """Affichage du profil (tous les onglets dans le même template)."""
     return render(request, 'controle/profil.html', {
-        'form_user': form_user,
-        'form_profil': form_profil,
         'page_title': 'Mon profil',
     })
 
 
-# ============================================================
-# 5. CHANGEMENT DE MOT DE PASSE
-# ============================================================
+@login_required
+def profil_update_view(request):
+    """
+    Modification du profil — multi-sections selon `section` POST.
+
+    Le template profil.html a plusieurs forms (un par onglet), chacun
+    avec un champ caché <input name="section" value="infos|touriste|...">
+    On dispatch ici selon la section.
+    """
+    if request.method != 'POST':
+        return redirect('compte:profil')
+
+    section = request.POST.get('section', '')
+    user = request.user
+
+    # ----- SECTION INFOS (commune à tous) -----
+    if section == 'infos':
+        form = ProfilUserForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            log_action(user, 'update', 'User', user.id, request,
+                       details={'section': 'infos'})
+            messages.success(request, "✅ Informations mises à jour.")
+        else:
+            for field, errors in form.errors.items():
+                messages.error(request, f"{field} : {errors[0]}")
+
+    # ----- SECTION TOURISTE -----
+    elif section == 'touriste' and user.type_user == 'touriste':
+        form = ProfilTouristeForm(request.POST, instance=user.profil_touriste)
+        if form.is_valid():
+            form.save()
+            log_action(user, 'update', 'Touriste', user.profil_touriste.id, request)
+            messages.success(request, "✅ Profil touriste mis à jour.")
+        else:
+            for field, errors in form.errors.items():
+                messages.error(request, f"{field} : {errors[0]}")
+
+    # ----- SECTION GESTIONNAIRE -----
+    elif section == 'gestionnaire' and user.type_user == 'gestionnaire':
+        form = ProfilGestionnaireForm(request.POST, instance=user.profil_gestionnaire)
+        if form.is_valid():
+            form.save()
+            log_action(user, 'update', 'Gestionnaire', user.profil_gestionnaire.id, request)
+            messages.success(request, "✅ Profil entreprise mis à jour.")
+        else:
+            for field, errors in form.errors.items():
+                messages.error(request, f"{field} : {errors[0]}")
+
+    # ----- SECTION GUIDE -----
+    elif section == 'guide' and user.type_user == 'guide':
+        form = ProfilGuideForm(request.POST, instance=user.profil_guide)
+        if form.is_valid():
+            form.save()
+            log_action(user, 'update', 'Guide', user.profil_guide.id, request)
+            messages.success(request, "✅ Profil guide mis à jour.")
+        else:
+            for field, errors in form.errors.items():
+                messages.error(request, f"{field} : {errors[0]}")
+
+    else:
+        messages.error(request, "Section inconnue.")
+
+    return redirect('compte:profil')
+
+
 @login_required
 def changer_password_view(request):
-    """
-    Permet à un utilisateur connecté de changer son mot de passe.
-    `update_session_auth_hash` évite que la session soit invalidée
-    après le changement (sinon il faudrait se reconnecter).
-    """
+    """Changement du mot de passe."""
     if request.method == 'POST':
-        form = ChangerPasswordForm(request.user, request.POST)
+        form = ChangerPasswordForm(user=request.user, data=request.POST)
         if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)  # garde la session active
-            log_action(user, AuditLog.ActionType.UPDATE,
-                       ressource='password', request=request)
-            messages.success(request,
-                "Votre mot de passe a été modifié avec succès."
-            )
+            form.save()
+            # Pédago : update_session_auth_hash MAINTIENT l'user connecté
+            # après changement de mdp. Sans ça, Django invalide la session.
+            update_session_auth_hash(request, request.user)
+            log_action(request.user, 'update', 'User', request.user.id, request,
+                       details={'action': 'change_password'})
+            messages.success(request, "✅ Mot de passe mis à jour.")
             return redirect('compte:profil')
     else:
-        form = ChangerPasswordForm(request.user)
+        form = ChangerPasswordForm(user=request.user)
 
     return render(request, 'controle/changer_password.html', {
         'form': form,
@@ -281,196 +353,307 @@ def changer_password_view(request):
     })
 
 
-# ============================================================
-# 6. COMPTE SUSPENDU
-# ============================================================
+@login_required
 def compte_suspendu_view(request):
-    """Page affichée quand un compte désactivé tente de se connecter."""
+    """
+    Page affichée quand le compte est suspendu/rejeté.
+
+    Pédago : on affiche le motif si dispo (transparence avec l'user).
+    """
+    user = request.user
+    motif = None
+    motif_rejet = None
+
+    if user.type_user == 'gestionnaire' and hasattr(user, 'profil_gestionnaire'):
+        if user.profil_gestionnaire.statut_validation == 'rejete':
+            motif = 'rejete'
+            motif_rejet = user.profil_gestionnaire.motif_rejet
+        elif user.profil_gestionnaire.statut_validation == 'en_attente':
+            motif = 'en_attente'
+
+    elif user.type_user == 'guide' and hasattr(user, 'profil_guide'):
+        if user.profil_guide.statut_validation == 'rejete':
+            motif = 'rejete'
+
     return render(request, 'controle/compte_suspendu.html', {
+        'motif': motif,
+        'motif_rejet': motif_rejet,
         'page_title': 'Compte suspendu',
     })
 
 
 # ============================================================
-# 7. DASHBOARDS — un par type d'utilisateur
+# C. DASHBOARDS (un par type d'utilisateur)
 # ============================================================
 
-# --- Décorateurs de contrôle de rôle ---
-def est_touriste(user):
-    return user.is_authenticated and user.type_user == user.UserType.TOURISTE
-
-def est_gestionnaire(user):
-    return user.is_authenticated and user.type_user == user.UserType.GESTIONNAIRE
-
-def est_guide(user):
-    return user.is_authenticated and user.type_user == user.UserType.GUIDE
-
-def est_admin(user):
-    return user.is_authenticated and user.type_user == user.UserType.ADMIN
-
-
 @login_required
-@user_passes_test(est_touriste, login_url='home')
-def dashboard_touriste_view(request):
+@user_passes_test(est_touriste, login_url='compte:connexion')
+def dashbord_touriste_view(request):
     """
-    Dashboard du touriste : ses réservations, ses favoris, ses points.
+    Dashboard touriste : prochaines visites, stats, recommandations.
     """
     user = request.user
-    context = {'page_title': 'Mon espace touriste'}
+    touriste = user.profil_touriste
 
-    try:
-        from reservation.models import Reservation
-        reservations = (Reservation.objects
-            .filter(touriste__user=user)
-            .select_related('site', 'site__localisation')
-            .order_by('-created_at')[:10]
+    # ---- Stats personnelles ----
+    stats = {
+        'total': 0,
+        'a_venir': 0,
+        'depenses': 0,
+        'points': touriste.points_fidelite,
+    }
+
+    prochaines_reservations = []
+    avis_a_laisser = []
+
+    if Reservation:
+        aujourd_hui = timezone.now().date()
+        toutes_resa = Reservation.objects.filter(touriste=touriste)
+
+        stats_agg = toutes_resa.aggregate(
+            total=Count('id'),
+            a_venir=Count('id', filter=Q(
+                date_visite__gte=aujourd_hui,
+                statut__in=['en_attente', 'confirmee'],
+            )),
+            depenses=Sum('montant_total', filter=Q(
+                statut__in=['confirmee', 'terminee'],
+            )),
         )
-        # KPIs en haut du dashboard
-        context.update({
-            'reservations': reservations,
-            'nb_reservations': reservations.count(),
-            'nb_confirmees': reservations.filter(statut='confirmee').count(),
-            'nb_terminees': reservations.filter(statut='terminee').count(),
-            'points_fidelite': getattr(user.profil_touriste, 'points_fidelite', 0),
-        })
-    except Exception:
-        context.update({
-            'reservations': [], 'nb_reservations': 0,
-            'nb_confirmees': 0, 'nb_terminees': 0, 'points_fidelite': 0,
+        stats.update({
+            'total': stats_agg['total'] or 0,
+            'a_venir': stats_agg['a_venir'] or 0,
+            'depenses': stats_agg['depenses'] or 0,
         })
 
-    return render(request, 'controle/dashbord_touriste.html', context)
+        # Prochaines visites
+        prochaines_reservations = (toutes_resa
+            .filter(date_visite__gte=aujourd_hui,
+                    statut__in=['en_attente', 'confirmee'])
+            .select_related('site')
+            .order_by('date_visite')[:3]
+        )
+
+        # Visites terminées sans avis (s'il existe une FK avis→reservation)
+        # Pédago : on essaie .exclude(avis__isnull=False) mais on est défensif
+        # car le related_name peut ne pas exister encore.
+        try:
+            avis_a_laisser = (toutes_resa
+                .filter(statut='terminee')
+                .exclude(avis__isnull=False)
+                .select_related('site')[:3]
+            )
+        except Exception:
+            avis_a_laisser = []
+
+    # ---- Sites recommandés (basique : 4 derniers publiés) ----
+    sites_recommandes = []
+    if SiteTouristique:
+        try:
+            sites_recommandes = (SiteTouristique.objects
+                .filter(est_publie=True)
+                .order_by('-created_at')[:4]
+            )
+        except Exception:
+            sites_recommandes = []
+
+    return render(request, 'controle/dashbord_touriste.html', {
+        'stats': stats,
+        'prochaines_reservations': prochaines_reservations,
+        'sites_recommandes': sites_recommandes,
+        'avis_a_laisser': avis_a_laisser,
+        'page_title': 'Mon espace',
+    })
 
 
 @login_required
-@user_passes_test(est_gestionnaire, login_url='home')
-def dashboard_gestionnaire_view(request):
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def dashbord_gestionnaire_view(request):
     """
-    Dashboard gestionnaire : ses sites, réservations reçues, revenus.
+    Dashboard gestionnaire (F-GES-01) : KPIs revenus + réservations récentes.
     """
     user = request.user
-    context = {'page_title': 'Espace gestionnaire'}
+    gestionnaire = user.profil_gestionnaire
 
-    try:
-        from catalogue.models import SiteTouristique
-        from reservation.models import Reservation
+    stats = {
+        'resa_mois': 0,
+        'revenu_mois': 0,
+        'taux_occupation': 0,
+        'note_moyenne': 0,
+        'nb_avis': 0,
+    }
+    dernieres_reservations = []
+    mes_sites = []
 
-        # Sites publiés par ce gestionnaire
-        mes_sites = SiteTouristique.objects.filter(gestionnaire__user=user)
+    if SiteTouristique:
+        # Sites du gestionnaire
+        mes_sites_qs = SiteTouristique.objects.filter(gestionnaire=gestionnaire)
+        mes_sites = mes_sites_qs[:5]
 
-        # Réservations sur ses sites
-        reservations = (Reservation.objects
-            .filter(site__in=mes_sites)
-            .select_related('touriste', 'touriste__user', 'site')
-            .order_by('-created_at')[:10]
-        )
+        if Reservation:
+            # Réservations du mois en cours
+            debut_mois = timezone.now().replace(day=1).date()
+            resa_mois_qs = Reservation.objects.filter(
+                site__gestionnaire=gestionnaire,
+                created_at__date__gte=debut_mois,
+            )
 
-        # KPIs financiers
-        revenus_total = (Reservation.objects
-            .filter(site__in=mes_sites, statut__in=['confirmee', 'terminee'])
-            .aggregate(total=Sum('montant_total'))['total'] or 0
-        )
+            stats_agg = resa_mois_qs.aggregate(
+                resa_mois=Count('id'),
+                revenu_mois=Sum('montant_total', filter=Q(statut__in=['confirmee', 'terminee'])),
+            )
+            stats['resa_mois'] = stats_agg['resa_mois'] or 0
+            stats['revenu_mois'] = stats_agg['revenu_mois'] or 0
 
-        context.update({
-            'mes_sites': mes_sites,
-            'nb_sites': mes_sites.count(),
-            'reservations': reservations,
-            'nb_reservations': Reservation.objects.filter(site__in=mes_sites).count(),
-            'revenus_total': revenus_total,
-            'note_moyenne': mes_sites.aggregate(n=Avg('avis__note'))['n'] or 0,
-        })
-    except Exception:
-        context.update({
-            'mes_sites': [], 'nb_sites': 0, 'reservations': [],
-            'nb_reservations': 0, 'revenus_total': 0, 'note_moyenne': 0,
-        })
+            # Dernières réservations (top 10)
+            dernieres_reservations = (Reservation.objects
+                .filter(site__gestionnaire=gestionnaire)
+                .select_related('site', 'touriste__user')
+                .order_by('-created_at')[:10]
+            )
 
-    return render(request, 'controle/dashbord_gestionnaire_site.html', context)
+    return render(request, 'controle/dashbord_gestionnaire_site.html', {
+        'stats': stats,
+        'dernieres_reservations': dernieres_reservations,
+        'mes_sites': mes_sites,
+        'page_title': 'Dashboard gestionnaire',
+    })
 
 
 @login_required
-@user_passes_test(est_guide, login_url='home')
-def dashboard_guide_view(request):
-    """Dashboard guide : ses missions, disponibilités, revenus."""
+@user_passes_test(est_guide, login_url='compte:connexion')
+def dashbord_guide_view(request):
+    """Dashboard guide : missions, demandes en attente."""
     user = request.user
-    context = {'page_title': 'Espace guide'}
+    guide = user.profil_guide
 
-    try:
-        from reservation.models import Reservation
-        # Missions affectées au guide (champ optionnel sur Reservation)
-        missions = (Reservation.objects
-            .filter(guide__user=user)
-            .select_related('touriste__user', 'site')
-            .order_by('-date_visite')[:10]
-        )
-        context.update({
-            'missions': missions,
-            'nb_missions': missions.count(),
-            'nb_a_venir': missions.filter(
-                date_visite__gte=timezone.now().date(),
-                statut='confirmee'
-            ).count(),
-        })
-    except Exception:
-        context.update({'missions': [], 'nb_missions': 0, 'nb_a_venir': 0})
+    stats = {
+        'missions_mois': 0,
+        'revenu_mois': 0,
+        'total_missions': 0,
+        'nb_avis': 0,
+        'demandes_attente': 0,
+    }
+    prochaines_missions = []
+    demandes_attente = []
 
-    return render(request, 'controle/dashbord_guide.html', context)
+    # Pédago : les missions sont liées via Reservation.guide (FK).
+    # On extrait les réservations où ce guide est assigné.
+    if Reservation:
+        try:
+            aujourd_hui = timezone.now().date()
+            debut_mois = timezone.now().replace(day=1).date()
+
+            missions_qs = Reservation.objects.filter(guide=guide)
+            stats['total_missions'] = missions_qs.count()
+            stats['missions_mois'] = missions_qs.filter(
+                created_at__date__gte=debut_mois,
+            ).count()
+
+            stats['revenu_mois'] = missions_qs.filter(
+                statut__in=['confirmee', 'terminee'],
+                created_at__date__gte=debut_mois,
+            ).aggregate(total=Sum('montant_total'))['total'] or 0
+
+            prochaines_missions = (missions_qs
+                .filter(date_visite__gte=aujourd_hui, statut='confirmee')
+                .select_related('site')
+                .order_by('date_visite')[:5]
+            )
+
+            demandes_attente = (missions_qs
+                .filter(statut='en_attente')
+                .select_related('site', 'touriste__user')[:5]
+            )
+            stats['demandes_attente'] = demandes_attente.count() if hasattr(demandes_attente, 'count') else len(demandes_attente)
+
+        except Exception as e:
+            logger.warning(f"Stats guide: {e}")
+
+    return render(request, 'controle/dashbord_guide.html', {
+        'stats': stats,
+        'prochaines_missions': prochaines_missions,
+        'demandes_attente': demandes_attente,
+        'page_title': 'Dashboard guide',
+    })
 
 
 @login_required
-@user_passes_test(est_admin, login_url='home')
-def dashboard_admin_view(request):
-    """
-    Dashboard admin : statistiques globales de la plateforme.
-    KPIs : nb utilisateurs, nb sites, CA, réservations en cours,
-    gestionnaires en attente de validation, etc.
-    """
-    context = {'page_title': 'Tableau de bord administrateur'}
+@user_passes_test(est_admin, login_url='compte:connexion')
+def dashbord_admin_view(request):
+    """Dashboard admin : KPIs globaux + validations + modération."""
+    # ---- KPIs globaux ----
+    stats = {
+        'nb_users': User.objects.count(),
+        'nb_touristes': Touriste.objects.count(),
+        'nb_gestionnaires': Gestionnaire.objects.count(),
+        'nb_guides': Guide.objects.count(),
+        'nb_admins': Administrateur.objects.count(),
+        'nb_sites': 0,
+        'nb_sites_total': 0,
+        'nb_resa': 0,
+        'nb_resa_mois': 0,
+        'revenu_global': 0,
+        'total_en_attente': 0,
+    }
 
-    try:
-        from compte.models import User
-        from catalogue.models import SiteTouristique
-        from reservation.models import Reservation
+    # Nouveaux users cette semaine
+    debut_semaine = timezone.now() - timezone.timedelta(days=7)
+    stats['nouveaux_users_semaine'] = User.objects.filter(
+        date_inscription__gte=debut_semaine,
+    ).count()
 
-        # Comptes par type
-        users_par_type = (User.objects
-            .values('type_user')
-            .annotate(nb=Count('id'))
-        )
+    if SiteTouristique:
+        stats['nb_sites_total'] = SiteTouristique.objects.count()
+        try:
+            stats['nb_sites'] = SiteTouristique.objects.filter(est_publie=True).count()
+        except Exception:
+            pass
 
-        # Gestionnaires en attente de validation (action urgente pour l'admin)
-        gestionnaires_a_valider = Gestionnaire.objects.filter(
-            statut_validation='en_attente'
-        ).select_related('user')[:10]
+    if Reservation:
+        try:
+            debut_mois = timezone.now().replace(day=1).date()
+            agg = Reservation.objects.aggregate(
+                nb=Count('id'),
+                nb_mois=Count('id', filter=Q(created_at__date__gte=debut_mois)),
+                revenu=Sum('montant_total', filter=Q(statut__in=['confirmee', 'terminee'])),
+            )
+            stats['nb_resa'] = agg['nb'] or 0
+            stats['nb_resa_mois'] = agg['nb_mois'] or 0
+            stats['revenu_global'] = agg['revenu'] or 0
+        except Exception:
+            pass
 
-        # Top 5 sites
-        top_sites = (SiteTouristique.objects
-            .annotate(nb_res=Count('reservations'))
-            .order_by('-nb_res')[:5]
-        )
+    # ---- Validations en attente ----
+    gestionnaires_attente = Gestionnaire.objects.filter(
+        statut_validation='en_attente',
+    ).select_related('user').order_by('-created_at')[:10]
 
-        # CA total
-        ca_total = (Reservation.objects
-            .filter(statut__in=['confirmee', 'terminee'])
-            .aggregate(total=Sum('montant_total'))['total'] or 0
-        )
+    guides_attente = Guide.objects.filter(
+        statut_validation='en_attente',
+    ).select_related('user').order_by('-created_at')[:10]
 
-        context.update({
-            'nb_users_total': User.objects.count(),
-            'users_par_type': users_par_type,
-            'gestionnaires_a_valider': gestionnaires_a_valider,
-            'nb_a_valider': gestionnaires_a_valider.count(),
-            'nb_sites': SiteTouristique.objects.count(),
-            'nb_reservations': Reservation.objects.count(),
-            'ca_total': ca_total,
-            'top_sites': top_sites,
-        })
-    except Exception:
-        context.update({
-            'nb_users_total': 0, 'users_par_type': [],
-            'gestionnaires_a_valider': [], 'nb_a_valider': 0,
-            'nb_sites': 0, 'nb_reservations': 0,
-            'ca_total': 0, 'top_sites': [],
-        })
+    stats['total_en_attente'] = gestionnaires_attente.count() + guides_attente.count()
 
-    return render(request, 'controle/dashbord_admin.html', context)
+    # ---- Audit log (dernières actions) ----
+    dernieres_actions = []
+    if AuditLog:
+        try:
+            dernieres_actions = (AuditLog.objects
+                .select_related('utilisateur')
+                .order_by('-created_at')[:10]
+            )
+        except Exception:
+            pass
+
+    # ---- Avis signalés (placeholder : tableau vide si pas encore implémenté) ----
+    avis_signales = []
+
+    return render(request, 'controle/dashbord_admin.html', {
+        'stats': stats,
+        'gestionnaires_attente': gestionnaires_attente,
+        'guides_attente': guides_attente,
+        'avis_signales': avis_signales,
+        'dernieres_actions': dernieres_actions,
+        'page_title': 'Administration',
+    })

@@ -1,10 +1,195 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Mes réservations (touriste) — KPI, filtres par statut, cards éditoriales.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Mes réservations — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_touriste' %}" class="hover:text-accent">Mon espace</a>
+        <span>/</span>
+        <span class="text-accent">Mes réservations</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Carnet de voyage</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Mes réservations</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">{{ stats.total }} au total</p>
+        </div>
+        <a href="{% url 'catalogue:liste_sites' %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouvelle réservation
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    <!-- KPIs -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden mb-8">
+      <div class="grid grid-cols-3 divide-x divide-foret-100/60">
+        <div class="p-5">
+          <p class="eyebrow mb-2">Total</p>
+          <p class="font-display text-3xl text-foret-900">{{ stats.total }}</p>
+        </div>
+        <div class="p-5">
+          <p class="eyebrow mb-2">Confirmées</p>
+          <p class="font-display text-3xl text-success">{{ stats.confirmees }}</p>
+        </div>
+        <div class="p-5">
+          <p class="eyebrow mb-2">Terminées</p>
+          <p class="font-display text-3xl text-foret-900">{{ stats.terminees }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <nav class="flex flex-wrap gap-2 mb-8">
+      <a href="?" class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition
+                        {% if not statut_filtre %}bg-foret-900 text-base-100{% else %}border border-foret-100/60 text-foret-700 hover:border-foret-700{% endif %}">
+        Toutes
+      </a>
+      <a href="?statut=en_attente" class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition
+                        {% if statut_filtre == 'en_attente' %}bg-foret-900 text-base-100{% else %}border border-foret-100/60 text-foret-700 hover:border-foret-700{% endif %}">
+        En attente
+      </a>
+      <a href="?statut=confirmee" class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition
+                        {% if statut_filtre == 'confirmee' %}bg-foret-900 text-base-100{% else %}border border-foret-100/60 text-foret-700 hover:border-foret-700{% endif %}">
+        Confirmées
+      </a>
+      <a href="?statut=terminee" class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition
+                        {% if statut_filtre == 'terminee' %}bg-foret-900 text-base-100{% else %}border border-foret-100/60 text-foret-700 hover:border-foret-700{% endif %}">
+        Terminées
+      </a>
+      <a href="?statut=annulee" class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition
+                        {% if statut_filtre == 'annulee' %}bg-foret-900 text-base-100{% else %}border border-foret-100/60 text-foret-700 hover:border-foret-700{% endif %}">
+        Annulées
+      </a>
+    </nav>
+
+    {% if reservations %}
+    <div class="space-y-4 stagger">
+      {% for r in reservations %}
+      <article class="card-editorial overflow-hidden">
+        <div class="flex flex-col md:flex-row gap-5 p-5">
+
+          <!-- Photo -->
+          <div class="md:w-40 md:h-40 flex-shrink-0">
+            {% if r.site.photo_principale %}
+            <img src="{{ r.site.photo_principale.image.url }}" alt="{{ r.site.nom }}" class="w-full h-32 md:h-full rounded-2xl object-cover">
+            {% else %}
+            <div class="bg-pattern-kente w-full h-32 md:h-full rounded-2xl grid place-items-center text-4xl opacity-50">◈</div>
+            {% endif %}
+          </div>
+
+          <!-- Infos -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="min-w-0">
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mb-1">{{ r.numero }}</p>
+                <h3 class="font-display text-xl text-foret-900 truncate">{{ r.site.nom }}</h3>
+                <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mt-1">
+                  {{ r.site.localisation.ville }}, {{ r.site.localisation.region.nom }}
+                </p>
+              </div>
+              <div class="flex-shrink-0">
+                {% if r.statut == 'en_attente' %}<span class="badge-stamp text-warning border-warning/40 text-[10px]">En attente</span>
+                {% elif r.statut == 'confirmee' %}<span class="badge-stamp text-success border-success/40 text-[10px]">Confirmée</span>
+                {% elif r.statut == 'terminee' %}<span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">Terminée</span>
+                {% elif r.statut == 'annulee' %}<span class="badge-stamp text-error border-error/40 text-[10px]">Annulée</span>{% endif %}
+              </div>
+            </div>
+
+            <!-- Détails -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+              <div>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Date</p>
+                <p class="font-mono-num text-foret-900">{{ r.date_visite|date:"d/m/Y" }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Participants</p>
+                <p class="font-mono-num text-foret-900">{{ r.nb_adultes }}A{% if r.nb_enfants %} + {{ r.nb_enfants }}E{% endif %}</p>
+              </div>
+              {% if r.hebergement %}
+              <div>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Hébergement</p>
+                <p class="text-foret-900 truncate text-xs">{{ r.hebergement.nom }}</p>
+              </div>
+              {% endif %}
+              <div>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Montant</p>
+                <p class="font-mono-num text-foret-900 font-semibold">{{ r.montant_total|floatformat:0 }} <span class="text-[10px] font-sans text-foret-700/60">FCFA</span></p>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-foret-100/60">
+              <a href="{% url 'reservation:detail_reservation' reservation_id=r.id %}"
+                 class="bg-foret-900 text-base-100 rounded-full px-5 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Voir détail →
+              </a>
+              {% if r.statut == 'en_attente' %}
+              <a href="{% url 'paiements:choix_moyen' reservation_id=r.id %}"
+                 class="bg-accent text-foret-900 rounded-full px-5 py-2 text-xs font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+                Payer maintenant
+              </a>
+              {% endif %}
+              {% if r.statut == 'confirmee' or r.statut == 'terminee' %}
+              <a href="{% url 'reservation:bon_pdf' reservation_id=r.id %}"
+                 class="border border-foret-900 text-foret-900 rounded-full px-5 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+                Bon PDF
+              </a>
+              {% endif %}
+              {% if r.peut_etre_annulee %}
+              <a href="{% url 'reservation:annuler_reservation' reservation_id=r.id %}"
+                 class="text-error text-xs font-medium uppercase tracking-wider hover:underline decoration-dotted underline-offset-4 self-center px-3">
+                Annuler
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <nav class="flex items-center justify-center gap-2 mt-10">
+      {% if reservations.has_previous %}
+      <a href="?page={{ reservations.previous_page_number }}{% if statut_filtre %}&statut={{ statut_filtre }}{% endif %}"
+         class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition">←</a>
+      {% else %}<span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">←</span>{% endif %}
+      <span class="px-5 text-sm font-mono"><span class="text-foret-900 font-semibold">{{ reservations.number }}</span><span class="text-foret-700/40">/</span><span class="text-foret-700/60">{{ paginator.num_pages }}</span></span>
+      {% if reservations.has_next %}
+      <a href="?page={{ reservations.next_page_number }}{% if statut_filtre %}&statut={{ statut_filtre }}{% endif %}"
+         class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition">→</a>
+      {% else %}<span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">→</span>{% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune réservation</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        {% if statut_filtre %}
+          Aucune réservation ne correspond à ce filtre.
+        {% else %}
+          Vous n'avez pas encore réservé. Explorez notre catalogue et planifiez votre prochaine aventure.
+        {% endif %}
+      </p>
+      <a href="{% url 'catalogue:liste_sites' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        Découvrir les sites →
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

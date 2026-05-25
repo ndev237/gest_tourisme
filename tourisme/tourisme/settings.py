@@ -112,6 +112,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.i18n',  # Pour le multilingue
+                'core.context_processors.paiement_settings',  # context processor custom pour PAIEMENT_MODE_MOCK
             ],
         },
     },
@@ -258,26 +259,33 @@ if not DEBUG:
 # ============================================================
 # 16. PAIEMENTS MOBILE MONEY (à compléter avec vos clés API)
 # ============================================================
+# MTN MoMo (https://momodeveloper.mtn.com/)
 MTN_MOMO_API_USER = config('MTN_MOMO_API_USER', default='')
 MTN_MOMO_API_KEY = config('MTN_MOMO_API_KEY', default='')
 MTN_MOMO_SUBSCRIPTION_KEY = config('MTN_MOMO_SUBSCRIPTION_KEY', default='')
 MTN_MOMO_ENVIRONMENT = config('MTN_MOMO_ENVIRONMENT', default='sandbox')
 
+# Orange Money (https://developer.orange.com/)
 ORANGE_MONEY_CLIENT_ID = config('ORANGE_MONEY_CLIENT_ID', default='')
 ORANGE_MONEY_CLIENT_SECRET = config('ORANGE_MONEY_CLIENT_SECRET', default='')
-
+# Stripe (https://dashboard.stripe.com/)
+STRIPE_PUBLIC_KEY = ''
+STRIPE_SECRET_KEY = ''
+STRIPE_WEBHOOK_SECRET = ''
 
 # ============================================================
 # 17. CONFIGURATION MÉTIER
 # ============================================================
 # Délai (en heures) avant la date de visite pour annulation gratuite
-CANCELLATION_FREE_HOURS = 48
+CANCELLATION_FREE_HOURS = 48  # Annulation gratuite avant 48h
 
 # Pourcentage de remboursement après le délai gratuit
-LATE_CANCELLATION_REFUND_PERCENT = 50
+LATE_CANCELLATION_REFUND_PERCENT = 50  # 50% remboursé si annulation tardive
 
 # Devise par défaut
 DEFAULT_CURRENCY = 'XAF'
 
 # Préfixe des numéros de réservation
-RESERVATION_PREFIX = 'RES'
+RESERVATION_PREFIX = 'RES'              # Préfixe numéro réservation
+# Mode mock paiements (DEV uniquement)
+PAIEMENT_MODE_MOCK = True

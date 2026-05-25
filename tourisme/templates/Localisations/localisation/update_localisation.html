@@ -1,10 +1,320 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Modifier localisation — carte interactive avec marker draggable + Nominatim.
+-->
+{% extends "base.html" %}
+{% load static %}
 
-</body>
-</html>
+{% block title %}Modifier : {{ site.nom }} — Localisation{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="">
+<style>
+  #carte-edition {
+    height: 480px;
+    border-radius: 1.5rem;
+    z-index: 0;
+    cursor: crosshair;
+  }
+  .marker-edit {
+    width: 42px;
+    height: 42px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 4px 14px oklch(20% 0.03 145 / 0.4);
+    background-color: oklch(76% 0.155 82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+  }
+  .marker-edit > span {
+    transform: rotate(45deg);
+    color: oklch(22% 0.03 80);
+    font-weight: bold;
+  }
+  .marker-edit:active { cursor: grabbing; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-8">
+  {{ leaflet_json|json_script:"leaflet-data" }}
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'localisation:liste_localisation' %}" class="hover:text-foret-900">Mes localisations</a>
+      <span>/</span>
+      <a href="{% url 'localisation:detail_localisation' localisation_id=localisation.id %}" class="hover:text-foret-900">{{ site.nom }}</a>
+      <span>/</span>
+      <span class="text-accent">Modifier</span>
+    </nav>
+
+    <div class="mb-8">
+      <p class="eyebrow mb-3">Édition cartographique</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light text-foret-900">Modifier la localisation</h1>
+      <p class="text-sm text-foret-700/70 mt-2">Pour le site <strong class="text-foret-900">{{ site.nom }}</strong></p>
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+
+    <form method="post" class="grid lg:grid-cols-5 gap-6">
+      {% csrf_token %}
+
+      <!-- Côté gauche : formulaire -->
+      <div class="lg:col-span-2 space-y-5">
+
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Région</p>
+          <div>
+            <label for="id_region" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Région <span class="text-error">*</span></label>
+            <select name="region" id="id_region" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              {% for choice in form.region.field.queryset %}
+              <option value="{{ choice.pk }}" {% if form.region.value|stringformat:'s' == choice.pk|stringformat:'s' %}selected{% endif %}>{{ choice.nom }} ({{ choice.chef_lieu }})</option>
+              {% endfor %}
+            </select>
+            {% if form.region.errors %}<p class="mt-1.5 text-xs text-error">{{ form.region.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 space-y-4">
+          <p class="eyebrow">Adresse</p>
+
+          <div>
+            <label for="id_ville" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ville <span class="text-error">*</span></label>
+            <input type="text" name="ville" id="id_ville" value="{{ form.ville.value }}" required maxlength="80"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.ville.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.ville.errors %}<p class="mt-1.5 text-xs text-error">{{ form.ville.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="id_quartier" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Quartier</label>
+            <input type="text" name="quartier" id="id_quartier" value="{{ form.quartier.value|default:'' }}" maxlength="80"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div>
+            <label for="id_adresse" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Adresse détaillée</label>
+            <textarea name="adresse" id="id_adresse" rows="2"
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.adresse.value|default:'' }}</textarea>
+          </div>
+
+          <div>
+            <label for="id_point_repere" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Point de repère</label>
+            <input type="text" name="point_repere" id="id_point_repere" value="{{ form.point_repere.value|default:'' }}" maxlength="200"
+                   placeholder="À 200m du marché central"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+        </div>
+
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-2">Coordonnées GPS</p>
+          <p class="text-xs text-foret-700/70 mb-4">Mises à jour automatiquement quand vous déplacez le marker.</p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="id_latitude" class="block text-[10px] font-mono uppercase tracking-wider text-foret-700 mb-1.5">Latitude <span class="text-error">*</span></label>
+              <input type="number" name="latitude" id="id_latitude" value="{{ form.latitude.value }}" required step="0.000001" min="1.5" max="13.5"
+                     class="w-full bg-sable-50 border rounded-xl px-3 py-2.5 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.latitude.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              {% if form.latitude.errors %}<p class="mt-1 text-xs text-error">{{ form.latitude.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="id_longitude" class="block text-[10px] font-mono uppercase tracking-wider text-foret-700 mb-1.5">Longitude <span class="text-error">*</span></label>
+              <input type="number" name="longitude" id="id_longitude" value="{{ form.longitude.value }}" required step="0.000001" min="8.0" max="16.5"
+                     class="w-full bg-sable-50 border rounded-xl px-3 py-2.5 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.longitude.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              {% if form.longitude.errors %}<p class="mt-1 text-xs text-error">{{ form.longitude.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="space-y-2 mt-4">
+            <button type="button" id="btn-ma-position" class="w-full border border-foret-900 text-foret-900 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+              <span class="btn-pos-label">Utiliser ma position</span>
+            </button>
+            <button type="button" id="btn-rechercher-adresse" class="w-full border border-foret-900 text-foret-900 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+              <span class="btn-rech-label">Rechercher l'adresse</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-5 lg:sticky lg:bottom-4 z-10">
+          <div class="flex justify-end gap-3">
+            <a href="{% url 'localisation:detail_localisation' localisation_id=localisation.id %}"
+               class="text-sm text-base-100/70 hover:text-base-100 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-accent text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Côté droit : carte -->
+      <div class="lg:col-span-3 space-y-5">
+
+        <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 flex gap-4">
+          <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+          <div class="text-sm text-foret-900">
+            <p class="eyebrow text-warning mb-1">Comment éditer</p>
+            <ul class="space-y-1 list-disc list-inside">
+              <li><strong>Glissez le marker or</strong> pour déplacer le point</li>
+              <li><strong>Cliquez sur la carte</strong> pour repositionner</li>
+              <li>Les coordonnées se synchronisent automatiquement</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-4">
+          <div id="carte-edition"></div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const data = JSON.parse(document.getElementById('leaflet-data').textContent);
+
+  const inputLat = document.getElementById('id_latitude');
+  const inputLng = document.getElementById('id_longitude');
+  const inputVille = document.getElementById('id_ville');
+  const inputAdresse = document.getElementById('id_adresse');
+  const inputQuartier = document.getElementById('id_quartier');
+
+  const carte = L.map('carte-edition', { center: [data.lat, data.lng], zoom: 14 });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap · © Carto',
+    maxZoom: 19,
+    subdomains: 'abcd',
+  }).addTo(carte);
+
+  // Marker draggable
+  function buildMarkerIcon() {
+    const wrap = document.createElement('div');
+    wrap.className = 'marker-edit';
+    const span = document.createElement('span');
+    span.textContent = '◈';
+    wrap.appendChild(span);
+    return L.divIcon({
+      className: '',
+      html: wrap.outerHTML,
+      iconSize: [42, 42],
+      iconAnchor: [21, 42],
+    });
+  }
+
+  const marker = L.marker([data.lat, data.lng], {
+    icon: buildMarkerIcon(),
+    draggable: true,
+  }).addTo(carte);
+
+  marker.bindTooltip(data.nom, { permanent: false, direction: 'top' });
+
+  function syncMarkerToInputs(latlng) {
+    inputLat.value = latlng.lat.toFixed(6);
+    inputLng.value = latlng.lng.toFixed(6);
+    const dansCameroun = latlng.lat >= 1.5 && latlng.lat <= 13.5 && latlng.lng >= 8.0 && latlng.lng <= 16.5;
+    if (!dansCameroun) {
+      inputLat.classList.add('border-error');
+      inputLng.classList.add('border-error');
+    } else {
+      inputLat.classList.remove('border-error');
+      inputLng.classList.remove('border-error');
+    }
+  }
+
+  marker.on('dragend', e => syncMarkerToInputs(e.target.getLatLng()));
+  carte.on('click', e => {
+    marker.setLatLng(e.latlng);
+    syncMarkerToInputs(e.latlng);
+  });
+
+  function syncInputsToMarker() {
+    const lat = parseFloat(inputLat.value);
+    const lng = parseFloat(inputLng.value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      marker.setLatLng([lat, lng]);
+      carte.panTo([lat, lng]);
+    }
+  }
+  inputLat.addEventListener('change', syncInputsToMarker);
+  inputLng.addEventListener('change', syncInputsToMarker);
+
+  // Bouton ma position
+  const btnPos = document.getElementById('btn-ma-position');
+  const btnPosLabel = btnPos.querySelector('.btn-pos-label');
+  btnPos.addEventListener('click', () => {
+    if (!navigator.geolocation) { alert('Géolocalisation non disponible.'); return; }
+    btnPos.disabled = true;
+    btnPosLabel.textContent = 'Localisation…';
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        marker.setLatLng([lat, lng]);
+        carte.setView([lat, lng], 14);
+        syncMarkerToInputs({ lat, lng });
+        btnPos.disabled = false;
+        btnPosLabel.textContent = 'Utiliser ma position';
+      },
+      err => {
+        alert("Impossible d'obtenir votre position : " + err.message);
+        btnPos.disabled = false;
+        btnPosLabel.textContent = 'Utiliser ma position';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // Recherche Nominatim
+  const btnRech = document.getElementById('btn-rechercher-adresse');
+  const btnRechLabel = btnRech.querySelector('.btn-rech-label');
+  btnRech.addEventListener('click', () => {
+    const query = [inputAdresse.value, inputQuartier.value, inputVille.value, 'Cameroun']
+      .filter(s => s && s.trim()).join(', ');
+    if (!query || query === 'Cameroun') {
+      alert("Remplissez au moins la ville d'abord.");
+      return;
+    }
+    btnRech.disabled = true;
+    btnRechLabel.textContent = 'Recherche…';
+
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cm&q=' + encodeURIComponent(query);
+
+    fetch(url, { headers: { 'Accept-Language': 'fr' } })
+      .then(r => r.json())
+      .then(results => {
+        if (results.length === 0) {
+          alert('Adresse introuvable. Soyez plus précis.');
+        } else {
+          const lat = parseFloat(results[0].lat);
+          const lng = parseFloat(results[0].lon);
+          marker.setLatLng([lat, lng]);
+          carte.setView([lat, lng], 15);
+          syncMarkerToInputs({ lat, lng });
+        }
+      })
+      .catch(() => alert('Erreur lors de la recherche.'))
+      .finally(() => {
+        btnRech.disabled = false;
+        btnRechLabel.textContent = "Rechercher l'adresse";
+      });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!--
+  Mentions légales — document éditorial avec sommaire et sections.
+  Texte conforme à la loi camerounaise n° 2010/012.
+-->
+{% extends "base.html" %}
+
+{% block title %}Mentions légales — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+
+<!-- Bandeau -->
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">Mentions légales</span>
+    </nav>
+    <p class="eyebrow text-accent mb-4">Document № L01</p>
+    <h1 class="font-display text-4xl lg:text-6xl font-light leading-tight max-w-3xl">
+      Mentions <em class="font-display-italic text-accent">légales</em>
+    </h1>
+    <p class="text-base-100/60 mt-5 text-sm font-mono">Dernière mise à jour : {% now "j F Y" %}</p>
+  </div>
+</section>
+
+<!-- Corps -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+  <div class="grid lg:grid-cols-12 gap-12">
+
+    <!-- Sommaire latéral -->
+    <aside class="lg:col-span-3">
+      <div class="sticky top-28">
+        <p class="eyebrow mb-4">Sommaire</p>
+        <ol class="space-y-2 text-sm">
+          <li><a href="#editeur" class="link-editorial">01 — Éditeur du site</a></li>
+          <li><a href="#hebergement" class="link-editorial">02 — Hébergement</a></li>
+          <li><a href="#propriete" class="link-editorial">03 — Propriété intellectuelle</a></li>
+          <li><a href="#donnees" class="link-editorial">04 — Données personnelles</a></li>
+          <li><a href="#cookies" class="link-editorial">05 — Cookies</a></li>
+          <li><a href="#litiges" class="link-editorial">06 — Litiges</a></li>
+        </ol>
+      </div>
+    </aside>
+
+    <!-- Contenu -->
+    <article class="lg:col-span-9 space-y-12 text-foret-900/85 leading-[1.85]">
+
+      <section id="editeur">
+        <p class="eyebrow mb-3">Article 01</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Éditeur du site</h2>
+        <p>
+          Le présent site est édité par <strong class="text-foret-900">Tourisme Cameroun</strong>,
+          plateforme officielle de réservation des sites touristiques au Cameroun.
+        </p>
+        <ul class="mt-4 space-y-1 text-sm font-mono text-foret-700">
+          <li>Siège social : Quartier Bastos, BP 0000, Yaoundé</li>
+          <li>Email : <a href="mailto:contact@tourisme-cameroun.cm" class="text-accent underline decoration-dotted">contact@tourisme-cameroun.cm</a></li>
+          <li>Directeur de la publication : Direction Générale de Tourisme Cameroun</li>
+        </ul>
+      </section>
+
+      <section id="hebergement" class="border-t border-foret-100/60 pt-12">
+        <p class="eyebrow mb-3">Article 02</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Hébergement</h2>
+        <p>
+          Ce site est hébergé conformément aux dispositions de la
+          <strong class="text-foret-900">loi n° 2010/012 du 21 décembre 2010</strong>
+          relative à la cybersécurité et à la cybercriminalité au Cameroun, ainsi qu'au
+          décret d'application n° 2012/1638/PM du 14 juin 2012.
+        </p>
+      </section>
+
+      <section id="propriete" class="border-t border-foret-100/60 pt-12">
+        <p class="eyebrow mb-3">Article 03</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Propriété intellectuelle</h2>
+        <p>
+          L'ensemble du contenu de ce site (textes, photographies, illustrations, logos)
+          est protégé par le droit d'auteur. Toute reproduction, même partielle, est interdite
+          sans autorisation écrite préalable.
+        </p>
+      </section>
+
+      <section id="donnees" class="border-t border-foret-100/60 pt-12">
+        <p class="eyebrow mb-3">Article 04</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Données personnelles</h2>
+        <p>
+          Les données personnelles collectées lors de votre inscription ou réservation
+          sont traitées conformément à la législation camerounaise en vigueur. Vous disposez
+          d'un droit d'accès, de rectification et de suppression de vos données.
+        </p>
+        <p class="mt-4">
+          Pour exercer ces droits, écrivez à
+          <a href="mailto:rgpd@tourisme-cameroun.cm" class="link-editorial">rgpd@tourisme-cameroun.cm</a>.
+        </p>
+      </section>
+
+      <section id="cookies" class="border-t border-foret-100/60 pt-12">
+        <p class="eyebrow mb-3">Article 05</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Cookies</h2>
+        <p>
+          Le site utilise des cookies techniques nécessaires à son bon fonctionnement
+          (session, panier, préférences). Aucun cookie publicitaire ou de tracking tiers
+          n'est déposé sans votre consentement explicite.
+        </p>
+      </section>
+
+      <section id="litiges" class="border-t border-foret-100/60 pt-12">
+        <p class="eyebrow mb-3">Article 06</p>
+        <h2 class="font-display text-3xl font-light text-foret-900 mb-5">Litiges</h2>
+        <p>
+          Tout litige relatif à l'utilisation du site est soumis au droit camerounais.
+          À défaut d'accord amiable, les tribunaux compétents de Yaoundé seront seuls compétents.
+        </p>
+      </section>
+
+    </article>
+  </div>
+</section>
+
+{% endblock %}

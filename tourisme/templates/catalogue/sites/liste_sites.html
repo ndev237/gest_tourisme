@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Catalogue des sites — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+
+{# === BANDEAU DE PAGE === #}
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">Catalogue</span>
+    </nav>
+
+    <div class="grid lg:grid-cols-12 gap-8 items-end">
+      <div class="lg:col-span-7">
+        <p class="eyebrow text-accent mb-4">Chapitre 02 — L'inventaire</p>
+        <h1 class="font-display text-4xl lg:text-6xl font-light leading-tight">
+          {% if filtre_form.cleaned_data.q %}
+            « {{ filtre_form.cleaned_data.q }} »
+          {% else %}
+            Le catalogue <em class="font-display-italic text-accent">complet</em>
+          {% endif %}
+        </h1>
+        <p class="text-base-100/70 mt-5 max-w-xl">
+          <span class="font-mono-num text-accent text-lg">{{ total_resultats|default:0 }}</span>
+          site{{ total_resultats|pluralize }} touristique{{ total_resultats|pluralize }} à explorer,
+          soigneusement référencés par nos partenaires locaux.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bg-base-100 py-12 lg:py-16" x-data="{ filtresOuverts: false }">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    {# Bouton mobile pour ouvrir les filtres #}
+    <button @click="filtresOuverts = !filtresOuverts"
+            class="lg:hidden mb-6 w-full inline-flex items-center justify-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm uppercase tracking-wider font-medium">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M6 12h12m-9 6h6"/>
+      </svg>
+      <span x-text="filtresOuverts ? 'Fermer les filtres' : 'Filtres & recherche'"></span>
+    </button>
+
+    <div class="grid lg:grid-cols-12 gap-10">
+
+      {# === SIDEBAR FILTRES === #}
+      <aside class="lg:col-span-3"
+             :class="filtresOuverts ? 'block' : 'hidden lg:block'">
+        <form method="get" class="sticky top-28 bg-sable-50 rounded-3xl p-7 border border-foret-100/60">
+
+          <div class="flex items-center justify-between mb-6">
+            <p class="eyebrow">Filtrer</p>
+            <a href="{% url 'catalogue:liste_sites' %}" class="text-xs text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Réinitialiser</a>
+          </div>
+
+          {# Recherche #}
+          <div class="mb-6">
+            <label for="id_q" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Mot-clé</label>
+            <div class="relative">
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foret-700/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+              </svg>
+              <input type="text" name="q" id="id_q"
+                     value="{{ filtre_form.q.value|default:'' }}"
+                     placeholder="Kribi, parc, plage…"
+                     class="w-full bg-base-100 border border-foret-100/60 rounded-full pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:border-foret-700 focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+          </div>
+
+          {# Région #}
+          <div class="mb-6">
+            <label for="id_region" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Région</label>
+            <select name="region" id="id_region" class="w-full bg-base-100 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+              <option value="">Toutes les régions</option>
+              {% for region in filtre_form.region.field.queryset %}
+              <option value="{{ region.pk }}"
+                      {% if filtre_form.region.value|stringformat:'s' == region.pk|stringformat:'s' %}selected{% endif %}>
+                {{ region.nom }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Catégorie #}
+          <div class="mb-6">
+            <label for="id_categorie" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Catégorie</label>
+            <select name="categorie" id="id_categorie" class="w-full bg-base-100 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+              <option value="">Toutes les catégories</option>
+              {% for cat in filtre_form.categorie.field.queryset %}
+              <option value="{{ cat.pk }}"
+                      {% if filtre_form.categorie.value|stringformat:'s' == cat.pk|stringformat:'s' %}selected{% endif %}>
+                {{ cat.libelle }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Prix #}
+          <div class="mb-6">
+            <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Tarif (FCFA)</label>
+            <div class="flex gap-2">
+              <input type="number" name="prix_min" placeholder="Min"
+                     value="{{ filtre_form.prix_min.value|default:'' }}"
+                     min="0" step="500"
+                     class="w-full bg-base-100 border border-foret-100/60 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-foret-700">
+              <input type="number" name="prix_max" placeholder="Max"
+                     value="{{ filtre_form.prix_max.value|default:'' }}"
+                     min="0" step="500"
+                     class="w-full bg-base-100 border border-foret-100/60 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-foret-700">
+            </div>
+          </div>
+
+          {# Options #}
+          <div class="mb-6 space-y-3 pt-2 border-t border-foret-100/60">
+            <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer group">
+              <input type="checkbox" name="accessible_pmr" value="on"
+                     {% if filtre_form.accessible_pmr.value %}checked{% endif %}
+                     class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+              <span>Accessible PMR</span>
+            </label>
+            <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer">
+              <input type="checkbox" name="avec_hebergement" value="on"
+                     {% if filtre_form.avec_hebergement.value %}checked{% endif %}
+                     class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+              <span>Avec hébergement</span>
+            </label>
+          </div>
+
+          {# Tri #}
+          <div class="mb-6">
+            <label for="id_tri" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Trier par</label>
+            <select name="tri" id="id_tri" class="w-full bg-base-100 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+              {% for value, label in filtre_form.tri.field.choices %}
+              <option value="{{ value }}" {% if filtre_form.tri.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="btn-carnet w-full bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Appliquer
+          </button>
+        </form>
+      </aside>
+
+      {# === GRILLE DES SITES === #}
+      <div class="lg:col-span-9">
+
+        {% if sites %}
+          {# Compteur + tri rapide #}
+          <div class="flex items-center justify-between flex-wrap gap-4 mb-8 pb-6 border-b border-foret-100/60">
+            <p class="text-sm text-foret-700/70">
+              <span class="font-mono-num text-foret-900 text-lg">{{ total_resultats }}</span>
+              résultat{{ total_resultats|pluralize }}
+              {% if filtre_form.cleaned_data.q %}pour <strong class="text-foret-900">« {{ filtre_form.cleaned_data.q }} »</strong>{% endif %}
+            </p>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-7 stagger">
+            {% for site in sites %}
+            <article class="card-editorial group">
+              <a href="{% url 'catalogue:detail_site' slug=site.slug %}" class="block h-full">
+
+                {# Photo avec overlay #}
+                <figure class="relative h-56 overflow-hidden bg-sable-100">
+                  {% if site.photo_principale %}
+                    <img src="{{ site.photo_principale.image.url }}"
+                         alt="{{ site.nom }}"
+                         loading="lazy"
+                         class="img-hover-bloom w-full h-full object-cover">
+                  {% else %}
+                    <div class="bg-pattern-kente w-full h-full grid place-items-center text-5xl opacity-50">◈</div>
+                  {% endif %}
+
+                  {# Catégorie en sceau #}
+                  <span class="absolute top-4 left-4 badge-stamp text-base-100 border-base-100/60 backdrop-blur-sm">{{ site.categorie.libelle }}</span>
+
+                  {# Note en haut à droite #}
+                  {% if site.note_moyenne %}
+                  <span class="absolute top-4 right-4 bg-base-100/95 text-foret-900 rounded-full px-3 py-1 text-xs font-mono font-semibold flex items-center gap-1">
+                    ★ {{ site.note_moyenne|floatformat:1 }}
+                  </span>
+                  {% endif %}
+
+                  {# Numéro éditorial #}
+                  <span class="absolute bottom-4 left-4 font-display text-base-100/80 italic text-sm">
+                    № {{ forloop.counter|stringformat:"02d" }}
+                  </span>
+                </figure>
+
+                <div class="p-6">
+                  <p class="eyebrow text-foret-700/70 mb-2">
+                    {{ site.localisation.ville }}{% if site.localisation.region %} · {{ site.localisation.region.nom }}{% endif %}
+                  </p>
+                  <h3 class="font-display text-xl font-medium text-foret-900 leading-tight group-hover:text-accent transition mb-3">
+                    {{ site.nom }}
+                  </h3>
+                  <p class="text-sm text-foret-700/75 line-clamp-2 leading-relaxed">
+                    {{ site.description_courte|default:site.description|truncatechars:120 }}
+                  </p>
+
+                  {# Tags #}
+                  {% if site.tags.all %}
+                  <div class="flex flex-wrap gap-1.5 mt-3">
+                    {% for tag in site.tags.all|slice:":3" %}
+                    <span class="text-[10px] font-mono uppercase tracking-wider text-foret-700/70">#{{ tag.libelle }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+
+                  <div class="flex items-end justify-between mt-5 pt-5 border-t border-foret-100/60">
+                    <div>
+                      <p class="text-[10px] uppercase tracking-wider text-foret-700/60 font-mono mb-1">À partir de</p>
+                      <p class="font-mono-num text-lg font-semibold text-foret-900">
+                        {{ site.tarif_adulte|floatformat:0 }}
+                        <span class="text-xs font-normal text-foret-700/60">FCFA</span>
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-medium text-accent group-hover:gap-3 transition-all">
+                      Découvrir <span>→</span>
+                    </span>
+                  </div>
+
+                  {% if site.accessibilite_pmr %}
+                  <div class="mt-3">
+                    <span class="text-[10px] font-mono uppercase tracking-wider text-info">♿ Accessible PMR</span>
+                  </div>
+                  {% endif %}
+                </div>
+              </a>
+            </article>
+            {% endfor %}
+          </div>
+
+          {# === PAGINATION éditoriale === #}
+          {% if paginator.num_pages > 1 %}
+          <nav class="flex items-center justify-center gap-2 mt-16">
+            {% if sites.has_previous %}
+              <a href="?{{ querystring }}&page={{ sites.previous_page_number }}"
+                 class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition" aria-label="Page précédente">
+                ←
+              </a>
+            {% else %}
+              <span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">←</span>
+            {% endif %}
+
+            <span class="px-5 text-sm font-mono">
+              <span class="text-foret-900 font-semibold">{{ sites.number }}</span>
+              <span class="text-foret-700/40">/</span>
+              <span class="text-foret-700/60">{{ paginator.num_pages }}</span>
+            </span>
+
+            {% if sites.has_next %}
+              <a href="?{{ querystring }}&page={{ sites.next_page_number }}"
+                 class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition" aria-label="Page suivante">
+                →
+              </a>
+            {% else %}
+              <span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">→</span>
+            {% endif %}
+          </nav>
+          {% endif %}
+
+        {% else %}
+          {# === ÉTAT VIDE === #}
+          <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-16 text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-base-100 text-3xl mb-6 shadow-md">◌</div>
+            <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun site ne correspond</h3>
+            <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+              Essayez d'élargir vos critères de recherche, ou réinitialisez les filtres
+              pour voir l'ensemble du catalogue.
+            </p>
+            <a href="{% url 'catalogue:liste_sites' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Réinitialiser les filtres
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

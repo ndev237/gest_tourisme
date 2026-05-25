@@ -49,10 +49,10 @@ urlpatterns = [
     path('compte/', include('compte.urls', namespace='compte')),
 
     # Catalogue : sites, catégories, hébergements, photos
-    path('catalogue/', include('catalogue.urls', namespace='catalogue')),
+    path('', include('catalogue.urls', namespace='catalogue')),
 
     # Localisations : régions, villes, GPS
-    path('localisation/', include('localisation.urls', namespace='localisation')),
+    path('', include('localisation.urls', namespace='localisation')),
 
     # Réservations + paiements
     path('reservation/', include('reservation.urls', namespace='reservation')),

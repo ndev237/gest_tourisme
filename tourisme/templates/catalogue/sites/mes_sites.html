@@ -1,0 +1,136 @@
+<!--
+  Mes sites (gestionnaire) — grille de cards éditoriales avec menu d'actions.
+-->
+{% extends "base.html" %}
+
+{% block title %}Mes sites — Gestionnaire{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-accent">Dashboard</a>
+        <span>/</span>
+        <span class="text-accent">Mes sites</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Catalogue gestionnaire</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Mes sites touristiques</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            {{ sites|length }} site{{ sites|length|pluralize }} dans votre catalogue
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_sites' %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Ajouter un site
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if user.profil_gestionnaire.statut_validation != 'valide' %}
+    <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-8 flex gap-4">
+      <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+      <div>
+        <p class="eyebrow text-warning mb-1">Compte non validé</p>
+        <p class="text-sm text-foret-900">Vos sites seront visibles publiquement une fois la validation effectuée par notre équipe.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sites %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
+      {% for site in sites %}
+      <article class="card-editorial overflow-hidden group">
+        <figure class="h-44 bg-foret-100/40 relative overflow-hidden">
+          {% if site.photo_principale %}
+            <img src="{{ site.photo_principale.image.url }}" alt="{{ site.nom }}"
+                 class="w-full h-full object-cover img-hover-bloom">
+          {% else %}
+            <div class="bg-pattern-kente w-full h-full grid place-items-center text-4xl opacity-50">◈</div>
+          {% endif %}
+
+          <div class="absolute top-3 right-3">
+            {% if site.est_publie %}
+              <span class="badge-stamp text-success border-success bg-base-100/90 backdrop-blur-sm">Publié</span>
+            {% else %}
+              <span class="badge-stamp text-warning border-warning bg-base-100/90 backdrop-blur-sm">En attente</span>
+            {% endif %}
+          </div>
+        </figure>
+
+        <div class="p-5">
+          <h3 class="font-display text-base text-foret-900 group-hover:text-accent transition mb-1">{{ site.nom }}</h3>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60">
+            {{ site.localisation.ville }}, {{ site.localisation.region.nom }}
+          </p>
+
+          <!-- Mini stats -->
+          <div class="grid grid-cols-3 gap-3 my-4 py-3 bg-sable-50 border border-foret-100/60 rounded-2xl text-center">
+            <div>
+              <p class="font-display text-lg text-foret-900">{{ site.nombre_vues|default:0 }}</p>
+              <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">Vues</p>
+            </div>
+            <div class="border-x border-foret-100/60">
+              <p class="font-display text-lg text-foret-900">{{ site.nombre_avis|default:0 }}</p>
+              <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">Avis</p>
+            </div>
+            <div>
+              <p class="font-display text-lg text-accent">★ {{ site.note_moyenne|default:0|floatformat:1 }}</p>
+              <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">Note</p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="font-mono-num text-sm font-semibold text-foret-900">
+              {{ site.tarif_adulte|floatformat:0 }} <span class="text-[10px] font-sans text-foret-700/60">FCFA</span>
+            </span>
+
+            <!-- Dropdown actions -->
+            <div class="relative" x-data="{ open: false }">
+              <button @click="open = !open"
+                      class="bg-foret-900 text-base-100 rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition flex items-center gap-1.5">
+                Gérer <span :class="open ? 'rotate-180' : ''" class="transition text-[8px]">▾</span>
+              </button>
+              <div x-show="open" x-cloak @click.away="open = false"
+                   x-transition:enter="transition ease-out duration-150"
+                   x-transition:enter-start="opacity-0 scale-95"
+                   x-transition:enter-end="opacity-100 scale-100"
+                   class="absolute right-0 mt-2 w-56 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-20 text-foret-900">
+                <a href="{% url 'catalogue:detail_site' slug=site.slug %}" target="_blank" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Voir la fiche publique</a>
+                <a href="{% url 'catalogue:update_sites' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Modifier les infos</a>
+                <a href="{% url 'catalogue:liste_photosite' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Photos ({{ site.photos.count }})</a>
+                <a href="{% url 'catalogue:liste_hebergement' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Hébergements ({{ site.hebergements.count }})</a>
+                <a href="{% url 'catalogue:liste_disponibilite' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Disponibilités</a>
+                <hr class="my-1 border-foret-100/60">
+                <a href="{% url 'catalogue:delete_sites' slug=site.slug %}" class="block px-5 py-2 text-xs text-error hover:bg-error/5 transition">Supprimer</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◈</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Votre catalogue est vide</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Commencez par ajouter votre premier site. Vous pourrez ensuite y ajouter photos,
+        hébergements et calendrier de disponibilités.
+      </p>
+      <a href="{% url 'catalogue:add_sites' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Créer mon premier site
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

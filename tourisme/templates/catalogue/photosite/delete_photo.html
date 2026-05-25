@@ -1,10 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Supprimer photo — confirmation avec aperçu.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Supprimer photo{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-16">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-error"></div>
+
+      <div class="p-8 lg:p-10">
+        <div class="text-center mb-6">
+          <p class="eyebrow text-error mb-4">Action irréversible</p>
+          <div class="inline-flex w-20 h-20 rounded-full bg-error/10 grid place-items-center mb-4">
+            <span class="font-display italic text-4xl text-error">!</span>
+          </div>
+          <h1 class="font-display text-3xl text-foret-900">
+            Supprimer cette <em class="font-display-italic text-error">photographie</em> ?
+          </h1>
+        </div>
+
+        <!-- Aperçu -->
+        <div class="rounded-2xl overflow-hidden bg-sable-50 border border-foret-100/60 mb-4">
+          <img src="{{ photo.image.url }}" alt="" class="w-full max-h-64 object-contain">
+        </div>
+
+        {% if photo.legende %}
+        <p class="text-center italic text-sm text-foret-700/70 mb-4">« {{ photo.legende }} »</p>
+        {% endif %}
+
+        {% if photo.est_principale %}
+        <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-6 flex gap-4">
+          <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+          <p class="text-sm text-foret-900">
+            Cette photo est la <strong>photo principale</strong>. Vous devrez en désigner une autre après suppression.
+          </p>
+        </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="flex justify-end items-center gap-3">
+            <a href="{% url 'catalogue:liste_photosite' slug=photo.site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="bg-error text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+              Confirmer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

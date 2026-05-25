@@ -1,61 +1,102 @@
+<!--
+  Compte suspendu / en attente / rejeté — message bloquant mais courtois,
+  CTA contact support, déconnexion propre.
+-->
 {% extends "base.html" %}
 
-{% comment %}
-==============================================================
-templates/controle/compte_suspendu.html
-==============================================================
-Page affichée quand un compte désactivé (is_active=False) tente
-de se connecter — soit suspendu par admin, soit gestionnaire
-en attente de validation.
-{% endcomment %}
-
-{% block title %}Compte suspendu{% endblock %}
+{% block title %}Compte suspendu — Tourisme Cameroun{% endblock %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 bg-gray-50">
-  <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 text-center">
+<section class="min-h-[85vh] flex items-center justify-center py-12 px-4 bg-foret-900 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-error/15 blur-3xl"></div>
 
-    <!-- Icône d'alerte -->
-    <div class="w-20 h-20 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-6">
-      <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-      </svg>
+  <div class="relative max-w-xl w-full">
+
+    <div class="bg-base-100 rounded-3xl shadow-2xl overflow-hidden">
+
+      <!-- Bandeau accent error -->
+      <div class="h-2 bg-error"></div>
+
+      <div class="p-8 md:p-12 text-center">
+
+        <p class="eyebrow text-error mb-4">Accès restreint</p>
+
+        <div class="inline-flex w-20 h-20 rounded-full bg-error/10 grid place-items-center mb-6">
+          <span class="font-display italic text-4xl text-error">!</span>
+        </div>
+
+        <h1 class="font-display text-3xl lg:text-4xl font-light text-foret-900 mb-4">
+          {% if motif == 'rejete' %}
+            Compte <em class="font-display-italic text-error">non validé</em>
+          {% elif motif == 'en_attente' %}
+            Compte <em class="font-display-italic text-warning">en attente</em>
+          {% else %}
+            Compte <em class="font-display-italic text-error">suspendu</em>
+          {% endif %}
+        </h1>
+
+        <!-- Messages selon motif -->
+        {% if motif == 'rejete' %}
+          <p class="text-foret-700/80 leading-relaxed mb-6">
+            Votre demande d'inscription en tant que
+            {% if user.type_user == 'gestionnaire' %}<strong class="text-foret-900">gestionnaire</strong>
+            {% elif user.type_user == 'guide' %}<strong class="text-foret-900">guide touristique</strong>
+            {% else %}<strong class="text-foret-900">professionnel</strong>{% endif %}
+            n'a pas été validée par notre équipe.
+          </p>
+
+          {% if motif_rejet %}
+          <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-6 text-left">
+            <p class="eyebrow text-warning mb-2">Motif communiqué</p>
+            <p class="text-sm text-foret-900 leading-relaxed">{{ motif_rejet }}</p>
+          </div>
+          {% endif %}
+
+        {% elif motif == 'en_attente' %}
+          <p class="text-foret-700/80 leading-relaxed mb-6">
+            Votre compte est en cours de validation par notre équipe.
+            Nous vérifions actuellement les documents fournis lors de votre inscription.
+          </p>
+          <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-6 text-left flex gap-4">
+            <span class="font-display italic text-3xl text-warning leading-none">⏳</span>
+            <div>
+              <p class="eyebrow text-warning mb-1">Délai habituel</p>
+              <p class="text-sm text-foret-900">24 à 48 heures ouvrées. Vous recevrez un email dès la décision prise.</p>
+            </div>
+          </div>
+
+        {% else %}
+          <p class="text-foret-700/80 leading-relaxed mb-6">
+            Votre compte a été temporairement suspendu. Cela peut être dû à une violation
+            des conditions d'utilisation ou à un problème de sécurité.
+          </p>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="space-y-3">
+          <a href="mailto:support@tourisme-cameroun.cm?subject=Compte%20bloqué%20-%20{{ user.email|urlencode }}"
+             class="btn-carnet block w-full bg-foret-900 text-base-100 rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Contacter notre équipe
+          </a>
+
+          <form method="post" action="{% url 'compte:deconnexion' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="w-full text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 text-sm py-2">
+              Se déconnecter
+            </button>
+          </form>
+        </div>
+
+        <p class="text-xs font-mono text-foret-700/50 mt-8 leading-relaxed">
+          Notre équipe vous répond sous 24h ouvrées<br>
+          <a href="mailto:support@tourisme-cameroun.cm" class="text-accent underline decoration-dotted underline-offset-4">
+            support@tourisme-cameroun.cm
+          </a>
+        </p>
+      </div>
     </div>
-
-    <h1 class="font-display text-2xl font-bold text-gray-900 mb-3">
-      Compte suspendu
-    </h1>
-
-    <p class="text-gray-600 mb-6 text-sm leading-relaxed">
-      Votre compte a été temporairement désactivé. Cette mesure peut être due à&nbsp;:
-    </p>
-
-    <ul class="text-left text-sm text-gray-700 space-y-2 mb-6 bg-gray-50 rounded-lg p-4">
-      <li class="flex gap-2"><span class="text-red-500">•</span> Une infraction aux conditions générales d'utilisation</li>
-      <li class="flex gap-2"><span class="text-red-500">•</span> Une activité suspecte détectée sur votre compte</li>
-      <li class="flex gap-2"><span class="text-red-500">•</span> Une attente de validation administrative</li>
-      <li class="flex gap-2"><span class="text-red-500">•</span> Un signalement de la part d'autres utilisateurs</li>
-    </ul>
-
-    <p class="text-sm text-gray-600 mb-6">
-      Pour réactiver votre compte ou obtenir plus d'informations, veuillez contacter notre support&nbsp;:
-    </p>
-
-    <div class="space-y-3">
-      <a href="mailto:support@tourisme-cameroun.cm"
-         class="block w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition shadow">
-        ✉ support@tourisme-cameroun.cm
-      </a>
-      <a href="{% url 'home' %}"
-         class="block w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-        Retour à l'accueil
-      </a>
-    </div>
-
-    <p class="mt-6 text-xs text-gray-400">
-      Référence du compte : {{ user.id|default:"non identifié" }}
-    </p>
   </div>
-</div>
+</section>
 {% endblock %}

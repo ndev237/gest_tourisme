@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* On dit à Tailwind de scanner nos templates Django */
+/* Scan des templates Django par Tailwind */
 @source "../../../templates/**/*.html";
 @source "../../../**/templates/**/*.html";
 
@@ -9,59 +9,394 @@
     themes: cameroun --default;
 }
 
-/* ====================================================
-   THEME CAMEROUN — Vert forêt + Or jaune
-   Inspiré du drapeau camerounais (vert, rouge, jaune)
-   ==================================================== */
+/* ============================================================
+   THÈME CAMEROUN — Carnet de voyage moderne
+   Palette : Forêt + Or + Terre cuite + Ivoire + Sable
+   Inspirée du drapeau camerounais et des paysages locaux
+   ============================================================ */
 @plugin "daisyui/theme" {
     name: "cameroun";
     default: true;
     prefersdark: false;
     color-scheme: light;
 
-    /* Couleurs de base */
-    --color-base-100: oklch(99% 0.003 110);          /* Blanc cassé chaleureux */
-    --color-base-200: oklch(96% 0.006 110);          /* Gris très clair */
-    --color-base-300: oklch(92% 0.010 110);          /* Gris clair */
-    --color-base-content: oklch(20% 0.020 130);      /* Texte vert très foncé */
+    /* Bases — ivoire chaleureux plutôt que blanc froid */
+    --color-base-100: oklch(98.5% 0.012 90);
+    --color-base-200: oklch(95% 0.018 85);
+    --color-base-300: oklch(90% 0.022 80);
+    --color-base-content: oklch(22% 0.030 140);
 
-    /* PRIMARY : Vert forêt camerounais */
-    --color-primary: oklch(48% 0.15 145);            /* Vert profond */
-    --color-primary-content: oklch(98% 0.005 145);   /* Texte sur primary */
+    /* PRIMARY : Vert forêt profond (sapelli, ébène camerounais) */
+    --color-primary: oklch(40% 0.115 148);
+    --color-primary-content: oklch(98% 0.012 90);
 
-    /* SECONDARY : Vert plus clair */
-    --color-secondary: oklch(65% 0.12 145);
+    /* SECONDARY : Vert plus organique */
+    --color-secondary: oklch(58% 0.095 148);
     --color-secondary-content: oklch(15% 0.020 145);
 
-    /* ACCENT : Or/Jaune camerounais */
-    --color-accent: oklch(78% 0.14 85);              /* Or éclatant */
-    --color-accent-content: oklch(20% 0.020 85);     /* Texte foncé sur or */
+    /* ACCENT : Or éclatant (drapeau) */
+    --color-accent: oklch(76% 0.155 82);
+    --color-accent-content: oklch(22% 0.030 80);
 
-    /* NEUTRAL */
-    --color-neutral: oklch(25% 0.020 130);
-    --color-neutral-content: oklch(95% 0.005 130);
+    /* NEUTRAL : Vert presque noir (canopée) */
+    --color-neutral: oklch(20% 0.030 145);
+    --color-neutral-content: oklch(96% 0.012 90);
 
-    /* INFO / SUCCESS / WARNING / ERROR */
-    --color-info: oklch(60% 0.12 230);
+    /* Sémantiques */
+    --color-info: oklch(58% 0.115 230);
     --color-info-content: oklch(98% 0.005 230);
-    --color-success: oklch(55% 0.13 150);
-    --color-success-content: oklch(98% 0.005 150);
-    --color-warning: oklch(75% 0.15 70);
-    --color-warning-content: oklch(20% 0.020 70);
-    --color-error: oklch(58% 0.18 25);
+    --color-success: oklch(55% 0.130 148);
+    --color-success-content: oklch(98% 0.012 90);
+    --color-warning: oklch(75% 0.155 70);
+    --color-warning-content: oklch(22% 0.025 70);
+    --color-error: oklch(55% 0.180 28);
     --color-error-content: oklch(98% 0.005 25);
 
-    /* Bordures arrondies */
-    --radius-selector: 0.5rem;
+    /* Rayons : moins agressifs, plus éditoriaux */
+    --radius-selector: 0.375rem;
     --radius-field: 0.5rem;
-    --radius-box: 0.75rem;
+    --radius-box: 1rem;
 
-    /* Tailles */
     --size-selector: 0.25rem;
     --size-field: 0.25rem;
     --border: 1px;
-
-    /* Effets */
     --depth: 1;
     --noise: 0;
 }
+
+/* ============================================================
+   TOKENS ÉTENDUS — Carnet de voyage
+   Variables CSS utilisables via var(--xxx) ou classes utilitaires
+   ============================================================ */
+@theme {
+    /* Couleurs additionnelles "terre" */
+    --color-terra-50:  oklch(96% 0.018 35);
+    --color-terra-100: oklch(90% 0.045 35);
+    --color-terra-300: oklch(72% 0.105 35);
+    --color-terra-500: oklch(54% 0.155 35);
+    --color-terra-700: oklch(38% 0.130 35);
+    --color-terra-900: oklch(24% 0.080 35);
+
+    --color-sable-50:  oklch(97% 0.015 82);
+    --color-sable-100: oklch(93% 0.030 80);
+    --color-sable-300: oklch(82% 0.055 78);
+    --color-sable-500: oklch(70% 0.080 76);
+
+    --color-foret-50:  oklch(96% 0.018 148);
+    --color-foret-100: oklch(90% 0.038 148);
+    --color-foret-300: oklch(68% 0.105 148);
+    --color-foret-500: oklch(42% 0.118 148);
+    --color-foret-700: oklch(28% 0.095 148);
+    --color-foret-900: oklch(18% 0.055 148);
+
+    --color-cuivre-500: oklch(60% 0.130 50);
+
+    /* Polices */
+    --font-display: "Fraunces", "Georgia", serif;
+    --font-sans: "DM Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+    /* Easings */
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================
+   TYPOGRAPHIE GLOBALE
+   ============================================================ */
+body {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 80, "WONK" 0;
+    letter-spacing: -0.015em;
+}
+
+.font-display-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: "SOFT" 100;
+}
+
+.font-mono-num {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+    letter-spacing: -0.02em;
+}
+
+/* Eyebrow (sur-titre éditorial) */
+.eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--color-foret-700);
+}
+
+/* ============================================================
+   MOTIFS DÉCORATIFS — SVG inline en background
+   ============================================================ */
+.bg-pattern-kente {
+    background-color: var(--color-sable-50);
+    background-image:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0,
+            transparent 18px,
+            color-mix(in oklch, var(--color-foret-500) 6%, transparent) 18px,
+            color-mix(in oklch, var(--color-foret-500) 6%, transparent) 19px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent 0,
+            transparent 18px,
+            color-mix(in oklch, var(--color-accent) 8%, transparent) 18px,
+            color-mix(in oklch, var(--color-accent) 8%, transparent) 19px
+        );
+}
+
+.bg-grain {
+    position: relative;
+}
+.bg-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+}
+
+/* Filet décoratif : ligne avec petit losange au centre */
+.divider-ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--color-foret-700);
+}
+.divider-ornament::before,
+.divider-ornament::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.25;
+}
+.divider-ornament::before { margin-left: 0; }
+
+/* ============================================================
+   ANIMATIONS — révélations au chargement
+   ============================================================ */
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slow-zoom {
+    from { transform: scale(1); }
+    to   { transform: scale(1.08); }
+}
+
+@keyframes shine {
+    from { transform: translateX(-120%); }
+    to   { transform: translateX(220%); }
+}
+
+.animate-rise {
+    animation: rise-in 0.9s var(--ease-out-expo) both;
+}
+.animate-slow-zoom {
+    animation: slow-zoom 18s linear both;
+}
+
+/* Stagger utilities — appliquer .stagger > * et .stagger-delay-N */
+.stagger > * {
+    opacity: 0;
+    animation: rise-in 0.8s var(--ease-out-expo) both;
+}
+.stagger > *:nth-child(1)  { animation-delay: 0.05s; }
+.stagger > *:nth-child(2)  { animation-delay: 0.15s; }
+.stagger > *:nth-child(3)  { animation-delay: 0.25s; }
+.stagger > *:nth-child(4)  { animation-delay: 0.35s; }
+.stagger > *:nth-child(5)  { animation-delay: 0.45s; }
+.stagger > *:nth-child(6)  { animation-delay: 0.55s; }
+.stagger > *:nth-child(7)  { animation-delay: 0.65s; }
+.stagger > *:nth-child(8)  { animation-delay: 0.75s; }
+.stagger > *:nth-child(9)  { animation-delay: 0.85s; }
+.stagger > *:nth-child(10) { animation-delay: 0.95s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-slow-zoom,
+    .stagger > * {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* ============================================================
+   COMPOSANTS RÉUTILISABLES
+   ============================================================ */
+
+/* Card éditoriale : bord net, hover doux */
+.card-editorial {
+    background: var(--color-base-100);
+    border: 1px solid color-mix(in oklch, var(--color-foret-900) 8%, transparent);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: transform 0.4s var(--ease-out-expo),
+                box-shadow 0.4s var(--ease-out-expo),
+                border-color 0.4s ease;
+}
+.card-editorial:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -24px color-mix(in oklch, var(--color-foret-900) 30%, transparent);
+    border-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
+}
+
+/* Bouton "carnet" : effet shine au hover */
+.btn-carnet {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.btn-carnet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg,
+        transparent 30%,
+        rgba(255,255,255,0.35) 50%,
+        transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.7s var(--ease-out-expo);
+    pointer-events: none;
+    z-index: 1;
+}
+.btn-carnet:hover::before {
+    transform: translateX(220%);
+}
+
+/* Lien éditorial souligné */
+.link-editorial {
+    position: relative;
+    color: var(--color-foret-700);
+    font-weight: 500;
+    text-decoration: none;
+    padding-bottom: 2px;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1.5px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    transition: background-size 0.35s var(--ease-out-expo), color 0.2s;
+}
+.link-editorial:hover {
+    background-size: 100% 1.5px;
+    color: var(--color-foret-900);
+}
+
+/* Badge "tampon" : style sceau de voyage */
+.badge-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1.5px solid currentColor;
+    border-radius: 999px;
+    background: color-mix(in oklch, currentColor 8%, transparent);
+}
+
+/* Number tag éditorial pour "comment ça marche" */
+.step-numeral {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: "SOFT" 100;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: var(--color-accent);
+    opacity: 0.9;
+}
+
+/* Image hover compose — slight desat -> full color */
+.img-hover-bloom {
+    filter: saturate(0.85) contrast(1.02);
+    transition: filter 0.6s var(--ease-out-expo),
+                transform 0.8s var(--ease-out-expo);
+}
+.img-hover-bloom:hover {
+    filter: saturate(1.1) contrast(1.05);
+    transform: scale(1.04);
+}
+
+/* Overlay gradient hero — plus chaleureux */
+.hero-overlay {
+    background: linear-gradient(
+        180deg,
+        oklch(20% 0.030 145 / 0.15) 0%,
+        oklch(20% 0.030 145 / 0.05) 35%,
+        oklch(20% 0.030 145 / 0.55) 85%,
+        oklch(15% 0.040 145 / 0.85) 100%
+    );
+}
+
+/* Carte : skin Leaflet personnalisé */
+.marker-cameroun {
+    width: 36px;
+    height: 36px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid var(--color-base-100);
+    box-shadow: 0 4px 12px oklch(20% 0.030 145 / 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.marker-cameroun > span {
+    transform: rotate(45deg);
+    font-size: 14px;
+}
+
+/* Scrollbar discrète */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--color-base-200);
+}
+::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--color-foret-700) 30%, transparent);
+    border-radius: 999px;
+    border: 2px solid var(--color-base-200);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--color-foret-700) 50%, transparent);
+}
+
+/* Sélection texte */
+::selection {
+    background: color-mix(in oklch, var(--color-accent) 60%, transparent);
+    color: var(--color-foret-900);
+}
+
+/* Alpine cloak */
+[x-cloak] { display: none !important; }

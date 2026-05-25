@@ -1,10 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Liste catégories (admin) — tableau éditorial, aperçu couleur, compteur sites.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Catégories — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span>
+        <span class="text-accent">Catégories</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Catalogue</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Catégories</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            {{ categories|length }} catégorie{{ categories|length|pluralize }} dans le catalogue
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_categorie' %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouvelle catégorie
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if categories %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-7 py-4 text-left">Ordre</th>
+              <th class="px-3 py-4 text-left">Libellé</th>
+              <th class="px-3 py-4 text-left">Icône</th>
+              <th class="px-3 py-4 text-left">Couleur</th>
+              <th class="px-3 py-4 text-center">Sites</th>
+              <th class="px-7 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for cat in categories %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-7 py-4">
+                <span class="font-mono-num text-foret-900">{{ cat.ordre_affichage }}</span>
+              </td>
+              <td class="px-3 py-4">
+                <p class="font-display text-base text-foret-900">{{ cat.libelle }}</p>
+                {% if cat.description %}
+                <p class="text-xs text-foret-700/60 truncate max-w-xs mt-0.5">{{ cat.description|truncatechars:60 }}</p>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                {% if cat.icone %}
+                  <code class="text-xs font-mono text-foret-700 bg-sable-100 px-2 py-1 rounded">{{ cat.icone }}</code>
+                {% else %}
+                  <span class="text-foret-700/40 font-mono text-xs">—</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                <div class="flex items-center gap-2">
+                  <span class="w-5 h-5 rounded-full border border-foret-100/60 ring-2 ring-base-100"
+                        style="background-color: {{ cat.couleur }};"></span>
+                  <code class="text-xs font-mono text-foret-700">{{ cat.couleur }}</code>
+                </div>
+              </td>
+              <td class="px-3 py-4 text-center">
+                <span class="badge-stamp text-foret-700 border-foret-700/40">{{ cat.nb_sites }}</span>
+              </td>
+              <td class="px-7 py-4 text-right">
+                <div class="inline-flex gap-2">
+                  <a href="{% url 'catalogue:update_categorie' categorie_id=cat.id %}"
+                     class="px-3 py-1.5 text-xs uppercase tracking-wider text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">
+                    Modifier
+                  </a>
+                  <a href="{% url 'catalogue:delete_categorie' categorie_id=cat.id %}"
+                     class="px-3 py-1.5 text-xs uppercase tracking-wider text-error hover:underline decoration-dotted underline-offset-4">
+                    Supprimer
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune catégorie</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Créez la première catégorie pour structurer votre catalogue de sites touristiques.
+      </p>
+      <a href="{% url 'catalogue:add_categorie' %}"
+         class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Créer une catégorie
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

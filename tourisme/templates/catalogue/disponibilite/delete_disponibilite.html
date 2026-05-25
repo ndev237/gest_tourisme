@@ -1,10 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Supprimer disponibilité — confirmation avec récap.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Supprimer disponibilité — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-16">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:liste_disponibilite' slug=site.slug %}" class="hover:text-foret-900">Disponibilités</a>
+      <span>/</span>
+      <span class="text-error">Supprimer</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-error"></div>
+
+      <div class="p-8 lg:p-10">
+        <div class="text-center mb-6">
+          <p class="eyebrow text-error mb-4">Action irréversible</p>
+          <div class="inline-flex w-20 h-20 rounded-full bg-error/10 grid place-items-center mb-4">
+            <span class="font-display italic text-4xl text-error">!</span>
+          </div>
+          <h1 class="font-display text-3xl text-foret-900">
+            Supprimer cette <em class="font-display-italic text-error">date</em> ?
+          </h1>
+        </div>
+
+        <div class="my-6 p-5 bg-sable-50 border border-foret-100/60 rounded-2xl">
+          <p class="font-display text-base text-foret-900">{{ dispo.date|date:"l d F Y"|capfirst }}</p>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mt-1">Pour {{ site.nom }}</p>
+          <div class="flex gap-2 mt-3 flex-wrap">
+            {% if dispo.est_ferme %}
+              <span class="badge-stamp text-error border-error/40 text-[10px]">Fermé</span>
+            {% elif dispo.places_restantes == 0 %}
+              <span class="badge-stamp text-warning border-warning/40 text-[10px]">Saturé</span>
+            {% else %}
+              <span class="badge-stamp text-success border-success/40 text-[10px]">
+                {{ dispo.places_restantes }} place{{ dispo.places_restantes|pluralize }}
+              </span>
+            {% endif %}
+            {% if dispo.tarif_special %}
+              <span class="badge-stamp text-accent border-accent/40 text-[10px]">{{ dispo.tarif_special|floatformat:0 }} FCFA</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-6 flex gap-4">
+          <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+          <p class="text-sm text-foret-900">
+            La disponibilité sera supprimée définitivement. Les réservations déjà existantes pour cette date
+            resteront valides, mais aucune nouvelle réservation ne sera possible.
+          </p>
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="flex justify-end items-center gap-3">
+            <a href="{% url 'catalogue:liste_disponibilite' slug=site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="bg-error text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+              Confirmer la suppression
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

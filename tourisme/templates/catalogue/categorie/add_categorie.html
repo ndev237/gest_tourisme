@@ -1,10 +1,99 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Ajouter catégorie — formulaire avec aperçu couleur live.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Nouvelle catégorie — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-foret-900">Admin</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:liste_categorie' %}" class="hover:text-foret-900">Catégories</a>
+      <span>/</span>
+      <span class="text-accent">Nouvelle</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Catalogue</p>
+        <h1 class="relative font-display text-2xl font-light">Nouvelle catégorie</h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post"
+              x-data="{ couleur: '{{ form.couleur.value|default:'#15803D' }}' }"
+              class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_libelle" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Libellé <span class="text-error">*</span>
+            </label>
+            <input type="text" name="libelle" id="id_libelle"
+                   value="{{ form.libelle.value|default:'' }}"
+                   required minlength="3" maxlength="60"
+                   placeholder="Plage, Parc national, Musée…"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.libelle.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.libelle.errors %}<p class="mt-1.5 text-xs text-error">{{ form.libelle.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="id_description" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description</label>
+            <textarea name="description" id="id_description" rows="3"
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.description.value|default:'' }}</textarea>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_icone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Icône (nom)</label>
+              <input type="text" name="icone" id="id_icone"
+                     value="{{ form.icone.value|default:'' }}"
+                     placeholder="mountain, beach…"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+            <div>
+              <label for="id_ordre_affichage" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ordre d'affichage</label>
+              <input type="number" name="ordre_affichage" id="id_ordre_affichage"
+                     value="{{ form.ordre_affichage.value|default:'0' }}"
+                     min="0"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+          </div>
+
+          <div>
+            <label for="id_couleur" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Couleur</label>
+            <div class="flex items-center gap-4 bg-sable-50 border border-foret-100/60 rounded-xl p-3">
+              <input type="color" name="couleur" id="id_couleur"
+                     x-model="couleur"
+                     class="w-14 h-14 rounded-lg border border-foret-100/60 cursor-pointer">
+              <code class="text-sm font-mono text-foret-900" x-text="couleur"></code>
+              <div class="ml-auto px-5 py-2 rounded-full text-white text-xs font-medium uppercase tracking-wider"
+                   :style="`background-color: ${couleur}`">
+                Aperçu
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:liste_categorie' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Créer la catégorie
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

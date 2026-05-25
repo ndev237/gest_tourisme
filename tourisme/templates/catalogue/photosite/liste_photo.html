@@ -1,10 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Galerie photos d'un site — grille bento avec badges.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Photos de {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-accent">Mes sites</a>
+        <span>/</span>
+        <span>{{ site.nom }}</span>
+        <span>/</span>
+        <span class="text-accent">Photos</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Galerie</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Photographies</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            {{ photos|length }} cliché{{ photos|length|pluralize }} pour <span class="text-accent">{{ site.nom }}</span>
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_photosite' slug=site.slug %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouvelle photo
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if photos %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 stagger">
+      {% for photo in photos %}
+      <article class="card-editorial overflow-hidden group">
+        <div class="aspect-square bg-foret-100/40 relative overflow-hidden">
+          <img src="{{ photo.image.url }}" alt="{{ photo.legende|default:site.nom }}"
+               loading="lazy"
+               class="w-full h-full object-cover img-hover-bloom">
+
+          {% if photo.est_principale %}
+          <span class="absolute top-3 left-3 badge-stamp text-accent border-accent bg-foret-900/80 backdrop-blur-sm text-[10px]">
+            ★ Principale
+          </span>
+          {% endif %}
+
+          <span class="absolute top-3 right-3 font-display italic text-base-100/80 text-sm">
+            № {{ photo.ordre|stringformat:"02d" }}
+          </span>
+        </div>
+
+        <div class="p-3">
+          {% if photo.legende %}
+          <p class="text-xs text-foret-900/85 line-clamp-2 mb-2">{{ photo.legende }}</p>
+          {% else %}
+          <p class="text-xs italic text-foret-700/40 mb-2">Sans légende</p>
+          {% endif %}
+
+          <div class="flex gap-3 text-[10px] uppercase tracking-wider">
+            <a href="{% url 'catalogue:update_photosite' photo_id=photo.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+            <a href="{% url 'catalogue:delete_photosite' photo_id=photo.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune photographie</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Les sites avec photos reçoivent <strong class="text-foret-900">3 fois plus de visites</strong>.
+        Mettez votre site en valeur dès maintenant.
+      </p>
+      <a href="{% url 'catalogue:add_photosite' slug=site.slug %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Première photo
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

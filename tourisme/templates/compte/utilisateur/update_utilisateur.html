@@ -1,10 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Modifier utilisateur - redirection vers le backoffice Django.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Modifier un utilisateur - Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-16">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-foret-900">Admin</a>
+      <span>/</span><span class="text-accent">Modifier</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-accent"></div>
+      <div class="p-10 text-center">
+        <p class="eyebrow text-accent mb-4">Edition</p>
+        <div class="inline-flex w-20 h-20 rounded-full bg-accent/10 grid place-items-center mb-6">
+          <span class="font-display italic text-3xl text-accent">e</span>
+        </div>
+
+        <h1 class="font-display text-3xl text-foret-900 mb-4">
+          Modifier un <em class="font-display-italic text-accent">utilisateur</em>
+        </h1>
+        <p class="text-foret-700/80 leading-relaxed max-w-md mx-auto mb-8">
+          L'edition complete des comptes utilisateurs (roles, permissions, validations) se fait via le backoffice Django.
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-3">
+          <a href="/backoffice/compte/utilisateur/"
+             class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Ouvrir le backoffice
+          </a>
+          <a href="{% url 'compte:dashbord_admin' %}"
+             class="border border-foret-900 text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            <- Retour
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

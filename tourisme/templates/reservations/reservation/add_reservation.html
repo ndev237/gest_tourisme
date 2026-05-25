@@ -1,10 +1,287 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Réserver une visite — wizard 3 étapes avec récap dynamique (Alpine.js).
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Réserver — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12"
+         x-data="{
+           etape: 1,
+           avecHebergement: {{ form.avec_hebergement.value|yesno:'true,false' }},
+           avecGuide: {{ form.avec_guide.value|yesno:'true,false' }},
+           nbAdultes: {{ form.nb_adultes.value|default:1 }},
+           nbEnfants: {{ form.nb_enfants.value|default:0 }},
+           tarifAdulte: {{ site.tarif_adulte|floatformat:'0u' }},
+           tarifEnfant: {{ site.tarif_enfant|floatformat:'0u' }},
+           tarifNuit: 0,
+           nbNuits: 0,
+           tarifGuide: 0,
+           get totalVisite() { return this.nbAdultes * this.tarifAdulte + this.nbEnfants * this.tarifEnfant },
+           get totalHebergement() { return this.avecHebergement ? this.nbNuits * this.tarifNuit : 0 },
+           get totalGuide() { return this.avecGuide ? this.tarifGuide : 0 },
+           get grandTotal() { return this.totalVisite + this.totalHebergement + this.totalGuide },
+           formatFCFA(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA' }
+         }">
+
+  <div class="max-w-5xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-foret-900">Accueil</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:detail_site' slug=site.slug %}" class="hover:text-foret-900">{{ site.nom }}</a>
+      <span>/</span>
+      <span class="text-accent">Réserver</span>
+    </nav>
+
+    <div class="text-center mb-8">
+      <p class="eyebrow mb-3">Réservation</p>
+      <h1 class="font-display text-4xl font-light text-foret-900 leading-tight">
+        Réserver une <em class="font-display-italic text-accent">visite</em>
+      </h1>
+      <p class="text-sm text-foret-700/70 mt-2"><strong>{{ site.nom }}</strong> · {{ site.tarif_adulte|floatformat:0 }} FCFA / adulte</p>
+    </div>
+
+    <!-- Stepper -->
+    <div class="flex items-center justify-center gap-3 mb-10 text-xs font-mono uppercase tracking-[0.18em]">
+      <button type="button" @click="etape = 1" class="flex items-center gap-2"
+              :class="etape >= 1 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 1 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">01</span>
+        <span class="hidden sm:inline">Dates</span>
+      </button>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <button type="button" @click="etape = 2" class="flex items-center gap-2"
+              :class="etape >= 2 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 2 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">02</span>
+        <span class="hidden sm:inline">Options</span>
+      </button>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <button type="button" @click="etape = 3" class="flex items-center gap-2"
+              :class="etape >= 3 ? 'text-foret-900' : 'text-foret-700/40'">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px]"
+              :class="etape >= 3 ? 'bg-foret-900 text-base-100' : 'border border-foret-100/60'">03</span>
+        <span class="hidden sm:inline">Confirmation</span>
+      </button>
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">
+      {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="grid lg:grid-cols-3 gap-6">
+      {% csrf_token %}
+
+      <!-- Colonne principale -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Étape 1 -->
+        <div x-show="etape === 1" class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 space-y-5">
+          <p class="eyebrow">Étape 01 · Dates & personnes</p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_date_visite" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Date de visite <span class="text-error">*</span></label>
+              <input type="date" name="date_visite" id="id_date_visite" value="{{ form.date_visite.value|date:'Y-m-d'|default:'' }}" required min="{% now 'Y-m-d' %}"
+                     class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.date_visite.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              {% if form.date_visite.errors %}<p class="mt-1.5 text-xs text-error">{{ form.date_visite.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="id_heure_visite" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Heure (optionnel)</label>
+              <input type="time" name="heure_visite" id="id_heure_visite" value="{{ form.heure_visite.value|time:'H:i'|default:'' }}"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label for="id_nb_adultes" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Adultes <span class="text-error">*</span></label>
+              <input type="number" name="nb_adultes" id="id_nb_adultes" x-model.number="nbAdultes" required min="1" max="20"
+                     class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.nb_adultes.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">{{ site.tarif_adulte|floatformat:0 }} FCFA / adulte</p>
+            </div>
+            <div>
+              <label for="id_nb_enfants" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Enfants</label>
+              <input type="number" name="nb_enfants" id="id_nb_enfants" x-model.number="nbEnfants" min="0" max="20"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">{{ site.tarif_enfant|floatformat:0 }} FCFA / enfant</p>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-4 border-t border-foret-100/60">
+            <button type="button" @click="etape = 2" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Suivant : Options →
+            </button>
+          </div>
+        </div>
+
+        <!-- Étape 2 -->
+        <div x-show="etape === 2" x-cloak class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 space-y-5">
+          <p class="eyebrow">Étape 02 · Options (facultatives)</p>
+
+          <!-- Hébergement -->
+          <div class="bg-sable-50 border border-foret-100/60 rounded-2xl p-5">
+            <label class="flex items-start gap-4 cursor-pointer">
+              <input type="checkbox" name="avec_hebergement" value="on" x-model="avecHebergement"
+                     class="w-12 h-6 rounded-full appearance-none bg-foret-100/60 checked:bg-foret-900 transition cursor-pointer relative mt-0.5
+                            after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-base-100 after:transition
+                            checked:after:translate-x-6">
+              <div>
+                <p class="font-display text-base text-foret-900">Je souhaite un hébergement</p>
+                <p class="text-xs text-foret-700/60 mt-1">Sur place ou à proximité du site</p>
+              </div>
+            </label>
+
+            <div x-show="avecHebergement" x-cloak x-transition class="mt-5 space-y-4 pt-5 border-t border-foret-100/60">
+              <div>
+                <label for="id_hebergement" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Choix de l'hébergement</label>
+                <select name="hebergement" id="id_hebergement"
+                        @change="const opt = $event.target.selectedOptions[0]; tarifNuit = parseFloat(opt.dataset.prix || 0);"
+                        class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  <option value="" data-prix="0">— Choisir —</option>
+                  {% for heb in form.hebergement.field.queryset %}
+                  <option value="{{ heb.pk }}" data-prix="{{ heb.prix_nuit|floatformat:'0u' }}" {% if form.hebergement.value|stringformat:'s' == heb.pk|stringformat:'s' %}selected{% endif %}>
+                    {{ heb.nom }} · {{ heb.get_type_display }} — {{ heb.prix_nuit|floatformat:0 }} FCFA/nuit
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="id_date_arrivee" class="block text-[10px] font-mono uppercase tracking-wider text-foret-700 mb-1.5">Arrivée</label>
+                  <input type="date" name="date_arrivee" id="id_date_arrivee" value="{{ form.date_arrivee.value|date:'Y-m-d'|default:'' }}"
+                         @change="const d2 = document.getElementById('id_date_depart').value; if ($event.target.value && d2) { nbNuits = Math.max(0, (new Date(d2) - new Date($event.target.value)) / 86400000); }"
+                         class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                </div>
+                <div>
+                  <label for="id_date_depart" class="block text-[10px] font-mono uppercase tracking-wider text-foret-700 mb-1.5">Départ</label>
+                  <input type="date" name="date_depart" id="id_date_depart" value="{{ form.date_depart.value|date:'Y-m-d'|default:'' }}"
+                         @change="const d1 = document.getElementById('id_date_arrivee').value; if (d1 && $event.target.value) { nbNuits = Math.max(0, (new Date($event.target.value) - new Date(d1)) / 86400000); }"
+                         class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                </div>
+              </div>
+              <p class="text-xs text-foret-700/70 font-mono" x-show="nbNuits > 0" x-cloak>
+                <span x-text="nbNuits"></span> nuit<span x-show="nbNuits > 1">s</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Guide -->
+          <div class="bg-sable-50 border border-foret-100/60 rounded-2xl p-5">
+            <label class="flex items-start gap-4 cursor-pointer">
+              <input type="checkbox" name="avec_guide" value="on" x-model="avecGuide"
+                     class="w-12 h-6 rounded-full appearance-none bg-foret-100/60 checked:bg-foret-900 transition cursor-pointer relative mt-0.5
+                            after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-base-100 after:transition
+                            checked:after:translate-x-6">
+              <div>
+                <p class="font-display text-base text-foret-900">Je souhaite un guide</p>
+                <p class="text-xs text-foret-700/60 mt-1">Accompagnement personnalisé par un guide certifié</p>
+              </div>
+            </label>
+
+            <div x-show="avecGuide" x-cloak x-transition class="mt-5 pt-5 border-t border-foret-100/60">
+              <label for="id_guide" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Choix du guide</label>
+              <select name="guide" id="id_guide"
+                      @change="const opt = $event.target.selectedOptions[0]; tarifGuide = parseFloat(opt.dataset.tarif || 0);"
+                      class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                <option value="" data-tarif="0">— Sans guide —</option>
+                {% for g in form.guide.field.queryset %}
+                <option value="{{ g.pk }}" data-tarif="{{ g.tarif_journalier|floatformat:'0u' }}" {% if form.guide.value|stringformat:'s' == g.pk|stringformat:'s' %}selected{% endif %}>
+                  {{ g.user.nom_complet }} — {{ g.tarif_journalier|floatformat:0 }} FCFA/jour{% if g.annees_experience %} · {{ g.annees_experience }} ans exp.{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-foret-100/60">
+            <button type="button" @click="etape = 1" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</button>
+            <button type="button" @click="etape = 3" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Suivant : Confirmation →
+            </button>
+          </div>
+        </div>
+
+        <!-- Étape 3 -->
+        <div x-show="etape === 3" x-cloak class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 space-y-5">
+          <p class="eyebrow">Étape 03 · Confirmation</p>
+
+          <div>
+            <label for="id_notes_touriste" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Notes / demandes spéciales (optionnel)</label>
+            <textarea name="notes_touriste" id="id_notes_touriste" rows="3"
+                      placeholder="Allergies alimentaires, accessibilité, attentes…"
+                      class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.notes_touriste.value|default:'' }}</textarea>
+          </div>
+
+          <div class="bg-info/10 border border-info/30 rounded-2xl p-4 flex gap-3 text-sm text-foret-900">
+            <span class="font-mono text-info">i</span>
+            <p>Le récapitulatif détaillé est affiché à droite. Après validation, vous serez redirigé vers le paiement.</p>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-foret-100/60">
+            <button type="button" @click="etape = 2" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</button>
+            <button type="submit" class="btn-carnet bg-accent text-foret-900 rounded-full px-8 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Procéder au paiement →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar récap -->
+      <aside class="lg:sticky lg:top-28 self-start">
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <div class="relative">
+            <p class="eyebrow text-accent mb-4">Récapitulatif</p>
+
+            <div class="pb-4 border-b border-base-100/15 mb-4">
+              <p class="font-display text-base">{{ site.nom }}</p>
+              <p class="text-xs font-mono uppercase tracking-wider text-base-100/60 mt-1">
+                {{ site.localisation.ville }}, {{ site.localisation.region.nom }}
+              </p>
+            </div>
+
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-base-100/70">Adultes ×<span x-text="nbAdultes"></span></span>
+                <span class="font-mono-num" x-text="formatFCFA(nbAdultes * tarifAdulte)"></span>
+              </div>
+              <div class="flex justify-between" x-show="nbEnfants > 0" x-cloak>
+                <span class="text-base-100/70">Enfants ×<span x-text="nbEnfants"></span></span>
+                <span class="font-mono-num" x-text="formatFCFA(nbEnfants * tarifEnfant)"></span>
+              </div>
+              <div class="flex justify-between text-xs" x-show="avecHebergement && nbNuits > 0" x-cloak>
+                <span class="text-base-100/60">Hébergement (<span x-text="nbNuits"></span> nuits)</span>
+                <span class="font-mono-num text-base-100/80" x-text="formatFCFA(totalHebergement)"></span>
+              </div>
+              <div class="flex justify-between text-xs" x-show="avecGuide && tarifGuide > 0" x-cloak>
+                <span class="text-base-100/60">Guide (1 jour)</span>
+                <span class="font-mono-num text-base-100/80" x-text="formatFCFA(totalGuide)"></span>
+              </div>
+            </div>
+
+            <div class="pt-4 mt-4 border-t border-base-100/15">
+              <div class="flex justify-between items-baseline">
+                <span class="text-xs font-mono uppercase tracking-wider text-base-100/60">Total estimé</span>
+                <span class="font-display text-2xl text-accent font-mono-num" x-text="formatFCFA(grandTotal)"></span>
+              </div>
+              <p class="text-[10px] font-mono uppercase tracking-wider text-base-100/40 mt-2">* Calcul officiel au serveur</p>
+            </div>
+
+            <p class="text-[10px] font-mono uppercase tracking-wider text-base-100/40 mt-4 pt-4 border-t border-base-100/15">
+              Étape <span class="text-accent" x-text="etape"></span> / 3
+            </p>
+          </div>
+        </div>
+      </aside>
+    </form>
+  </div>
+</section>
+{% endblock %}

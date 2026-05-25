@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ site.nom }} — Tourisme Cameroun{% endblock %}
+{% block meta_description %}{{ site.description_courte|default:site.description|truncatechars:155 }}{% endblock %}
+
+{% block content %}
+<article x-data="{
+    favori: {{ est_favori|yesno:'true,false' }},
+    lightbox: null,
+    toggleFavori() {
+        fetch('{% url 'catalogue:toggle_favori' slug=site.slug %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { this.favori = data.est_favori; }
+            else if (data.error) { alert(data.error); }
+        })
+        .catch(() => alert('Connectez-vous pour ajouter aux favoris'));
+    }
+}">
+
+  {# ============================================================
+     HERO — image plein écran + titre superposé
+     ============================================================ #}
+  <header class="relative h-[70vh] min-h-[520px] overflow-hidden bg-foret-900 text-base-100">
+    {% if site.photo_principale %}
+      <img src="{{ site.photo_principale.image.url }}" alt="{{ site.nom }}"
+           class="absolute inset-0 w-full h-full object-cover animate-slow-zoom">
+    {% else %}
+      <div class="absolute inset-0 bg-pattern-kente"></div>
+    {% endif %}
+
+    <div class="absolute inset-0 hero-overlay"></div>
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-35"></div>
+
+    {# Breadcrumb en haut #}
+    <nav class="absolute inset-x-0 top-6 z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+                flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/70">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <a href="{% url 'catalogue:liste_sites' %}" class="hover:text-accent transition">Catalogue</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent truncate">{{ site.nom }}</span>
+    </nav>
+
+    {# Contenu superposé #}
+    <div class="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 lg:pb-20">
+      <div class="max-w-4xl animate-rise">
+
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="badge-stamp text-accent border-accent/60">{{ site.categorie.libelle }}</span>
+          {% if site.accessibilite_pmr %}<span class="badge-stamp text-base-100 border-base-100/40">♿ PMR</span>{% endif %}
+          {% if site.type %}<span class="badge-stamp text-base-100/80 border-base-100/40">{{ site.get_type_display }}</span>{% endif %}
+        </div>
+
+        <p class="eyebrow text-accent mb-4">
+          {{ site.localisation.ville }} · {{ site.localisation.region.nom }}
+        </p>
+
+        <h1 class="font-display font-light text-4xl sm:text-5xl lg:text-7xl leading-[0.95]">
+          {{ site.nom }}
+        </h1>
+
+        <div class="mt-8 flex flex-wrap items-center gap-6 text-sm">
+          {% if site.note_moyenne %}
+          <div class="flex items-center gap-3">
+            <span class="text-2xl text-accent">★</span>
+            <div>
+              <p class="font-mono-num text-lg font-semibold">{{ site.note_moyenne|floatformat:1 }}<span class="text-base-100/50">/5</span></p>
+              <p class="text-xs text-base-100/60 font-mono">{{ site.nombre_avis }} avis</p>
+            </div>
+          </div>
+          <span class="w-px h-10 bg-base-100/20"></span>
+          {% endif %}
+
+          <div>
+            <p class="text-xs text-base-100/60 font-mono uppercase tracking-wider">À partir de</p>
+            <p class="font-display text-2xl">{{ site.tarif_adulte|floatformat:0 }} <span class="text-sm font-sans text-base-100/60">FCFA</span></p>
+          </div>
+
+          {% if user.is_authenticated and user.type_user == 'touriste' %}
+          <button @click="toggleFavori()"
+                  class="ml-auto w-12 h-12 rounded-full grid place-items-center border-2 transition"
+                  :class="favori ? 'border-accent bg-accent text-foret-900' : 'border-base-100/40 text-base-100 hover:border-accent hover:text-accent'"
+                  aria-label="Favori">
+            <svg class="w-5 h-5" :class="favori ? 'fill-current' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  {# ============================================================
+     CORPS DE PAGE
+     ============================================================ #}
+  <div class="bg-base-100 py-16 lg:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-10 lg:gap-16">
+
+      {# === COLONNE PRINCIPALE === #}
+      <div class="lg:col-span-8 space-y-16">
+
+        {# Description #}
+        <section>
+          <p class="eyebrow mb-4">№ 01 — Le récit</p>
+          <h2 class="font-display text-3xl lg:text-4xl font-light text-foret-900 leading-tight mb-8">
+            À propos de ce <em class="font-display-italic text-accent">lieu</em>
+          </h2>
+
+          {# Première lettre stylisée — drop cap éditorial #}
+          <div class="prose-editorial max-w-none">
+            <p class="whitespace-pre-line text-foret-900/85 leading-[1.85] text-lg first-letter:font-display first-letter:font-medium first-letter:text-6xl first-letter:text-accent first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
+              {{ site.description }}
+            </p>
+          </div>
+
+          {% if site.tags.all %}
+          <div class="flex flex-wrap gap-2 mt-8 pt-8 border-t border-foret-100/60">
+            <span class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mr-2 self-center">Mots-clés</span>
+            {% for tag in site.tags.all %}
+            <span class="text-xs font-mono text-foret-700 bg-sable-50 px-3 py-1.5 rounded-full">#{{ tag.libelle }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </section>
+
+        {# Galerie photos #}
+        {% if site.photos.all %}
+        <section>
+          <p class="eyebrow mb-4">№ 02 — Cliché de voyage</p>
+          <h2 class="font-display text-3xl lg:text-4xl font-light text-foret-900 leading-tight mb-8">
+            <em class="font-display-italic text-accent">{{ site.photos.count }}</em> photographie{{ site.photos.count|pluralize }}
+          </h2>
+
+          <div class="grid grid-cols-12 gap-3">
+            {% for photo in site.photos.all %}
+              <button @click="lightbox = '{{ photo.image.url }}'"
+                      class="relative group overflow-hidden rounded-2xl cursor-zoom-in
+                             {% cycle 'col-span-12 sm:col-span-8 aspect-[16/10]' 'col-span-12 sm:col-span-4 aspect-square' 'col-span-6 sm:col-span-4 aspect-square' 'col-span-6 sm:col-span-4 aspect-square' 'col-span-12 sm:col-span-4 aspect-square' %}">
+                <img src="{{ photo.image.url }}"
+                     alt="{{ photo.legende|default:site.nom }}"
+                     loading="lazy"
+                     class="w-full h-full object-cover img-hover-bloom">
+                <span class="absolute top-3 left-3 font-display italic text-base-100 text-sm">№ {{ forloop.counter|stringformat:"02d" }}</span>
+              </button>
+            {% endfor %}
+          </div>
+        </section>
+
+        {# Lightbox #}
+        <div x-show="lightbox" x-cloak
+             x-transition.opacity
+             @click="lightbox = null"
+             @keydown.escape.window="lightbox = null"
+             class="fixed inset-0 bg-foret-900/95 z-[60] flex items-center justify-center p-6 cursor-zoom-out backdrop-blur-sm">
+          <img :src="lightbox" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+          <button class="absolute top-6 right-6 w-12 h-12 rounded-full bg-base-100/10 text-base-100 grid place-items-center hover:bg-accent hover:text-foret-900 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        {% endif %}
+
+        {# Hébergements #}
+        {% if site.hebergements.all %}
+        <section>
+          <p class="eyebrow mb-4">№ 03 — Hospitalité</p>
+          <h2 class="font-display text-3xl lg:text-4xl font-light text-foret-900 leading-tight mb-3">
+            Où <em class="font-display-italic text-accent">dormir</em> à proximité ?
+          </h2>
+          <p class="text-foret-700/70 mb-8 max-w-2xl">
+            Une sélection d'hébergements partenaires pour prolonger votre visite.
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-5">
+            {% for hebergement in site.hebergements.all %}
+              {% if hebergement.est_disponible %}
+              <article class="card-editorial flex">
+                <div class="w-28 flex-shrink-0 bg-sable-100">
+                  {% if hebergement.photo %}
+                    <img src="{{ hebergement.photo.url }}" alt="{{ hebergement.nom }}"
+                         class="w-full h-full object-cover">
+                  {% else %}
+                    <div class="bg-pattern-kente w-full h-full grid place-items-center text-2xl opacity-50">◈</div>
+                  {% endif %}
+                </div>
+                <div class="flex-1 p-4">
+                  <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-1">{{ hebergement.get_type_display }}</p>
+                  <h3 class="font-display text-base text-foret-900 leading-tight mb-1">{{ hebergement.nom }}</h3>
+                  <p class="text-xs text-accent mb-2">
+                    {% for i in "12345"|make_list %}{% if forloop.counter <= hebergement.etoiles %}★{% else %}☆{% endif %}{% endfor %}
+                  </p>
+                  <p class="font-mono-num text-sm font-semibold text-foret-900">
+                    {{ hebergement.prix_nuit|floatformat:0 }} <span class="text-xs text-foret-700/60 font-sans">FCFA / nuit</span>
+                  </p>
+                </div>
+              </article>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
+        {# Avis #}
+        <section>
+          <div class="flex items-end justify-between mb-8">
+            <div>
+              <p class="eyebrow mb-4">№ 04 — Le livre d'or</p>
+              <h2 class="font-display text-3xl lg:text-4xl font-light text-foret-900 leading-tight">
+                Ce qu'<em class="font-display-italic text-accent">ils en disent</em>
+              </h2>
+            </div>
+            {% if site.nombre_avis %}
+            <p class="text-sm font-mono text-foret-700/60">{{ site.nombre_avis }} avis vérifiés</p>
+            {% endif %}
+          </div>
+
+          {% if avis_list %}
+          <div class="space-y-6">
+            {% for avis in avis_list %}
+            <article class="border-l-2 border-accent pl-6 py-2">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-sm font-semibold">
+                  {{ avis.touriste.user.first_name|first|upper|default:"V" }}
+                </div>
+                <div>
+                  <p class="font-medium text-foret-900 text-sm">{{ avis.touriste.user.first_name|default:"Visiteur" }}</p>
+                  <p class="text-xs text-foret-700/60 font-mono">{{ avis.created_at|date:"d M Y" }}</p>
+                </div>
+                <span class="ml-auto text-accent text-sm">
+                  {% for i in "12345"|make_list %}{% if forloop.counter <= avis.note %}★{% else %}☆{% endif %}{% endfor %}
+                </span>
+              </div>
+              {% if avis.titre %}
+              <p class="font-display text-lg text-foret-900 mb-2">{{ avis.titre }}</p>
+              {% endif %}
+              <p class="text-foret-700/85 leading-relaxed">{{ avis.commentaire|truncatechars:300 }}</p>
+
+              {% if avis.reponse_gestionnaire %}
+              <div class="mt-4 p-4 bg-sable-50 rounded-2xl text-sm">
+                <p class="eyebrow text-foret-700 mb-2">Réponse du gestionnaire</p>
+                <p class="text-foret-900/85 leading-relaxed">{{ avis.reponse_gestionnaire|truncatechars:240 }}</p>
+              </div>
+              {% endif %}
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-12 text-center">
+            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 items-center justify-center text-2xl mb-4 shadow-md">✎</div>
+            <h3 class="font-display text-xl text-foret-900 mb-2">La page est encore blanche</h3>
+            <p class="text-sm text-foret-700/70 max-w-sm mx-auto">
+              Aucun avis pour ce site. Soyez le premier à laisser votre récit après votre visite.
+            </p>
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+
+      {# === SIDEBAR === #}
+      <aside class="lg:col-span-4 space-y-6 lg:sticky lg:top-28 self-start">
+
+        {# CTA Réservation #}
+        <div class="bg-foret-900 text-base-100 rounded-3xl overflow-hidden relative">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-30"></div>
+          <div class="relative p-7">
+            <p class="eyebrow text-accent mb-4">Réservation</p>
+            <p class="text-xs text-base-100/60 font-mono uppercase tracking-wider mb-2">À partir de</p>
+            <p class="font-display text-5xl font-light leading-none">
+              {{ site.tarif_adulte|floatformat:0 }}<br>
+              <span class="text-sm font-sans text-base-100/60">FCFA / adulte</span>
+            </p>
+            {% if site.tarif_enfant %}
+            <p class="text-xs text-base-100/60 mt-2 font-mono">
+              · {{ site.tarif_enfant|floatformat:0 }} FCFA / enfant
+            </p>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <a href="#" class="btn-carnet block w-full mt-6 bg-accent text-foret-900 text-center rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Réserver une date
+            </a>
+            {% else %}
+            <a href="{% url 'compte:connexion' %}?next={{ request.path }}"
+               class="btn-carnet block w-full mt-6 bg-accent text-foret-900 text-center rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Se connecter pour réserver
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Infos pratiques #}
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+          <p class="eyebrow mb-5">Infos pratiques</p>
+
+          <ul class="space-y-5 text-sm">
+            <li class="flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-sable-100 text-foret-700 grid place-items-center flex-shrink-0 font-mono text-xs">⌛</span>
+              <div>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider">Durée moyenne</p>
+                <p class="text-foret-900 font-medium">{{ site.duree_visite_moyenne }} minutes</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-sable-100 text-foret-700 grid place-items-center flex-shrink-0 font-mono text-xs">◇</span>
+              <div>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider">Capacité</p>
+                <p class="text-foret-900 font-medium">{{ site.capacite_max }} personnes max</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-sable-100 text-foret-700 grid place-items-center flex-shrink-0 font-mono text-xs">♿</span>
+              <div>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider">Accessibilité</p>
+                <p class="text-foret-900 font-medium">{{ site.accessibilite_pmr|yesno:"Accessible PMR,Non accessible" }}</p>
+              </div>
+            </li>
+            {% if site.localisation.point_repere %}
+            <li class="flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-sable-100 text-foret-700 grid place-items-center flex-shrink-0 font-mono text-xs">◉</span>
+              <div>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider">Point de repère</p>
+                <p class="text-foret-900 font-medium">{{ site.localisation.point_repere }}</p>
+              </div>
+            </li>
+            {% endif %}
+          </ul>
+
+          {% if site.localisation.google_maps_url %}
+          <a href="{{ site.localisation.google_maps_url }}" target="_blank" rel="noopener"
+             class="link-editorial inline-flex items-center gap-2 mt-6 text-sm">
+            Itinéraire sur Google Maps <span>↗</span>
+          </a>
+          {% endif %}
+        </div>
+
+        {# Horaires #}
+        {% if site.horaires_ouverture %}
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+          <p class="eyebrow mb-5">Horaires d'ouverture</p>
+          <ul class="text-sm divide-y divide-foret-100/60">
+            {% for jour, horaire in site.horaires_ouverture.items %}
+            <li class="flex justify-between py-2.5">
+              <span class="capitalize text-foret-900">{{ jour }}</span>
+              <span class="font-mono-num text-xs
+                          {% if horaire == 'ferme' %}text-error{% else %}text-foret-700{% endif %}">
+                {% if horaire == 'ferme' %}Fermé{% else %}{{ horaire }}{% endif %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</article>
+{% endblock %}

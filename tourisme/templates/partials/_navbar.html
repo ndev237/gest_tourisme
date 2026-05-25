@@ -1,163 +1,202 @@
-{% comment %}
-==============================================================
-templates/partials/_navbar.html
-==============================================================
-Barre de navigation incluse dans base.html.
+{% load static %}
+ <!--
+  Navbar éditoriale "Carnet de voyage" — sticky, fond ivoire, ornement central.
+  - Logo monogramme TC en serif Fraunces (caractère)
+  - Liens en small-caps avec letterspacing
+  - Dropdown user en design carte avec accent or
+  - Mobile : drawer hamburger
+-->
+<nav class="sticky top-0 z-40 bg-base-100/90 backdrop-blur-md border-b border-foret-100/60"
+     x-data="{ mobileOpen: false, userOpen: false, scrolled: false }"
+     @scroll.window="scrolled = window.scrollY > 8"
+     :class="scrolled ? 'shadow-[0_8px_24px_-12px_oklch(20%_0.03_145/0.18)]' : ''">
 
-Initiatives :
-1. Navbar adaptative selon l'utilisateur :
-   - Anonyme → "Connexion" / "S'inscrire"
-   - Connecté → menu déroulant avec profil/dashboard/déconnexion
-2. Menu mobile (hamburger) géré par Alpine.js (déjà inclus dans le projet)
-3. Liens "actifs" mis en évidence via {% if request.resolver_match.url_name == 'home' %}
-{% endcomment %}
-
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm"
-     x-data="{ mobileOpen: false, userOpen: false }">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
+    <div class="flex items-center justify-between h-20">
 
-      <!-- LOGO + NOM -->
-      <div class="flex items-center gap-2">
-        <a href="{% url 'home' %}" class="flex items-center gap-2 text-green-700 font-bold text-lg hover:text-green-800 transition">
-          <span class="text-2xl">🏔️</span>
-          <span>Tourisme Cameroun</span>
-        </a>
-      </div>
+      {# === LOGO MONOGRAMME === #}
+      <a href="{% url 'home' %}" class="group flex items-center gap-3">
+        <span class="relative grid place-items-center w-11 h-11 rounded-full
+                     bg-foret-900 text-accent ring-1 ring-foret-900
+                     transition-transform group-hover:rotate-[-8deg]">
+          <span class="font-display text-xl font-semibold leading-none italic">tc</span>
+          <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-base-100"></span>
+        </span>
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display text-lg font-semibold tracking-tight">Tourisme<span class="text-accent">.</span>Cameroun</span>
+          <span class="text-[10px] uppercase tracking-[0.22em] text-foret-700/70 font-mono">L'Afrique en miniature</span>
+        </div>
+      </a>
 
-      <!-- LIENS DESKTOP (cachés en mobile) -->
-      <div class="hidden md:flex items-center gap-8">
+      {# === LIENS DESKTOP === #}
+      <div class="hidden lg:flex items-center gap-1">
+        {% with rm=request.resolver_match.url_name %}
         <a href="{% url 'home' %}"
-           class="text-sm font-medium transition
-                  {% if request.resolver_match.url_name == 'home' %}text-green-700{% else %}text-gray-700 hover:text-green-700{% endif %}">
+           class="px-3 py-2 text-sm uppercase tracking-wider font-medium transition-colors
+                  {% if rm == 'home' %}text-foret-900 underline decoration-accent decoration-2 underline-offset-8{% else %}text-foret-700 hover:text-foret-900{% endif %}">
           Accueil
         </a>
-        <a href="#"
-           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+        <a href="{% url 'catalogue:liste_sites' %}"
+           class="px-3 py-2 text-sm uppercase tracking-wider font-medium transition-colors
+                  {% if rm == 'liste_sites' %}text-foret-900 underline decoration-accent decoration-2 underline-offset-8{% else %}text-foret-700 hover:text-foret-900{% endif %}">
           Sites
         </a>
-        <a href="#"
-           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
-          Hébergements
+        <a href="{% url 'localisation:carte' %}"
+           class="px-3 py-2 text-sm uppercase tracking-wider font-medium transition-colors
+                  {% if rm == 'carte' %}text-foret-900 underline decoration-accent decoration-2 underline-offset-8{% else %}text-foret-700 hover:text-foret-900{% endif %}">
+          Carte
         </a>
         <a href="#"
-           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
-          Guides
-        </a>
-        <a href="#"
-           class="text-sm font-medium text-gray-700 hover:text-green-700 transition">
+           class="px-3 py-2 text-sm uppercase tracking-wider font-medium text-foret-700 hover:text-foret-900 transition-colors">
           Régions
         </a>
+        <a href="{% url 'a_propos' %}"
+           class="px-3 py-2 text-sm uppercase tracking-wider font-medium transition-colors
+                  {% if rm == 'a_propos' %}text-foret-900 underline decoration-accent decoration-2 underline-offset-8{% else %}text-foret-700 hover:text-foret-900{% endif %}">
+          Récit
+        </a>
+        {% endwith %}
       </div>
 
-      <!-- ACTIONS DROITES -->
-      <div class="hidden md:flex items-center gap-3">
+      {# === ACTIONS DROITES === #}
+      <div class="flex items-center gap-3">
+
+        {# Mini-recherche desktop #}
+        <form action="{% url 'catalogue:liste_sites' %}" method="get"
+              class="hidden xl:flex items-center bg-sable-50 rounded-full pl-4 pr-1 py-1 ring-1 ring-foret-100/60 focus-within:ring-foret-300 transition">
+          <svg class="w-4 h-4 text-foret-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+          </svg>
+          <input type="text" name="q" placeholder="Une plage, un parc, un musée…"
+                 class="bg-transparent text-sm placeholder:text-foret-700/50 focus:outline-none w-56">
+          <button type="submit" class="bg-foret-900 text-base-100 text-xs uppercase tracking-wider font-medium rounded-full px-4 py-1.5 hover:bg-foret-700 transition">
+            Aller
+          </button>
+        </form>
+
         {% if user.is_authenticated %}
-          <!-- MENU UTILISATEUR (déroulant) -->
-          <div class="relative" @click.away="userOpen = false">
+          {# === MENU UTILISATEUR === #}
+          <div class="hidden md:block relative" @click.away="userOpen = false">
             <button @click="userOpen = !userOpen"
-                    class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+                    class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-sable-50 transition">
               {% if user.photo_profil %}
-                <img src="{{ user.photo_profil.url }}" alt="" class="w-8 h-8 rounded-full object-cover">
+                <img src="{{ user.photo_profil.url }}" alt="" class="w-9 h-9 rounded-full object-cover ring-2 ring-accent">
               {% else %}
-                <div class="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-semibold">
-                  {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                <div class="w-9 h-9 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-sm font-semibold ring-2 ring-accent/40">
+                  {{ user.first_name|first|upper }}{{ user.last_name|first|upper|default:'' }}
                 </div>
               {% endif %}
-              <span class="text-sm text-gray-700 hidden lg:inline">{{ user.first_name }}</span>
-              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              <span class="text-sm font-medium text-foret-900 hidden xl:inline">{{ user.first_name }}</span>
+              <svg class="w-3.5 h-3.5 text-foret-700" :class="userOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transition: transform 0.2s;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
               </svg>
             </button>
 
-            <!-- DROPDOWN -->
             <div x-show="userOpen" x-cloak
-                 x-transition:enter="transition ease-out duration-100"
-                 x-transition:enter-start="opacity-0 scale-95"
-                 x-transition:enter-end="opacity-100 scale-100"
-                 class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="absolute right-0 mt-3 w-72 bg-base-100 rounded-2xl shadow-2xl border border-foret-100/60 overflow-hidden z-50">
 
-              <div class="px-4 py-3 border-b border-gray-100">
-                <p class="text-sm font-semibold text-gray-900">{{ user.nom_complet }}</p>
-                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
-                <span class="inline-block mt-1 text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                  {{ user.get_type_user_display }}
-                </span>
+              {# Bandeau coloré #}
+              <div class="bg-foret-900 text-base-100 px-5 py-4 relative overflow-hidden">
+                <div class="absolute inset-0 bg-grain opacity-30"></div>
+                <p class="font-display text-base font-semibold relative">{{ user.nom_complet|default:user.get_full_name|default:user.username }}</p>
+                <p class="text-xs text-base-100/70 truncate font-mono relative">{{ user.email }}</p>
+                <span class="badge-stamp mt-2 text-accent border-accent/60 relative">{{ user.get_type_user_display }}</span>
               </div>
 
-              <!-- Dashboard selon le type d'utilisateur -->
-              {% if user.type_user == 'touriste' %}
-                <a href="{% url 'compte:dashboard_touriste' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  📊 Mon tableau de bord
-                </a>
-              {% elif user.type_user == 'gestionnaire' %}
-                <a href="{% url 'compte:dashboard_gestionnaire' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  📊 Espace gestionnaire
-                </a>
-              {% elif user.type_user == 'guide' %}
-                <a href="{% url 'compte:dashboard_guide' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  📊 Espace guide
-                </a>
-              {% elif user.type_user == 'admin' %}
-                <a href="{% url 'compte:dashboard_admin' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  📊 Administration
-                </a>
-              {% endif %}
+              <div class="py-2">
+                {% if user.type_user == 'touriste' %}
+                  <a href="{% url 'compte:dashbord_touriste' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                    <span class="text-base">◈</span> Mon tableau de bord
+                  </a>
+                {% elif user.type_user == 'gestionnaire' %}
+                  <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                    <span class="text-base">◈</span> Espace gestionnaire
+                  </a>
+                {% elif user.type_user == 'guide' %}
+                  <a href="{% url 'compte:dashbord_guide' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                    <span class="text-base">◈</span> Espace guide
+                  </a>
+                {% elif user.type_user == 'admin' %}
+                  <a href="{% url 'compte:dashbord_admin' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                    <span class="text-base">◈</span> Administration
+                  </a>
+                {% endif %}
 
-              <a href="{% url 'compte:profil' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                👤 Mon profil
-              </a>
-              <a href="{% url 'compte:changer_password' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                🔒 Mot de passe
-              </a>
-
-              <div class="border-t border-gray-100 mt-1 pt-1">
-                <a href="{% url 'compte:deconnexion' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                  🚪 Déconnexion
+                <a href="{% url 'compte:profil' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                  <span class="text-base">◉</span> Mon profil
                 </a>
+                <a href="{% url 'compte:changer_password' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-foret-900 hover:bg-sable-50 transition">
+                  <span class="text-base">◐</span> Mot de passe
+                </a>
+
+                <div class="border-t border-foret-100/60 mt-1 pt-1">
+                  <a href="{% url 'compte:deconnexion' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-error hover:bg-error/5 transition">
+                    <span class="text-base">↗</span> Déconnexion
+                  </a>
+                </div>
               </div>
             </div>
           </div>
         {% else %}
           <a href="{% url 'compte:connexion' %}"
-             class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-green-700 transition">
+             class="hidden md:inline-block px-4 py-2 text-sm font-medium text-foret-900 hover:text-foret-700 transition">
             Connexion
           </a>
           <a href="{% url 'compte:inscription' %}"
-             class="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-            S'inscrire
+             class="hidden md:inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium uppercase tracking-wider
+                    bg-foret-900 text-base-100 rounded-full hover:bg-foret-700 transition btn-carnet">
+            <span>Embarquer</span>
+            <span aria-hidden="true">→</span>
           </a>
         {% endif %}
-      </div>
 
-      <!-- BOUTON HAMBURGER MOBILE -->
-      <button @click="mobileOpen = !mobileOpen"
-              class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100">
-        <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-        <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+        {# === BOUTON HAMBURGER MOBILE === #}
+        <button @click="mobileOpen = !mobileOpen"
+                class="lg:hidden p-2 rounded-full hover:bg-sable-50 text-foret-900"
+                aria-label="Menu">
+          <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+          <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- MENU MOBILE DÉROULANT -->
-    <div x-show="mobileOpen" x-cloak class="md:hidden pb-4 space-y-1">
-      <a href="{% url 'home' %}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Accueil</a>
-      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Sites</a>
-      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Hébergements</a>
-      <a href="#" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Régions</a>
+    {# === MENU MOBILE DÉROULANT === #}
+    <div x-show="mobileOpen" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         class="lg:hidden pb-6 pt-2 space-y-1 border-t border-foret-100/60">
+
+      <form action="{% url 'catalogue:liste_sites' %}" method="get"
+            class="flex items-center bg-sable-50 rounded-full pl-4 pr-1 py-1 mt-3 ring-1 ring-foret-100/60">
+        <svg class="w-4 h-4 text-foret-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+        </svg>
+        <input type="text" name="q" placeholder="Rechercher un site…" class="bg-transparent text-sm placeholder:text-foret-700/50 focus:outline-none flex-1">
+        <button type="submit" class="bg-foret-900 text-base-100 text-xs uppercase tracking-wider rounded-full px-4 py-1.5">OK</button>
+      </form>
+
+      <a href="{% url 'home' %}" class="block px-3 py-3 text-base font-medium text-foret-900 hover:bg-sable-50 rounded-lg">Accueil</a>
+      <a href="{% url 'catalogue:liste_sites' %}" class="block px-3 py-3 text-base font-medium text-foret-900 hover:bg-sable-50 rounded-lg">Sites</a>
+      <a href="{% url 'localisation:carte' %}" class="block px-3 py-3 text-base font-medium text-foret-900 hover:bg-sable-50 rounded-lg">Carte</a>
+      <a href="{% url 'a_propos' %}" class="block px-3 py-3 text-base font-medium text-foret-900 hover:bg-sable-50 rounded-lg">Récit</a>
 
       {% if user.is_authenticated %}
-        <div class="border-t border-gray-200 pt-2 mt-2">
-          <a href="{% url 'compte:profil' %}" class="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg">👤 Mon profil</a>
-          <a href="{% url 'compte:deconnexion' %}" class="block px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg">🚪 Déconnexion</a>
+        <div class="border-t border-foret-100/60 pt-2 mt-2">
+          <a href="{% url 'compte:profil' %}" class="block px-3 py-3 text-base font-medium text-foret-900 hover:bg-sable-50 rounded-lg">Mon profil</a>
+          <a href="{% url 'compte:deconnexion' %}" class="block px-3 py-3 text-base font-medium text-error hover:bg-error/5 rounded-lg">Déconnexion</a>
         </div>
       {% else %}
-        <div class="border-t border-gray-200 pt-2 mt-2 flex gap-2 px-3">
-          <a href="{% url 'compte:connexion' %}" class="flex-1 text-center px-4 py-2 text-sm border border-gray-300 rounded-lg">Connexion</a>
-          <a href="{% url 'compte:inscription' %}" class="flex-1 text-center px-4 py-2 text-sm bg-green-600 text-white rounded-lg">S'inscrire</a>
+        <div class="border-t border-foret-100/60 pt-3 mt-2 flex gap-2 px-1">
+          <a href="{% url 'compte:connexion' %}" class="flex-1 text-center px-4 py-2.5 text-sm border border-foret-900 text-foret-900 rounded-full">Connexion</a>
+          <a href="{% url 'compte:inscription' %}" class="flex-1 text-center px-4 py-2.5 text-sm bg-foret-900 text-base-100 rounded-full">Embarquer</a>
         </div>
       {% endif %}
     </div>

@@ -1,10 +1,299 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Dashboard admin — KPI globaux, validations en attente, modération, activité.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Administration — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <!-- Bandeau -->
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-error/15 blur-3xl"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+          <p class="eyebrow text-accent mb-3">Administration · Niveau {{ user.profil_admin.niveau_acces|default:1 }}/5</p>
+          <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+            <em class="font-display-italic text-accent">Vue</em> d'ensemble.
+          </h1>
+          <p class="text-base-100/70 mt-3 text-sm font-mono uppercase tracking-wider">
+            {{ user.first_name|default:user.email }} ·
+            <span class="badge-stamp text-accent border-accent/60 ml-2">{{ user.profil_admin.get_role_display|default:"Admin" }}</span>
+          </p>
+        </div>
+
+        <!-- Dropdown actions rapides -->
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open" class="bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider flex items-center gap-2 hover:bg-accent/90 transition">
+            Actions rapides <span :class="open ? 'rotate-180' : ''" class="transition">▾</span>
+          </button>
+          <div x-show="open" x-cloak @click.away="open = false"
+               x-transition:enter="transition ease-out duration-200"
+               x-transition:enter-start="opacity-0 -translate-y-2"
+               x-transition:enter-end="opacity-100 translate-y-0"
+               class="absolute right-0 mt-2 w-64 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-50 text-foret-900">
+            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Gérer les utilisateurs</a>
+            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Valider gestionnaires</a>
+            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Modérer les avis</a>
+            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Rapports</a>
+            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Paramètres</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8">
+
+    <!-- KPIs globaux -->
+    <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-10">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Utilisateurs</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_users|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">
+            {% if stats.nouveaux_users_semaine %}<span class="text-success">↗ +{{ stats.nouveaux_users_semaine }}</span> cette semaine
+            {% else %}Membres inscrits{% endif %}
+          </p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Sites publiés</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_sites|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Sur {{ stats.nb_sites_total|default:0 }} au total</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Réservations</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_resa|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">{{ stats.nb_resa_mois|default:0 }} ce mois</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">CA généré</p>
+          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.revenu_global|default:0|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">FCFA cumulés</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Validations en attente -->
+        <section class="bg-warning/5 border border-warning/30 rounded-3xl p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="eyebrow text-warning mb-2">À traiter</p>
+              <h2 class="font-display text-2xl text-foret-900">Validations en attente</h2>
+            </div>
+            <span class="badge-stamp text-warning border-warning/60">{{ stats.total_en_attente|default:0 }}</span>
+          </div>
+
+          {% if gestionnaires_attente %}
+          <div class="mb-6">
+            <p class="eyebrow mb-3">Gestionnaires</p>
+            <div class="space-y-2">
+              {% for g in gestionnaires_attente|slice:":3" %}
+              <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
+                <div>
+                  <p class="font-display text-base text-foret-900">{{ g.entreprise }}</p>
+                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
+                    {{ g.user.nom_complet }} · {{ g.created_at|date:"d M Y" }}
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓</button>
+                  <button class="border border-error text-error rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">✕</button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if guides_attente %}
+          <div>
+            <p class="eyebrow mb-3">Guides</p>
+            <div class="space-y-2">
+              {% for g in guides_attente|slice:":3" %}
+              <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
+                <div>
+                  <p class="font-display text-base text-foret-900">{{ g.user.nom_complet }}</p>
+                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
+                    Licence {{ g.licence_pro }} · {{ g.annees_experience }} ans d'exp.
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓</button>
+                  <button class="border border-error text-error rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">✕</button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if not gestionnaires_attente and not guides_attente %}
+          <div class="text-center py-8">
+            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">✓</div>
+            <p class="text-foret-700/70">Tout est à jour. Aucune validation en attente.</p>
+          </div>
+          {% endif %}
+        </section>
+
+        <!-- Modération avis -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="eyebrow mb-2">Modération</p>
+              <h2 class="font-display text-2xl text-foret-900">Avis signalés</h2>
+            </div>
+            <a href="#" class="link-editorial text-sm">Tous →</a>
+          </div>
+
+          {% if avis_signales %}
+          <div class="space-y-4">
+            {% for avis in avis_signales|slice:":5" %}
+            <article class="p-5 bg-sable-50 border border-foret-100/60 rounded-2xl">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <p class="font-display text-base text-foret-900">{{ avis.touriste.user.nom_complet }}</p>
+                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
+                    Sur {{ avis.site.nom }} · {{ avis.created_at|date:"d M Y" }}
+                  </p>
+                </div>
+                <span class="badge-stamp text-warning border-warning/60 text-[10px]">
+                  {{ avis.nb_signalements|default:1 }} signal.
+                </span>
+              </div>
+              <p class="text-sm italic text-foret-900/85 leading-relaxed mb-3 border-l-2 border-warning pl-3">
+                « {{ avis.commentaire|truncatechars:140 }} »
+              </p>
+              <div class="flex gap-2">
+                <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓ Valider</button>
+                <button class="bg-error text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">Supprimer</button>
+                <a href="#" class="text-xs text-foret-700 hover:text-foret-900 self-center px-3 underline decoration-dotted underline-offset-4">Voir détail</a>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-8 bg-sable-50 rounded-2xl">
+            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">✓</div>
+            <p class="text-foret-700/70">Aucun avis à modérer.</p>
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+
+        <!-- Répartition des users -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-5">Répartition users</p>
+
+          <div class="space-y-4">
+            {% with total=stats.nb_users|default:1 %}
+            <div>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="text-foret-900">Touristes</span>
+                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_touristes|default:0 }}</span>
+              </div>
+              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                <div class="h-full bg-foret-700" style="width: {% widthratio stats.nb_touristes|default:0 total 100 %}%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="text-foret-900">Gestionnaires</span>
+                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_gestionnaires|default:0 }}</span>
+              </div>
+              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                <div class="h-full bg-accent" style="width: {% widthratio stats.nb_gestionnaires|default:0 total 100 %}%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="text-foret-900">Guides</span>
+                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_guides|default:0 }}</span>
+              </div>
+              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                <div class="h-full bg-info" style="width: {% widthratio stats.nb_guides|default:0 total 100 %}%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="text-foret-900">Admins</span>
+                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_admins|default:0 }}</span>
+              </div>
+              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                <div class="h-full bg-error" style="width: {% widthratio stats.nb_admins|default:0 total 100 %}%;"></div>
+              </div>
+            </div>
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- Activité récente -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Activité récente</p>
+
+          {% if dernieres_actions %}
+          <ul class="space-y-2">
+            {% for action in dernieres_actions|slice:":7" %}
+            <li class="flex items-start gap-3 p-3 rounded-xl hover:bg-sable-50 transition">
+              <span class="w-7 h-7 rounded-full bg-sable-100 text-foret-700 grid place-items-center text-xs flex-shrink-0">
+                {% if action.action == 'create' %}+
+                {% elif action.action == 'update' %}✎
+                {% elif action.action == 'delete' %}×
+                {% elif action.action == 'login' %}◐
+                {% else %}◇{% endif %}
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-foret-900 truncate">
+                  <strong>{{ action.utilisateur.email|default:"Système" }}</strong>
+                  {{ action.action }} {{ action.ressource }}
+                </p>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-0.5">
+                  {{ action.created_at|timesince }} avant
+                </p>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          <a href="#" class="block mt-3 text-xs uppercase tracking-wider font-medium text-foret-700 hover:text-foret-900 text-center underline decoration-dotted underline-offset-4">
+            Voir le journal complet →
+          </a>
+          {% else %}
+          <p class="text-sm text-foret-700/60 text-center py-4">Aucune activité récente.</p>
+          {% endif %}
+        </div>
+
+        <!-- Alertes système -->
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <p class="relative eyebrow text-accent mb-4">Alertes système</p>
+          <ul class="relative space-y-2 text-sm">
+            {% if stats.paiements_echec_24h %}
+              <li class="flex items-start gap-2"><span class="text-error">●</span> {{ stats.paiements_echec_24h }} paiement{{ stats.paiements_echec_24h|pluralize }} échoué{{ stats.paiements_echec_24h|pluralize }} (24h)</li>
+            {% endif %}
+            {% if stats.notifications_echec %}
+              <li class="flex items-start gap-2"><span class="text-warning">●</span> {{ stats.notifications_echec }} notification{{ stats.notifications_echec|pluralize }} non délivrée{{ stats.notifications_echec|pluralize }}</li>
+            {% endif %}
+            {% if not stats.paiements_echec_24h and not stats.notifications_echec %}
+              <li class="flex items-start gap-2 text-base-100/70"><span class="text-success">●</span> Aucune alerte. Tout fonctionne normalement.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

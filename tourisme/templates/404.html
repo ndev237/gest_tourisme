@@ -1,10 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Page 404 — Ressource introuvable
+  Design : carnet de voyage, numéro éditorial, recherche intégrée
+  Illustration : 404.svg sur le côté gauche
+-->
+{% extends "base.html" %}
+{% load static %}
 
-</body>
-</html>
+{% block title %}Page introuvable — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="relative min-h-[80vh] flex items-center bg-base-100 overflow-hidden">
+
+  <!-- Décor : motif kente en arrière-plan -->
+  <div aria-hidden="true" class="absolute inset-0 bg-pattern-kente opacity-30"></div>
+
+  <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
+    <div class="grid lg:grid-cols-12 gap-12 items-center">
+
+      <!-- Côté gauche : illustration SVG + numéro éditorial -->
+      <div class="lg:col-span-5 text-center lg:text-left">
+        <p class="eyebrow mb-6">№ 404 — Pages perdues</p>
+        <img src="{% static 'images/404.svg' %}" alt="Page introuvable"
+             class="w-full max-w-md mx-auto lg:mx-0 drop-shadow-xl"
+             aria-hidden="true">
+        <div class="font-display font-light text-foret-900 leading-[0.85] mt-4 hidden xl:block">
+          <span class="block text-6xl">
+            4<em class="font-display-italic text-accent">0</em>4
+          </span>
+        </div>
+      </div>
+
+      <!-- Côté droit : message + actions -->
+      <div class="lg:col-span-7 lg:pl-8">
+        <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight text-foret-900 mb-6">
+          Vous voici <em class="font-display-italic text-accent">hors des sentiers</em><br>
+          battus.
+        </h1>
+        <p class="text-foret-700/80 text-lg leading-relaxed mb-10 max-w-xl">
+          La page que vous cherchiez n'existe plus, a changé d'adresse,
+          ou n'a peut-être jamais existé. Pas d'inquiétude — voici quelques pistes
+          pour retrouver votre chemin.
+        </p>
+
+        <!-- Actions principales -->
+        <div class="flex flex-wrap gap-3 mb-10">
+          <a href="{% url 'home' %}"
+             class="btn-carnet inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            <span>←</span> Retour à l'accueil
+          </a>
+          <a href="{% url 'catalogue:liste_sites' %}"
+             class="inline-flex items-center gap-2 border border-foret-900 text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            Explorer le catalogue
+          </a>
+          <a href="javascript:history.back()"
+             class="inline-flex items-center gap-2 text-foret-700 hover:text-foret-900 px-3 py-3 text-sm font-medium underline decoration-dotted underline-offset-4">
+            Page précédente
+          </a>
+        </div>
+
+        <!-- Recherche rapide -->
+        <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-3">Ou cherchez par mot-clé</p>
+          <form method="get" action="{% url 'catalogue:liste_sites' %}" class="flex gap-2">
+            <div class="flex-1 relative">
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foret-700/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
+              </svg>
+              <input type="text" name="q" placeholder="Mont Cameroun, Kribi, parc…"
+                     class="w-full bg-base-100 border border-foret-100/60 rounded-full pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-foret-700 focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+            <button type="submit" class="bg-foret-900 text-base-100 rounded-full px-5 py-3 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Aller
+            </button>
+          </form>
+        </div>
+
+        <p class="text-xs text-foret-700/50 mt-6 font-mono">
+          Vous pensez qu'il y a une erreur ?
+          <a href="{% url 'contact' %}" class="link-editorial">Contactez notre équipe</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

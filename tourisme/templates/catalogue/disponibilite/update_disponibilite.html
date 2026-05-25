@@ -1,10 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Modifier disponibilité.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Modifier disponibilité — {{ site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:mes_sites' %}" class="hover:text-foret-900">Mes sites</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:liste_disponibilite' slug=site.slug %}" class="hover:text-foret-900">Disponibilités</a>
+      <span>/</span>
+      <span class="text-accent">{{ dispo.date|date:"d/m/Y" }}</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Édition</p>
+        <h1 class="relative font-display text-2xl font-light">{{ dispo.date|date:"l d F Y"|capfirst }}</h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post"
+              x-data="{
+                estFerme: {{ form.est_ferme.value|yesno:'true,false' }},
+                places: {{ form.places_restantes.value|default:0 }}
+              }"
+              class="space-y-5">
+          {% csrf_token %}
+          {% if dispo.site %}<input type="hidden" name="site" value="{{ dispo.site.id }}">{% elif dispo.hebergement %}<input type="hidden" name="hebergement" value="{{ dispo.hebergement.id }}">{% endif %}
+
+          <div>
+            <label for="id_date" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Date <span class="text-error">*</span></label>
+            <input type="date" name="date" id="id_date" value="{{ form.date.value|date:'Y-m-d' }}" required
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.date.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.date.errors %}<p class="mt-1.5 text-xs text-error">{{ form.date.errors.0 }}</p>{% endif %}
+          </div>
+
+          <label class="flex items-start gap-4 cursor-pointer bg-sable-50 border border-foret-100/60 rounded-2xl p-4">
+            <input type="checkbox" name="est_ferme" value="on"
+                   x-model="estFerme" @change="if(estFerme) places = 0"
+                   class="w-12 h-6 rounded-full appearance-none bg-foret-100/60 checked:bg-error transition cursor-pointer relative mt-0.5
+                          after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-base-100 after:transition
+                          checked:after:translate-x-6">
+            <div>
+              <p class="font-display text-base text-foret-900">Site fermé ce jour-là</p>
+              <p class="text-xs text-foret-700/60 mt-1">Aucune réservation possible.</p>
+            </div>
+          </label>
+
+          <div :class="estFerme && 'opacity-40 pointer-events-none'">
+            <label for="id_places_restantes" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Places disponibles <span class="text-error" x-show="!estFerme">*</span>
+              <span class="text-foret-700/40 normal-case ml-2">(max {{ site.capacite_max }})</span>
+            </label>
+            <input type="number" name="places_restantes" id="id_places_restantes"
+                   x-model="places" :disabled="estFerme"
+                   min="0" max="{{ site.capacite_max }}"
+                   class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.places_restantes.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+            {% if form.places_restantes.errors %}<p class="mt-1.5 text-xs text-error">{{ form.places_restantes.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div :class="estFerme && 'opacity-40 pointer-events-none'">
+            <label for="id_tarif_special" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Tarif spécial (FCFA)</label>
+            <input type="number" name="tarif_special" id="id_tarif_special"
+                   value="{{ form.tarif_special.value|default:'' }}"
+                   :disabled="estFerme" min="0" step="500"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:liste_disponibilite' slug=site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

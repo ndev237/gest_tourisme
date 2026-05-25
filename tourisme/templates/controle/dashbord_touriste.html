@@ -1,10 +1,217 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Dashboard touriste — KPI, prochaines visites, avis à laisser, recommandations.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Mon espace — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <!-- Bandeau de bienvenue -->
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <p class="eyebrow text-accent mb-3">Tableau de bord — Touriste</p>
+      <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+        Bonjour, <em class="font-display-italic text-accent">{{ user.first_name|default:"voyageur" }}</em>.
+      </h1>
+      <p class="text-base-100/70 mt-4 text-sm font-mono uppercase tracking-wider">
+        {% if user.profil_touriste.type == 'etranger' %}
+          {{ user.profil_touriste.nationalite|default:"Touriste étranger" }}
+        {% else %}
+          Touriste local · Cameroun
+        {% endif %}
+        · Membre depuis {{ user.date_inscription|date:"M Y" }}
+      </p>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8">
+
+    <!-- KPIs -->
+    <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-10">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Réservations</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.total|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono">Au total</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">À venir</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.a_venir|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono">Visites prévues</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Dépensé</p>
+          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.depenses|default:0|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono">FCFA total</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Fidélité</p>
+          <p class="font-display text-4xl font-medium text-accent">{{ user.profil_touriste.points_fidelite|default:0 }}<span class="text-xl ml-1">★</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono">Points à échanger</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <!-- COLONNE PRINCIPALE -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Prochaines visites -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="eyebrow mb-2">Agenda</p>
+              <h2 class="font-display text-2xl text-foret-900">Mes prochaines visites</h2>
+            </div>
+            <a href="#" class="link-editorial text-sm">Tout voir →</a>
+          </div>
+
+          {% if prochaines_reservations %}
+          <div class="space-y-3">
+            {% for reservation in prochaines_reservations %}
+            <article class="flex gap-4 p-4 bg-sable-50 border border-foret-100/60 rounded-2xl hover:border-accent transition group">
+              <div class="w-20 h-20 rounded-xl overflow-hidden bg-foret-100/40 flex-shrink-0">
+                {% if reservation.site.photo_couverture %}
+                  <img src="{{ reservation.site.photo_couverture.url }}" alt="{{ reservation.site.nom }}" class="w-full h-full object-cover">
+                {% else %}
+                  <div class="w-full h-full bg-pattern-kente grid place-items-center text-2xl opacity-50">◈</div>
+                {% endif %}
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-display text-base text-foret-900 group-hover:text-accent transition">{{ reservation.site.nom }}</h3>
+                <p class="text-xs text-foret-700/70 font-mono uppercase tracking-wider mt-1">
+                  {{ reservation.date_visite|date:"d M Y" }}
+                  {% if reservation.heure_visite %} · {{ reservation.heure_visite|time:"H:i" }}{% endif %}
+                </p>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="badge-stamp text-xs
+                               {% if reservation.statut == 'confirmee' %}text-success border-success/40
+                               {% else %}text-warning border-warning/40{% endif %}">
+                    {{ reservation.get_statut_display }}
+                  </span>
+                  <a href="#" class="text-xs uppercase tracking-wider font-medium text-accent">Détails →</a>
+                </div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-10 bg-sable-50 rounded-2xl border border-dashed border-foret-100">
+            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">◇</div>
+            <p class="text-foret-700/70 mb-5">Aucune visite prévue pour le moment.</p>
+            <a href="{% url 'catalogue:liste_sites' %}"
+               class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Explorer les sites →
+            </a>
+          </div>
+          {% endif %}
+        </section>
+
+        <!-- Avis à laisser -->
+        {% if avis_a_laisser %}
+        <section class="bg-warning/5 border border-warning/30 rounded-3xl p-8">
+          <p class="eyebrow text-warning mb-2">Action requise</p>
+          <h2 class="font-display text-2xl text-foret-900 mb-2">Avis à laisser</h2>
+          <p class="text-sm text-foret-700/70 mb-6">Vous avez visité ces sites. Partagez votre expérience avec les autres voyageurs.</p>
+
+          <div class="space-y-2">
+            {% for reservation in avis_a_laisser %}
+            <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
+              <div>
+                <p class="font-display text-base text-foret-900">{{ reservation.site.nom }}</p>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">Visité le {{ reservation.date_visite|date:"d M Y" }}</p>
+              </div>
+              <a href="#" class="bg-warning text-foret-900 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">★ Noter</a>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
+        <!-- Recommandés -->
+        {% if sites_recommandes %}
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
+          <p class="eyebrow mb-2">Suggestion</p>
+          <h2 class="font-display text-2xl text-foret-900 mb-2">Recommandés pour vous</h2>
+          <p class="text-sm text-foret-700/70 mb-6">Basé sur vos centres d'intérêt et vos favoris.</p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            {% for site in sites_recommandes %}
+            <a href="{% url 'catalogue:detail_site' slug=site.slug %}" class="card-editorial group">
+              <div class="h-32 overflow-hidden bg-sable-100">
+                {% if site.photo_couverture %}
+                  <img src="{{ site.photo_couverture.url }}" alt="{{ site.nom }}" class="w-full h-full object-cover img-hover-bloom">
+                {% else %}
+                  <div class="bg-pattern-kente w-full h-full grid place-items-center text-3xl opacity-50">◈</div>
+                {% endif %}
+              </div>
+              <div class="p-4">
+                <p class="font-display text-sm font-medium text-foret-900 group-hover:text-accent transition">{{ site.nom }}</p>
+                <p class="font-mono-num text-xs text-foret-700 mt-1">{{ site.tarif_adulte|floatformat:0 }} FCFA</p>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="space-y-6">
+
+        <!-- Actions rapides -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-4">Actions rapides</p>
+          <div class="space-y-2">
+            <a href="{% url 'catalogue:liste_sites' %}" class="block w-full text-left px-4 py-3 rounded-xl bg-foret-900 text-base-100 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Explorer les sites →
+            </a>
+            <a href="#" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">◈</span> Mes réservations
+            </a>
+            <a href="#" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">♡</span> Mes favoris
+            </a>
+            <a href="#" class="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-foret-900 hover:bg-sable-50 transition border border-foret-100/60">
+              <span class="text-base">★</span> Mes avis
+            </a>
+          </div>
+        </div>
+
+        <!-- Programme fidélité -->
+        <div class="bg-pattern-kente border border-accent/40 rounded-3xl p-7 relative overflow-hidden">
+          <p class="eyebrow text-foret-900 mb-3">Programme fidélité</p>
+          <p class="font-display text-5xl font-light text-foret-900">
+            {{ user.profil_touriste.points_fidelite|default:0 }}
+            <span class="text-sm font-mono align-top">pts</span>
+          </p>
+          <p class="text-xs text-foret-900/75 mt-4 leading-relaxed">
+            1 point = 1 000 FCFA dépensés.
+            100 points = 5 000 FCFA de réduction.
+          </p>
+        </div>
+
+        <!-- Profil incomplet -->
+        {% if not user.profil_touriste.cni_passeport or not user.profil_touriste.date_naissance %}
+        <div class="bg-info/10 border border-info/30 rounded-3xl p-6">
+          <p class="eyebrow text-info mb-3">À compléter</p>
+          <h3 class="font-display text-base text-foret-900 mb-2">Quelques infos manquantes</h3>
+          <p class="text-xs text-foret-700/80 mb-4 leading-relaxed">
+            Renseignez votre CNI/passeport et date de naissance pour accélérer vos prochaines réservations.
+          </p>
+          <a href="{% url 'compte:profil' %}" class="text-info underline decoration-dotted underline-offset-4 text-sm font-medium">
+            Compléter mon profil →
+          </a>
+        </div>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

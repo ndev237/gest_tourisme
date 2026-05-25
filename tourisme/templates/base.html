@@ -1,109 +1,61 @@
-{% load static tailwind_tags %}
+{% load static %}
 <!DOCTYPE html>
-{% comment %}
-==============================================================
-templates/base.html — TEMPLATE PRINCIPAL (squelette commun)
-==============================================================
-Tous les autres templates héritent de celui-ci via :
-    {% extends "base.html" %}
-
-Initiatives prises :
-1. **Blocs override** : title, meta_description, extra_css, content, extra_js
-   permettent à chaque page enfant de personnaliser sa partie sans dupliquer
-   tout le HTML.
-2. **SEO** : balises meta description, OpenGraph (Facebook/WhatsApp),
-   favicon, lang="fr" → important pour le référencement.
-3. **Tailwind via django-tailwind** : on charge le CSS compilé depuis
-   l'app `theme` avec {% tailwind_css %}.
-4. **Alpine.js** pour l'interactivité (menu déroulant, modals, alertes
-   auto-disparaissantes) — léger (10kb) et pas besoin de build.
-5. **CSRF token** dans le <head> via meta : utilisable depuis JavaScript
-   pour les requêtes AJAX (fetch POST).
-6. **Partials inclus** : navbar, messages flash, footer → réutilisables.
-{% endcomment %}
-<html lang="fr" class="h-full scroll-smooth">
+<html lang="fr" data-theme="cameroun">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- TITLE — chaque page peut override le bloc -->
-  <title>{% block title %}{{ page_title|default:"Tourisme Cameroun" }}{% endblock %} | Tourisme Cameroun</title>
+    <title>{% block title %}Tourisme Cameroun — L'Afrique en miniature{% endblock %}</title>
+    <meta name="description"
+          content="{% block meta_description %}Plateforme officielle de réservation des sites touristiques du Cameroun. Plages, montagnes, parcs nationaux, sites culturels.{% endblock %}">
+    <meta name="keywords" content="tourisme, Cameroun, réservation, sites touristiques, voyage, Afrique">
+    <meta name="author" content="Tourisme Cameroun">
 
-  <!-- SEO META -->
-  <meta name="description" content="{% block meta_description %}Découvrez et réservez les plus beaux sites touristiques du Cameroun : plages de Kribi, Mont Cameroun, parcs nationaux, chefferies et bien plus.{% endblock %}">
-  <meta name="keywords" content="tourisme, cameroun, réservation, mobile money, kribi, douala, yaoundé">
-  <meta name="author" content="IUEs / INSAM 2026">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}Tourisme Cameroun{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Découvrez et réservez les plus beaux sites touristiques du Cameroun{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'images/og-default.jpg' %}{% endblock %}">
 
-  <!-- OPENGRAPH (partage Facebook/WhatsApp) -->
-  <meta property="og:title" content="{% block og_title %}Tourisme Cameroun{% endblock %}">
-  <meta property="og:description" content="La plateforme officielle pour découvrir le Cameroun.">
-  <meta property="og:image" content="{% static 'images/og-tourisme-cameroun.jpg' %}">
-  <meta property="og:type" content="website">
+    <meta name="csrf-token" content="{{ csrf_token }}">
 
-  <!-- CSRF token accessible depuis JavaScript -->
-  <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
 
-  <!-- FAVICON -->
-  <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
-  <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
+    <!-- Polices : preconnect pour gagner ~100ms sur la résolution DNS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 
-  <!-- TAILWIND CSS (compilé par django-tailwind) -->
-  {% tailwind_css %}
+    <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
 
-  <!-- Polices Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
 
-  <!-- Alpine.js (interactivité légère) -->
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
-  <!-- CSS personnalisé pour cacher Alpine avant init -->
-  <style>
-    [x-cloak] { display: none !important; }
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    h1, h2, h3, .font-display { font-family: 'Poppins', sans-serif; }
-
-    /* Scrollbar fine et discrète */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f3f4f6; }
-    ::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #15803d; }
-  </style>
-
-  <!-- Bloc pour CSS additionnel propre à une page -->
-  {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
 
-<body class="h-full flex flex-col bg-gray-50 text-gray-900 antialiased">
+<body class="min-h-screen flex flex-col bg-base-100 text-base-content">
 
-  <!-- =========================
-       NAVBAR (partial inclus)
-       ========================= -->
-  {% include "partials/_navbar.html" %}
+    <noscript>
+        <div class="alert alert-warning rounded-none">
+            <span>JavaScript est désactivé. Certaines fonctionnalités (carte interactive, formulaires dynamiques) ne fonctionneront pas.</span>
+        </div>
+    </noscript>
 
-  <!-- =========================
-       MESSAGES FLASH (success, error, warning)
-       ========================= -->
-  {% include "partials/_messages.html" %}
+    {% include "partials/_navbar.html" %}
+    {% include "partials/_messages.html" %}
 
-  <!-- =========================
-       CONTENU PRINCIPAL
-       ========================= -->
-  <main class="flex-1">
-    {% block content %}
-      <!-- Le contenu de chaque page sera injecté ici -->
-    {% endblock %}
-  </main>
+    <main class="flex-grow">
+        {% block content %}
+            <div class="container mx-auto px-4 py-12 text-center">
+                <p class="text-base-content/70">Aucun contenu à afficher pour cette page.</p>
+            </div>
+        {% endblock %}
+    </main>
 
-  <!-- =========================
-       FOOTER (partial inclus)
-       ========================= -->
-  {% include "partials/_footer.html" %}
+    {% include "partials/_footer.html" %}
 
-  <!-- Bloc pour JS additionnel propre à une page -->
-  {% block extra_js %}{% endblock %}
-
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,10 +1,213 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Dashboard guide — toggle disponibilité, KPI, prochaines missions, demandes en attente.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Dashboard guide — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <!-- Bandeau avec toggle disponibilité -->
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div aria-hidden="true" class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+          <p class="eyebrow text-accent mb-3">Espace guide</p>
+          <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+            Bonjour, <em class="font-display-italic text-accent">{{ user.first_name|default:user.email }}</em>.
+          </h1>
+          <p class="text-base-100/70 mt-3 text-sm font-mono uppercase tracking-wider">
+            {{ user.profil_guide.annees_experience|default:0 }} ans d'expérience ·
+            {{ user.profil_guide.tarif_journalier|default:0|floatformat:0 }} FCFA/jour
+          </p>
+        </div>
+
+        <!-- Toggle disponibilité (carte sur fond clair) -->
+        <div class="bg-base-100 rounded-2xl p-5 self-start">
+          <label class="flex items-center gap-4 cursor-pointer">
+            <div>
+              <p class="eyebrow text-foret-700/70 mb-1">Statut actuel</p>
+              <p class="font-display text-base text-foret-900">
+                {% if user.profil_guide.disponible %}
+                  <span class="text-success">● Disponible</span>
+                {% else %}
+                  <span class="text-foret-700/50">○ Indisponible</span>
+                {% endif %}
+              </p>
+            </div>
+            <input type="checkbox"
+                   {% if user.profil_guide.disponible %}checked{% endif %}
+                   class="w-12 h-6 rounded-full appearance-none bg-foret-100/60 checked:bg-success transition cursor-pointer relative
+                          after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-base-100 after:transition
+                          checked:after:translate-x-6">
+          </label>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8">
+
+    <!-- Alerte statut -->
+    {% if user.profil_guide.statut_validation == 'en_attente' %}
+    <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-8 flex gap-4">
+      <span class="font-display italic text-3xl text-warning leading-none">⏳</span>
+      <div>
+        <p class="eyebrow text-warning mb-1">Validation en cours</p>
+        <p class="text-sm text-foret-900">Vos missions seront activées dès la validation de votre licence professionnelle.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- KPIs -->
+    <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-10">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Missions</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.missions_mois|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Total : {{ stats.total_missions|default:0 }}</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Revenu</p>
+          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.revenu_mois|default:0|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Ce mois-ci</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Note</p>
+          <p class="font-display text-4xl font-medium text-accent">{{ user.profil_guide.note_moyenne|default:0|floatformat:1 }}<span class="text-xl text-foret-700/60">/5</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">{{ stats.nb_avis|default:0 }} avis</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Demandes</p>
+          <p class="font-display text-4xl font-medium text-info">{{ stats.demandes_attente|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">À traiter</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Prochaines missions -->
+        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="eyebrow mb-2">Agenda</p>
+              <h2 class="font-display text-2xl text-foret-900">Prochaines missions</h2>
+            </div>
+            <a href="#" class="link-editorial text-sm">Mon planning →</a>
+          </div>
+
+          {% if prochaines_missions %}
+          <div class="space-y-3">
+            {% for mission in prochaines_missions %}
+            <article class="flex items-center gap-4 p-4 bg-sable-50 border border-foret-100/60 rounded-2xl hover:border-accent transition group">
+              <!-- Cube date -->
+              <div class="text-center px-4 py-3 bg-foret-900 text-base-100 rounded-xl flex-shrink-0">
+                <p class="text-[10px] font-mono uppercase tracking-wider text-accent">{{ mission.date_visite|date:"M" }}</p>
+                <p class="font-display text-2xl font-light leading-none mt-0.5">{{ mission.date_visite|date:"d" }}</p>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-display text-base text-foret-900 group-hover:text-accent transition">{{ mission.site.nom }}</p>
+                <p class="text-xs text-foret-700/70 font-mono uppercase tracking-wider mt-1">
+                  {{ mission.heure_visite|time:"H:i"|default:"À définir" }} · {{ mission.nb_personnes }} pers.
+                </p>
+              </div>
+              <a href="#" class="text-xs uppercase tracking-wider font-medium text-accent">Détails →</a>
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-10 bg-sable-50 rounded-2xl border border-dashed border-foret-100">
+            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">◇</div>
+            <p class="text-foret-700/70">Aucune mission planifiée pour le moment.</p>
+          </div>
+          {% endif %}
+        </section>
+
+        <!-- Demandes en attente -->
+        {% if demandes_attente %}
+        <section class="bg-warning/5 border border-warning/30 rounded-3xl p-8">
+          <p class="eyebrow text-warning mb-2">Action requise</p>
+          <h2 class="font-display text-2xl text-foret-900 mb-2">Demandes en attente</h2>
+          <p class="text-sm text-foret-700/70 mb-6">Touristes qui souhaitent réserver vos services.</p>
+
+          <div class="space-y-2">
+            {% for demande in demandes_attente %}
+            <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
+              <div>
+                <p class="font-display text-base text-foret-900">{{ demande.touriste.user.nom_complet }}</p>
+                <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
+                  {{ demande.date_visite|date:"d M Y" }} · {{ demande.nb_personnes }} pers.
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓ Accepter</button>
+                <button class="border border-error text-error rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">✕ Refuser</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+
+        <!-- Ma bio -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-3">Ma présentation</p>
+          {% if user.profil_guide.bio %}
+          <p class="text-sm text-foret-900/85 leading-relaxed mb-4">{{ user.profil_guide.bio|truncatechars:180 }}</p>
+          {% else %}
+          <p class="text-sm italic text-foret-700/50 mb-4">Aucune bio renseignée. Une bio attire plus de clients !</p>
+          {% endif %}
+          <a href="{% url 'compte:profil' %}"
+             class="inline-flex items-center gap-2 border border-foret-900 text-foret-900 rounded-full px-5 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            Modifier
+          </a>
+        </div>
+
+        <!-- Langues parlées -->
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-3">Langues parlées</p>
+          {% if user.profil_guide.langues.all %}
+          <div class="flex flex-wrap gap-2">
+            {% for langue in user.profil_guide.langues.all %}
+            <span class="badge-stamp text-foret-700 border-foret-700/40">
+              {{ langue.langue|upper }}
+              <span class="opacity-60 ml-1">({{ langue.get_niveau_display }})</span>
+            </span>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-sm italic text-foret-700/50 mb-3">Aucune langue renseignée.</p>
+          <a href="{% url 'compte:profil' %}" class="link-editorial text-sm">+ Ajouter une langue</a>
+          {% endif %}
+        </div>
+
+        <!-- Licence pro -->
+        <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <p class="relative eyebrow text-accent mb-3">Licence professionnelle</p>
+          <p class="relative font-mono-num text-base">{{ user.profil_guide.licence_pro|default:"—" }}</p>
+          <p class="relative text-xs font-mono uppercase tracking-wider text-base-100/60 mt-3">
+            Statut :
+            {% if user.profil_guide.statut_validation == 'valide' %}
+              <span class="badge-stamp text-success border-success/60">Validée</span>
+            {% else %}
+              <span class="badge-stamp text-warning border-warning/60">{{ user.profil_guide.get_statut_validation_display }}</span>
+            {% endif %}
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

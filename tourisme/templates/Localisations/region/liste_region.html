@@ -1,10 +1,121 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Liste régions (admin) — cards éditoriales + KPI + avertissement référentiel.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Régions — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span>
+        <span class="text-accent">Régions</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Référentiel</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Régions du Cameroun</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono uppercase tracking-wider">
+            Référentiel administratif national
+          </p>
+        </div>
+        <a href="{% url 'localisation:add_region' %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouvelle région
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    <!-- KPIs -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden mb-8">
+      <div class="grid grid-cols-2 divide-x divide-foret-100/60">
+        <div class="p-6">
+          <p class="eyebrow mb-2">Total</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.total }}<span class="text-xl text-foret-700/40">/10</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Régions enregistrées</p>
+        </div>
+        <div class="p-6">
+          <p class="eyebrow mb-2">Actives</p>
+          <p class="font-display text-4xl font-medium text-success">{{ stats.avec_sites }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Avec sites publiés</p>
+        </div>
+      </div>
+    </div>
+
+    {% if stats.total < 10 %}
+    <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 mb-8 flex gap-4">
+      <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+      <div>
+        <p class="eyebrow text-warning mb-1">Référentiel incomplet</p>
+        <p class="text-sm text-foret-900">
+          Le Cameroun compte officiellement <strong>10 régions</strong>. Il en manque
+          <strong>{{ stats.total|add:"-10"|stringformat:"+d" }}</strong> dans votre base.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if regions %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 stagger">
+      {% for region in regions %}
+      <article class="card-editorial overflow-hidden">
+        <figure class="h-40 bg-foret-100/40 relative overflow-hidden">
+          {% if region.image %}
+            <img src="{{ region.image.url }}" alt="{{ region.nom }}" class="w-full h-full object-cover img-hover-bloom">
+          {% else %}
+            <div class="bg-pattern-kente w-full h-full grid place-items-center text-5xl opacity-40">◈</div>
+          {% endif %}
+          <span class="absolute top-3 right-3 badge-stamp text-accent border-accent bg-foret-900/80 backdrop-blur-sm text-[10px]">
+            {{ region.code }}
+          </span>
+        </figure>
+
+        <div class="p-5">
+          <h3 class="font-display text-lg text-foret-900">{{ region.nom }}</h3>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mt-1">
+            Chef-lieu · {{ region.chef_lieu }}
+          </p>
+
+          {% if region.description %}
+          <p class="text-xs text-foret-700/70 mt-3 line-clamp-2 leading-relaxed">{{ region.description|truncatechars:120 }}</p>
+          {% endif %}
+
+          <div class="flex items-center justify-between mt-4 pt-3 border-t border-foret-100/60">
+            {% if region.nb_localisations %}
+              <span class="badge-stamp text-success border-success/40 text-[10px]">{{ region.nb_localisations }} site{{ region.nb_localisations|pluralize }}</span>
+            {% else %}
+              <span class="badge-stamp text-foret-700/40 border-foret-700/20 text-[10px]">Vide</span>
+            {% endif %}
+            <div class="flex gap-2 text-[10px] uppercase tracking-wider">
+              <a href="{% url 'localisation:update_region' region_id=region.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+              <a href="{% url 'localisation:delete_region' region_id=region.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune région</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Créez les 10 régions du Cameroun : Adamaoua, Centre, Est, Extrême-Nord,
+        Littoral, Nord, Nord-Ouest, Ouest, Sud, Sud-Ouest.
+      </p>
+      <a href="{% url 'localisation:add_region' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Première région
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

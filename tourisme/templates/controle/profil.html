@@ -1,169 +1,386 @@
+<!--
+  Page Profil — sidebar avatar + onglets, 3 zones (infos / spécifique / sécurité).
+  Onglets en client-side via Alpine.js.
+-->
 {% extends "base.html" %}
-{% load static %}
 
-{% comment %}
-==============================================================
-templates/controle/profil.html
-==============================================================
-Édition du profil de l'utilisateur connecté.
-
-Initiatives :
-1. Sidebar avec onglets (Profil / Sécurité / Notifications)
-2. Upload photo de profil avec aperçu instantané
-3. Bouton "Supprimer mon compte" en zone danger
-4. Sous-formulaire spécifique selon le type (Touriste, Gestionnaire...)
-{% endcomment %}
-
-{% block title %}Mon profil{% endblock %}
+{% block title %}Mon profil — Tourisme Cameroun{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-[calc(100vh-4rem)] py-10">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+<section class="bg-sable-50 min-h-screen">
 
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="font-display text-3xl font-bold text-gray-900">Mon profil</h1>
-      <p class="text-gray-600 text-sm mt-1">Gérez vos informations personnelles et vos préférences.</p>
+  <!-- Bandeau -->
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+        <a href="{% url 'home' %}" class="hover:text-accent">Accueil</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-accent">Mon profil</span>
+      </nav>
+      <p class="eyebrow text-accent mb-3">Mon carnet</p>
+      <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+        Bonjour, <em class="font-display-italic text-accent">{{ user.first_name|default:user.username }}</em>.
+      </h1>
     </div>
+  </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8"
+       x-data="{ onglet: 'infos' }">
 
-      <!-- SIDEBAR PROFIL -->
-      <aside class="lg:col-span-1">
-        <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-20">
+    <div class="grid lg:grid-cols-12 gap-8">
+
+      <!-- ===== SIDEBAR ===== -->
+      <aside class="lg:col-span-3">
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 lg:sticky lg:top-28">
 
           <!-- Avatar -->
-          <div class="text-center mb-5">
-            {% if user.photo_profil %}
-              <img src="{{ user.photo_profil.url }}" alt=""
-                   class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-green-100">
-            {% else %}
-              <div class="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600
-                          mx-auto flex items-center justify-center text-white text-2xl font-bold">
-                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
-              </div>
-            {% endif %}
-            <h3 class="font-semibold text-gray-900 mt-3">{{ user.nom_complet }}</h3>
-            <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
-            <span class="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-              {{ user.get_type_user_display }}
-            </span>
+          <div class="flex flex-col items-center text-center mb-6">
+            <div class="w-24 h-24 rounded-full ring-4 ring-accent/30 overflow-hidden mb-4 bg-foret-900">
+              {% if user.photo_profil %}
+                <img src="{{ user.photo_profil.url }}" alt="{{ user.nom_complet|default:user.username }}" class="w-full h-full object-cover">
+              {% else %}
+                <div class="w-full h-full grid place-items-center font-display text-2xl text-accent">
+                  {{ user.first_name|first|upper|default:user.email|first|upper }}{{ user.last_name|first|upper|default:'' }}
+                </div>
+              {% endif %}
+            </div>
+            <h2 class="font-display text-lg font-medium text-foret-900 leading-tight">{{ user.nom_complet|default:user.email }}</h2>
+            <span class="badge-stamp mt-2 text-foret-700 border-foret-700/40">{{ user.get_type_user_display }}</span>
+            <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-3">
+              Membre depuis {{ user.date_inscription|date:"M Y" }}
+            </p>
           </div>
 
-          <nav class="space-y-1 text-sm">
-            <a href="#profil" class="block px-3 py-2 rounded-lg bg-green-50 text-green-700 font-medium">
-              👤 Informations
-            </a>
-            <a href="{% url 'compte:changer_password' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
-              🔒 Sécurité
-            </a>
-            {% if user.type_user == 'touriste' %}
-              <a href="{% url 'compte:dashboard_touriste' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
-                📊 Mes réservations
-              </a>
-            {% elif user.type_user == 'gestionnaire' %}
-              <a href="{% url 'compte:dashboard_gestionnaire' %}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50">
-                📊 Espace gestionnaire
-              </a>
-            {% endif %}
-            <a href="{% url 'compte:deconnexion' %}" class="block px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">
-              🚪 Déconnexion
-            </a>
-          </nav>
+          <hr class="border-foret-100/60 mb-4">
+
+          <!-- Onglets -->
+          <ul class="space-y-1 text-sm">
+            <li>
+              <button @click="onglet = 'infos'"
+                      :class="onglet === 'infos' ? 'bg-foret-900 text-base-100' : 'text-foret-900 hover:bg-sable-50'"
+                      class="w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition">
+                <span class="text-base">◉</span> Informations
+              </button>
+            </li>
+            <li>
+              <button @click="onglet = 'specifique'"
+                      :class="onglet === 'specifique' ? 'bg-foret-900 text-base-100' : 'text-foret-900 hover:bg-sable-50'"
+                      class="w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition">
+                <span class="text-base">◈</span>
+                {% if user.type_user == 'touriste' %}Profil touriste
+                {% elif user.type_user == 'gestionnaire' %}Profil entreprise
+                {% elif user.type_user == 'guide' %}Profil guide
+                {% elif user.type_user == 'admin' %}Profil admin
+                {% else %}Profil{% endif %}
+              </button>
+            </li>
+            <li>
+              <button @click="onglet = 'securite'"
+                      :class="onglet === 'securite' ? 'bg-foret-900 text-base-100' : 'text-foret-900 hover:bg-sable-50'"
+                      class="w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition">
+                <span class="text-base">◐</span> Sécurité
+              </button>
+            </li>
+          </ul>
         </div>
       </aside>
 
-      <!-- FORMULAIRE PROFIL -->
-      <div class="lg:col-span-3 space-y-6">
-        <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm p-8" novalidate>
-          {% csrf_token %}
+      <!-- ===== CONTENU ===== -->
+      <div class="lg:col-span-9 space-y-6">
 
-          <h2 class="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-            Informations personnelles
-          </h2>
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
 
-          <!-- Photo de profil -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
-            {{ form_user.photo_profil }}
-            {% if form_user.photo_profil.errors %}
-              <p class="mt-1 text-xs text-red-600">{{ form_user.photo_profil.errors.0 }}</p>
-            {% endif %}
-          </div>
+        <!-- ONGLET 1 — INFOS PERSO -->
+        <section x-show="onglet === 'infos'" x-transition class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10">
+          <p class="eyebrow mb-3">Onglet 01</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-2">Informations personnelles</h2>
+          <p class="text-sm text-foret-700/70 mb-8">Mettez à jour vos coordonnées et votre photo de profil.</p>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <form method="post" action="{% url 'compte:profil_update' %}" enctype="multipart/form-data" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="infos">
+
             <div>
-              <label for="{{ form_user.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
-              {{ form_user.first_name }}
+              <label for="id_photo_profil" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Photo de profil</label>
+              <input type="file" name="photo_profil" id="id_photo_profil" accept="image/*"
+                     class="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-mono file:uppercase file:tracking-wider file:bg-foret-900 file:text-base-100 hover:file:bg-foret-700 file:cursor-pointer">
+              <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">JPG, PNG. Max 2 Mo.</p>
             </div>
-            <div>
-              <label for="{{ form_user.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
-              {{ form_user.last_name }}
-            </div>
-            <div class="sm:col-span-2">
-              <label for="{{ form_user.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              {{ form_user.email }}
-            </div>
-            <div class="sm:col-span-2">
-              <label for="{{ form_user.telephone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Téléphone</label>
-              {{ form_user.telephone }}
-            </div>
-          </div>
 
-          <!-- Sous-formulaire touriste -->
-          {% if form_profil %}
-            <h2 class="text-lg font-semibold text-gray-900 mt-8 mb-6 pb-3 border-b border-gray-200">
-              Informations touriste
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label for="{{ form_profil.nationalite.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Nationalité</label>
-                {{ form_profil.nationalite }}
+                <label for="id_first_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Prénom</label>
+                <input type="text" name="first_name" id="id_first_name" value="{{ user.first_name }}"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
               </div>
               <div>
-                <label for="{{ form_profil.type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
-                {{ form_profil.type }}
+                <label for="id_last_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom</label>
+                <input type="text" name="last_name" id="id_last_name" value="{{ user.last_name }}"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Adresse email</label>
+              <input type="email" value="{{ user.email }}" readonly disabled
+                     class="w-full bg-foret-100/30 border border-foret-100/60 rounded-xl px-4 py-3 text-sm text-foret-700 cursor-not-allowed font-mono">
+              <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Pour changer d'email, contactez le support.</p>
+            </div>
+
+            <div>
+              <label for="id_telephone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Téléphone</label>
+              <input type="tel" name="telephone" id="id_telephone" value="{{ user.telephone }}"
+                     placeholder="+237 6XX XXX XXX"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-foret-100/60">
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ONGLET 2 — SPÉCIFIQUE -->
+        <section x-show="onglet === 'specifique'" x-cloak x-transition class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10">
+
+          {% if user.type_user == 'touriste' %}
+          <p class="eyebrow mb-3">Onglet 02 — Touriste</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-2">Profil touriste</h2>
+          <p class="text-sm text-foret-700/70 mb-8">Personnalisez votre expérience de voyage.</p>
+
+          <form method="post" action="{% url 'compte:profil_update' %}" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="touriste">
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nationalité</label>
+                <input type="text" name="nationalite" value="{{ user.profil_touriste.nationalite|default:'' }}"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
               </div>
               <div>
-                <label for="{{ form_profil.cni_passeport.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">N° CNI / Passeport</label>
-                {{ form_profil.cni_passeport }}
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Type de touriste</label>
+                <select name="type" class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  <option value="local" {% if user.profil_touriste.type == 'local' %}selected{% endif %}>Touriste local</option>
+                  <option value="etranger" {% if user.profil_touriste.type == 'etranger' %}selected{% endif %}>Touriste étranger</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Langue préférée</label>
+                <select name="langue_pref" class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  <option value="fr" {% if user.profil_touriste.langue_pref == 'fr' %}selected{% endif %}>Français</option>
+                  <option value="en" {% if user.profil_touriste.langue_pref == 'en' %}selected{% endif %}>English</option>
+                </select>
               </div>
               <div>
-                <label for="{{ form_profil.date_naissance.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Date de naissance</label>
-                {{ form_profil.date_naissance }}
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Date de naissance</label>
+                <input type="date" name="date_naissance" value="{{ user.profil_touriste.date_naissance|date:'Y-m-d' }}"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
               </div>
-              <div class="sm:col-span-2">
-                <label for="{{ form_profil.langue_pref.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">Langue préférée</label>
-                {{ form_profil.langue_pref }}
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">N° CNI ou Passeport</label>
+              <input type="text" name="cni_passeport" value="{{ user.profil_touriste.cni_passeport|default:'' }}"
+                     placeholder="Pour vérification à l'entrée des sites"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+
+            <!-- Points fidélité -->
+            <div class="bg-pattern-kente rounded-2xl border border-accent/40 p-5 flex items-center gap-5">
+              <div class="font-display text-5xl text-accent leading-none">{{ user.profil_touriste.points_fidelite|default:0 }}</div>
+              <div>
+                <p class="eyebrow text-foret-700 mb-1">Points fidélité</p>
+                <p class="text-sm text-foret-900">Gagnez des points à chaque réservation confirmée.</p>
               </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-foret-100/60">
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer
+              </button>
+            </div>
+          </form>
+          {% endif %}
+
+          {% if user.type_user == 'gestionnaire' %}
+          <p class="eyebrow mb-3">Onglet 02 — Entreprise</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-6">Profil entreprise</h2>
+
+          {% if user.profil_gestionnaire.statut_validation == 'valide' %}
+            <div class="bg-success/10 border border-success/30 rounded-2xl p-4 mb-6 text-sm text-success flex gap-3">
+              <span class="font-mono text-base">✓</span>
+              <p>Votre compte est <strong>validé</strong>. Vous pouvez publier vos sites.</p>
+            </div>
+          {% elif user.profil_gestionnaire.statut_validation == 'en_attente' %}
+            <div class="bg-warning/10 border border-warning/40 rounded-2xl p-4 mb-6 text-sm text-warning flex gap-3">
+              <span class="font-mono text-base">⏳</span>
+              <p>Votre compte est <strong>en attente de validation</strong> par notre équipe.</p>
+            </div>
+          {% else %}
+            <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error flex gap-3">
+              <span class="font-mono text-base">!</span>
+              <p>Compte <strong>rejeté</strong>. {{ user.profil_gestionnaire.motif_rejet }}</p>
             </div>
           {% endif %}
 
-          <!-- Boutons -->
-          <div class="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
-            <a href="{% url 'home' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-center">
-              Annuler
-            </a>
-            <button type="submit" class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow">
-              💾 Enregistrer
+          <form method="post" action="{% url 'compte:profil_update' %}" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="gestionnaire">
+
+            <div>
+              <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom de l'entreprise</label>
+              <input type="text" name="entreprise" value="{{ user.profil_gestionnaire.entreprise|default:'' }}"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">N° Registre de Commerce</label>
+              <input type="text" value="{{ user.profil_gestionnaire.num_registre_commerce|default:'' }}" readonly disabled
+                     class="w-full bg-foret-100/30 border border-foret-100/60 rounded-xl px-4 py-3 text-sm text-foret-700 cursor-not-allowed font-mono">
+              <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Non modifiable. Contactez le support en cas d'erreur.</p>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-foret-100/60">
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer
+              </button>
+            </div>
+          </form>
+          {% endif %}
+
+          {% if user.type_user == 'guide' %}
+          <p class="eyebrow mb-3">Onglet 02 — Guide</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-6">Profil guide</h2>
+
+          {% if user.profil_guide.statut_validation == 'valide' %}
+            <div class="bg-success/10 border border-success/30 rounded-2xl p-4 mb-6 text-sm text-success flex gap-3">
+              <span class="font-mono text-base">✓</span><p>Compte validé.</p>
+            </div>
+          {% elif user.profil_guide.statut_validation == 'en_attente' %}
+            <div class="bg-warning/10 border border-warning/40 rounded-2xl p-4 mb-6 text-sm text-warning flex gap-3">
+              <span class="font-mono text-base">⏳</span><p>En attente de validation.</p>
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'compte:profil_update' %}" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="guide">
+
+            <div>
+              <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Biographie</label>
+              <textarea name="bio" rows="4"
+                        placeholder="Présentez-vous aux touristes, vos spécialités…"
+                        class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ user.profil_guide.bio|default:'' }}</textarea>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Tarif journalier (FCFA)</label>
+                <input type="number" name="tarif_journalier" value="{{ user.profil_guide.tarif_journalier|default:'' }}"
+                       min="0" step="1000"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+              <div>
+                <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Années d'expérience</label>
+                <input type="number" name="annees_experience" value="{{ user.profil_guide.annees_experience|default:'0' }}"
+                       min="0" max="60"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+
+            <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer">
+              <input type="checkbox" name="disponible" {% if user.profil_guide.disponible %}checked{% endif %}
+                     class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+              <span>Disponible pour de nouvelles missions</span>
+            </label>
+
+            <!-- Stats -->
+            <div class="grid sm:grid-cols-2 gap-px bg-foret-100/60 rounded-2xl overflow-hidden border border-foret-100/60">
+              <div class="bg-base-100 p-5">
+                <p class="eyebrow mb-2">Note moyenne</p>
+                <p class="font-display text-3xl text-foret-900">★ {{ user.profil_guide.note_moyenne|default:0|floatformat:1 }}</p>
+              </div>
+              <div class="bg-base-100 p-5">
+                <p class="eyebrow mb-2">Licence pro</p>
+                <p class="font-mono-num text-base text-foret-900">{{ user.profil_guide.licence_pro|default:'—' }}</p>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-foret-100/60">
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer
+              </button>
+            </div>
+          </form>
+          {% endif %}
+
+          {% if user.type_user == 'admin' %}
+          <p class="eyebrow mb-3">Onglet 02 — Admin</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-6">Profil administrateur</h2>
+          <dl class="space-y-3">
+            <div class="flex justify-between p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+              <dt class="text-xs font-mono uppercase tracking-wider text-foret-700">Rôle</dt>
+              <dd class="text-foret-900 font-medium">{{ user.profil_admin.get_role_display|default:'—' }}</dd>
+            </div>
+            <div class="flex justify-between p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+              <dt class="text-xs font-mono uppercase tracking-wider text-foret-700">Niveau d'accès</dt>
+              <dd class="text-foret-900 font-mono-num">{{ user.profil_admin.niveau_acces|default:1 }} / 5</dd>
+            </div>
+          </dl>
+          {% endif %}
+        </section>
+
+        <!-- ONGLET 3 — SÉCURITÉ -->
+        <section x-show="onglet === 'securite'" x-cloak x-transition class="bg-base-100 border border-foret-100/60 rounded-3xl p-8 lg:p-10">
+          <p class="eyebrow mb-3">Onglet 03</p>
+          <h2 class="font-display text-3xl text-foret-900 mb-2">Sécurité du compte</h2>
+          <p class="text-sm text-foret-700/70 mb-8">Mot de passe et activité de votre compte.</p>
+
+          <a href="{% url 'compte:changer_password' %}"
+             class="inline-flex items-center gap-2 border border-foret-900 text-foret-900 hover:bg-foret-900 hover:text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider transition">
+            <span>◐</span> Changer mon mot de passe
+          </a>
+
+          <hr class="my-8 border-foret-100/60">
+
+          <p class="eyebrow mb-4">Activité</p>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+              <dt class="text-foret-700">Dernière connexion</dt>
+              <dd class="font-mono-num text-foret-900">{{ user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</dd>
+            </div>
+            <div class="flex justify-between p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+              <dt class="text-foret-700">Compte créé le</dt>
+              <dd class="font-mono-num text-foret-900">{{ user.date_inscription|date:"d/m/Y" }}</dd>
+            </div>
+          </dl>
+
+          <hr class="my-8 border-foret-100/60">
+
+          <!-- Zone dangereuse -->
+          <div class="bg-error/5 border border-error/30 rounded-2xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div>
+              <p class="eyebrow text-error mb-1">Zone dangereuse</p>
+              <p class="text-sm text-foret-900">La suppression est irréversible. Vos données seront effacées sous 30 jours.</p>
+            </div>
+            <button type="button" disabled
+                    class="border border-error text-error rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider opacity-50 cursor-not-allowed">
+              Supprimer mon compte
             </button>
           </div>
-        </form>
+        </section>
 
-        <!-- Zone danger -->
-        <div class="bg-white rounded-2xl shadow-sm p-8 border-2 border-red-100">
-          <h2 class="text-lg font-semibold text-red-700 mb-2">Zone dangereuse</h2>
-          <p class="text-sm text-gray-600 mb-4">
-            La suppression de votre compte est définitive. Toutes vos données seront effacées (droit à l'effacement RGPD).
-          </p>
-          <button type="button"
-                  onclick="if(confirm('Êtes-vous sûr de vouloir supprimer définitivement votre compte ?')) window.location='#'"
-                  class="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium">
-            🗑 Supprimer mon compte
-          </button>
-        </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock %}
