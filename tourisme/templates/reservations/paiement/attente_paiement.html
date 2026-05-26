@@ -1,178 +1,139 @@
 <!--
- ============================================================
-   ATTENTE PAIEMENT : paiements/attente_paiement.html
-   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-   Page affichée après initiation MoMo/Orange en attendant la
-   confirmation côté téléphone du touriste.
-
-   PÉDAGOGIE :
-   - Animation "ping" pour montrer que c'est actif
-   - En MODE MOCK : bouton "Simuler paiement réussi" (dev only)
-   - En PROD : polling AJAX toutes les 5s pour vérifier statut
-   - Bouton "Annuler" pour revenir au choix moyen
-   ============================================================ 
+  Attente paiement — pulse animé, polling 5s, bouton mock en dev.
 -->
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Paiement en cours...{% endblock %}
+{% block title %}Paiement en cours…{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-6">
-    <div class="container mx-auto px-4 max-w-2xl">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
 
-        <ul class="steps w-full mb-6">
-            <li class="step step-primary" data-content="✓">Choix du moyen</li>
-            <li class="step step-primary" data-content="⏳">Paiement en cours</li>
-            <li class="step" data-content="3">Confirmation</li>
-        </ul>
-
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body text-center py-8 px-4 md:px-8">
-
-                <!-- Animation visuelle "en cours" -->
-                <div class="relative w-32 h-32 mx-auto mb-4">
-                    <span class="absolute inset-0 rounded-full bg-primary opacity-25 animate-ping"></span>
-                    <span class="absolute inset-2 rounded-full bg-primary opacity-50 animate-pulse"></span>
-                    <div class="absolute inset-0 flex items-center justify-center text-6xl">
-                        {% if paiement.moyen.provider == 'mtn_momo' %}📱
-                        {% elif paiement.moyen.provider == 'orange_money' %}🟠
-                        {% elif paiement.moyen.provider == 'stripe' %}💳
-                        {% else %}💰{% endif %}
-                    </div>
-                </div>
-
-                <h1 class="font-display text-2xl font-bold">
-                    Paiement en cours...
-                </h1>
-                <p class="text-base-content/70 mt-2">
-                    {{ paiement.moyen.libelle }}
-                </p>
-
-                <!-- Instructions provider-spécifiques -->
-                {% if paiement.moyen.instructions %}
-                <div class="alert alert-info mt-6 text-left">
-                    <span>💡</span>
-                    <div class="text-sm whitespace-pre-line">{{ paiement.moyen.instructions }}</div>
-                </div>
-                {% endif %}
-
-                <!-- Récap paiement -->
-                <div class="bg-base-200 rounded-lg p-4 mt-6 text-left">
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="text-base-content/60">Réservation</span>
-                        <span class="font-mono text-xs">{{ paiement.reservation.numero }}</span>
-                    </div>
-                    {% if paiement.numero_telephone %}
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="text-base-content/60">Numéro</span>
-                        <span class="font-mono text-xs">+{{ paiement.numero_telephone }}</span>
-                    </div>
-                    {% endif %}
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="text-base-content/60">Référence</span>
-                        <span class="font-mono text-xs">{{ paiement.reference_interne }}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-2 mt-2 border-t border-base-300">
-                        <span class="font-semibold">Montant</span>
-                        <span class="text-xl font-bold text-primary font-mono">
-                            {{ paiement.montant|floatformat:0 }} FCFA
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Actions selon mode -->
-                <div class="mt-6 space-y-2">
-                    <!-- Mode MOCK : bouton "Simuler" pour développement -->
-                    {% if PAIEMENT_MODE_MOCK %}
-                    <div class="alert alert-warning text-left">
-                        <span>🧪</span>
-                        <div class="text-sm">
-                            <strong>Mode développement actif</strong><br>
-                            Cliquez ci-dessous pour simuler le paiement.
-                        </div>
-                    </div>
-
-                    <form method="post" action="{% url 'paiement:simuler_paiement' paiement_id=paiement.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success btn-lg btn-block">
-                            ✅ Simuler paiement réussi
-                        </button>
-                    </form>
-                    {% else %}
-                    <!-- Mode PROD : polling pour vérifier statut -->
-                    <p class="text-xs text-base-content/60 mt-2"
-                       id="polling-indicator">
-                        🔄 Vérification automatique du paiement...
-                    </p>
-                    {% endif %}
-
-                    <a href="{% url 'paiement:choix_moyen' reservation_id=paiement.reservation.id %}"
-                       class="btn btn-ghost btn-block">
-                        ← Annuler et choisir un autre moyen
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Rappel utile -->
-        <div class="alert mt-4">
-            <span>⏱</span>
-            <div class="text-sm">
-                Le paiement expire au bout de <strong>10 minutes</strong>.
-                Si vous n'avez pas reçu de notification, vérifiez votre solde MoMo
-                ou contactez votre opérateur.
-            </div>
-        </div>
+    <!-- Stepper -->
+    <div class="flex items-center justify-center gap-3 mb-10 text-xs font-mono uppercase tracking-[0.18em]">
+      <span class="flex items-center gap-2 text-foret-900"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100">✓</span><span class="hidden sm:inline">Moyen</span></span>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <span class="flex items-center gap-2 text-accent"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-accent text-foret-900">02</span><span class="hidden sm:inline">En cours…</span></span>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <span class="flex items-center gap-2 text-foret-700/40"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] border border-foret-100/60">03</span><span class="hidden sm:inline">Confirmation</span></span>
     </div>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl p-10 text-center">
+
+      <!-- Animation pulse -->
+      <div class="relative w-32 h-32 mx-auto mb-6">
+        <span class="absolute inset-0 rounded-full bg-accent/30 animate-ping"></span>
+        <span class="absolute inset-3 rounded-full bg-accent/50"></span>
+        <div class="absolute inset-0 grid place-items-center">
+          <span class="w-20 h-20 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-3xl">
+            {{ paiement.moyen.libelle|first|upper }}
+          </span>
+        </div>
+      </div>
+
+      <p class="eyebrow text-accent mb-3">En cours</p>
+      <h1 class="font-display text-3xl font-light text-foret-900 mb-2">
+        Paiement en <em class="font-display-italic text-accent">cours</em>…
+      </h1>
+      <p class="text-sm text-foret-700/70 mb-8 font-mono uppercase tracking-wider">{{ paiement.moyen.libelle }}</p>
+
+      {% if paiement.moyen.instructions %}
+      <div class="bg-info/10 border border-info/30 rounded-2xl p-5 mb-6 text-left flex gap-4">
+        <span class="font-mono text-info text-base flex-shrink-0">i</span>
+        <p class="text-sm text-foret-900 whitespace-pre-line">{{ paiement.moyen.instructions }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Récap -->
+      <div class="bg-foret-900 text-base-100 rounded-2xl p-5 mb-6 text-left relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <dl class="relative space-y-2 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Réservation</dt>
+            <dd class="font-mono text-xs">{{ paiement.reservation.numero }}</dd>
+          </div>
+          {% if paiement.numero_telephone %}
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Numéro</dt>
+            <dd class="font-mono text-xs">+{{ paiement.numero_telephone }}</dd>
+          </div>
+          {% endif %}
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Référence</dt>
+            <dd class="font-mono text-xs">{{ paiement.reference_interne }}</dd>
+          </div>
+          <div class="flex justify-between items-baseline pt-3 border-t border-base-100/15">
+            <dt class="text-sm">Montant</dt>
+            <dd class="font-display text-xl text-accent font-mono-num">{{ paiement.montant|floatformat:0 }} <span class="text-xs">FCFA</span></dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Mode mock ou polling -->
+      {% if PAIEMENT_MODE_MOCK %}
+      <div class="bg-warning/10 border border-warning/40 rounded-2xl p-4 mb-4 text-left flex gap-3">
+        <span class="font-mono text-warning">⚙</span>
+        <div class="text-sm text-foret-900">
+          <strong>Mode développement actif.</strong> Cliquez ci-dessous pour simuler la confirmation.
+        </div>
+      </div>
+      <form method="post" action="{% url 'paiement:simuler_paiement' paiement_id=paiement.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-carnet w-full bg-success text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+          Simuler le paiement réussi
+        </button>
+      </form>
+      {% else %}
+      <p id="polling-indicator" class="text-xs font-mono uppercase tracking-wider text-foret-700/70 mb-4">
+        Vérification automatique en cours…
+      </p>
+      {% endif %}
+
+      <a href="{% url 'paiement:choix_moyen' reservation_id=paiement.reservation.id %}"
+         class="block mt-4 text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">
+        ← Annuler et choisir un autre moyen
+      </a>
+    </div>
+
+    <div class="bg-info/10 border border-info/30 rounded-2xl p-5 mt-6 flex gap-4">
+      <span class="font-mono text-info text-base flex-shrink-0">⏱</span>
+      <p class="text-sm text-foret-900">
+        Le paiement expire au bout de <strong>10 minutes</strong>. Si vous n'avez pas reçu de notification, vérifiez votre solde Mobile Money ou contactez votre opérateur.
+      </p>
+    </div>
+  </div>
 </section>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Polling AJAX en mode production pour vérifier le statut -->
 {% if not PAIEMENT_MODE_MOCK %}
 <script>
-/* ============================================================
-   POLLING : vérifie toutes les 5s si le paiement est confirmé
-   ============================================================
-   PÉDAGO : En attendant le webhook, on poll côté navigateur.
-   Si le statut passe à "reussi", on redirige automatiquement.
-   ============================================================ */
-(function() {
-    const paiementId = "{{ paiement.id }}";
-    const callbackUrl = "{% url 'paiements:callback_paiement' paiement_id=paiement.id %}";
-    let tentatives = 0;
-    const maxTentatives = 120;  // 10 minutes max (120 × 5s)
+(function () {
+  const callbackUrl = "{% url 'paiement:callback_paiement' paiement_id=paiement.id %}";
+  let tentatives = 0;
+  const maxTentatives = 120;  // 10 min × 12 (5s)
 
-    function verifierStatut() {
-        tentatives++;
-        if (tentatives > maxTentatives) {
-            document.getElementById('polling-indicator').textContent =
-                "⚠️ Temps écoulé. Rafraîchissez la page si le paiement est confirmé.";
-            return;
-        }
-
-        fetch(callbackUrl, { headers: { 'Accept': 'text/html' } })
-            .then(r => {
-                // On lit le HTML pour détecter si le statut a changé
-                // En vrai projet, on ferait plutôt un endpoint JSON dédié
-                return r.text();
-            })
-            .then(html => {
-                if (html.includes('Paiement confirmé') || html.includes('reussi')) {
-                    window.location.href = callbackUrl;
-                } else {
-                    setTimeout(verifierStatut, 5000);
-                }
-            })
-            .catch(err => {
-                console.error("Erreur polling :", err);
-                setTimeout(verifierStatut, 5000);
-            });
+  function verifierStatut() {
+    tentatives++;
+    if (tentatives > maxTentatives) {
+      const el = document.getElementById('polling-indicator');
+      if (el) el.textContent = "Temps écoulé. Rafraîchissez la page si le paiement est confirmé.";
+      return;
     }
+    fetch(callbackUrl, { headers: { Accept: 'text/html' } })
+      .then(r => r.text())
+      .then(html => {
+        if (html.includes('Paiement confirmé') || html.includes('reussi')) {
+          window.location.href = callbackUrl;
+        } else {
+          setTimeout(verifierStatut, 5000);
+        }
+      })
+      .catch(() => setTimeout(verifierStatut, 5000));
+  }
 
-    // Démarrer le polling après 5 secondes
-    setTimeout(verifierStatut, 5000);
+  setTimeout(verifierStatut, 5000);
 })();
 </script>
 {% endif %}

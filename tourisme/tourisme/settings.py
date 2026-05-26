@@ -112,7 +112,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.i18n',  # Pour le multilingue
-                'core.context_processors.paiement_settings',  # context processor custom pour PAIEMENT_MODE_MOCK
+                'core.context_processors.paiement_settings',  # PAIEMENT_MODE_MOCK
+                'core.context_processors.notifications_context',  # nb_notif_non_lues + notif_recentes
             ],
         },
     },

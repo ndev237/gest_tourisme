@@ -1,10 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Mes avis (touriste) — liste des avis laissés.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Mes avis — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_touriste' %}" class="hover:text-accent">Mon espace</a>
+        <span>/</span>
+        <span class="text-accent">Mes avis</span>
+      </nav>
+      <p class="eyebrow text-accent mb-2">Le livre d'or</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light">Mes avis</h1>
+      <p class="text-sm text-base-100/60 mt-2 font-mono">
+        {{ avis_list|length|default:0 }} avis déposé{{ avis_list|length|pluralize }}
+      </p>
+    </div>
+  </header>
+
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if avis_list %}
+    <div class="space-y-4 stagger">
+      {% for avis in avis_list %}
+      <article class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden">
+        <div class="flex">
+          {% if avis.site.photo_principale %}
+          <div class="w-32 flex-shrink-0 bg-foret-100/40 overflow-hidden">
+            <img src="{{ avis.site.photo_principale.image.url }}" alt="" class="w-full h-full object-cover">
+          </div>
+          {% else %}
+          <div class="w-32 flex-shrink-0 bg-pattern-kente grid place-items-center text-3xl opacity-50">◈</div>
+          {% endif %}
+
+          <div class="flex-1 p-5">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">{{ avis.site.localisation.ville }}</p>
+                <h3 class="font-display text-lg text-foret-900 leading-tight">{{ avis.site.nom }}</h3>
+              </div>
+              <span class="text-accent text-base font-semibold flex-shrink-0">
+                {% for i in "12345"|make_list %}{% if forloop.counter <= avis.note %}★{% else %}☆{% endif %}{% endfor %}
+              </span>
+            </div>
+
+            {% if avis.titre %}
+            <p class="font-display text-base text-foret-900 mt-3">{{ avis.titre }}</p>
+            {% endif %}
+            <p class="text-sm text-foret-700/85 leading-relaxed mt-2 line-clamp-3">{{ avis.commentaire }}</p>
+
+            <div class="flex items-center justify-between mt-4 pt-3 border-t border-foret-100/60">
+              <div class="flex items-center gap-3">
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">{{ avis.created_at|date:"d M Y" }}</p>
+                {% if avis.statut_moderation == 'approuve' %}
+                  <span class="badge-stamp text-success border-success/40 text-[10px]">Publié</span>
+                {% elif avis.statut_moderation == 'en_attente' %}
+                  <span class="badge-stamp text-warning border-warning/40 text-[10px]">En modération</span>
+                {% elif avis.statut_moderation == 'rejete' %}
+                  <span class="badge-stamp text-error border-error/40 text-[10px]">Rejeté</span>
+                {% endif %}
+              </div>
+              <div class="flex gap-2 text-[10px] uppercase tracking-wider">
+                <a href="{% url 'review:update_avis' avis_id=avis.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+                <a href="{% url 'review:delete_avis' avis_id=avis.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">★</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun avis déposé</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Une fois votre visite terminée, partagez votre expérience pour aider les autres voyageurs.
+      </p>
+      <a href="{% url 'reservation:liste_reservation' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        Mes réservations
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

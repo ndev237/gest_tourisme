@@ -197,6 +197,33 @@ def carte_view(request):
 
 
 # ============================================================
+# A.2 PUBLIQUE — Liste des régions
+# ============================================================
+
+def liste_regions_publique_view(request):
+    """
+    Liste publique des 10 régions du Cameroun avec compteur de sites.
+    Sert de page d'atterrissage 'Explorer par région' depuis le navbar.
+    """
+    # Relation : Region -> Localisations (FK) -> site (OneToOne, related_name='site')
+    regions = (Region.objects
+        .annotate(
+            nb_sites=Count(
+                'Localisations__site',
+                filter=Q(Localisations__site__est_publie=True),
+                distinct=True,
+            )
+        )
+        .order_by('nom')
+    )
+
+    return render(request, 'Localisations/region/liste_publique.html', {
+        'regions': regions,
+        'page_title': 'Explorer le Cameroun par région',
+    })
+
+
+# ============================================================
 # B. ADMIN — REGIONS (CRUD)
 # ============================================================
 

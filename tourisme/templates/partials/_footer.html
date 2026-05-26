@@ -62,7 +62,7 @@
         <ul class="space-y-3 text-sm">
           <li><a href="{% url 'catalogue:liste_sites' %}" class="hover:text-accent transition">Tous les sites</a></li>
           <li><a href="{% url 'localisation:carte' %}" class="hover:text-accent transition">Carte interactive</a></li>
-          <li><a href="#" class="hover:text-accent transition">Régions</a></li>
+          <li><a href="{% url 'localisation:liste_regions_publique' %}" class="hover:text-accent transition">Régions</a></li>
           <li><a href="#" class="hover:text-accent transition">Hébergements</a></li>
           <li><a href="#" class="hover:text-accent transition">Top des avis</a></li>
         </ul>
@@ -73,7 +73,13 @@
         <ul class="space-y-3 text-sm">
           {% if user.is_authenticated %}
             <li><a href="{% url 'compte:profil' %}" class="hover:text-accent transition">Mon profil</a></li>
-            <li><a href="{% url 'compte:deconnexion' %}" class="hover:text-accent transition">Déconnexion</a></li>
+            <li>
+              <!-- Déconnexion via POST -->
+              <form method="post" action="{% url 'compte:deconnexion' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="hover:text-accent transition">Déconnexion</button>
+              </form>
+            </li>
           {% else %}
             <li><a href="{% url 'compte:connexion' %}" class="hover:text-accent transition">Se connecter</a></li>
             <li><a href="{% url 'compte:inscription' %}" class="hover:text-accent transition">Créer un compte</a></li>

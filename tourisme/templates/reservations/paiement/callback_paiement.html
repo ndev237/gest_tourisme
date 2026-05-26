@@ -1,208 +1,176 @@
 <!--
- ============================================================
-   CALLBACK PAIEMENT : paiements/callback_paiement.html
-   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-   Étape finale du tunnel : résultat du paiement.
-
-   3 ÉTATS POSSIBLES :
-   - reussi → grand check vert + bouton "Télécharger le bon"
-   - echoue → grand X rouge + bouton "Réessayer"
-   - en_cours → loader + lien vers page d'attente
-
-   PÉDAGOGIE :
-   - Visuel très clair selon le résultat (couleur dominante)
-   - Actions contextuelles selon l'état
-   - Confetti pour le succès (touche festive)
-   ============================================================ 
+  Résultat paiement — 3 états (réussi / échec / en cours) avec actions adaptées.
 -->
 {% extends "base.html" %}
 
 {% block title %}Résultat du paiement{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-6">
-    <div class="container mx-auto px-4 max-w-2xl">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
 
-        <!-- Stepper final -->
-        <ul class="steps w-full mb-6">
-            <li class="step step-primary" data-content="✓">Choix du moyen</li>
-            <li class="step step-primary" data-content="✓">Paiement</li>
-            <li class="step {% if reussi %}step-primary{% elif echec %}step-error{% endif %}"
-                data-content="{% if reussi %}✓{% elif echec %}✕{% else %}3{% endif %}">
-                Confirmation
-            </li>
-        </ul>
+    <!-- Stepper -->
+    <div class="flex items-center justify-center gap-3 mb-10 text-xs font-mono uppercase tracking-[0.18em]">
+      <span class="flex items-center gap-2 text-foret-900"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100">✓</span><span class="hidden sm:inline">Moyen</span></span>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <span class="flex items-center gap-2 text-foret-900"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100">✓</span><span class="hidden sm:inline">Paiement</span></span>
+      <span class="w-12 h-px {% if reussi %}bg-success{% elif echec %}bg-error{% else %}bg-warning{% endif %}"></span>
+      <span class="flex items-center gap-2 {% if reussi %}text-success{% elif echec %}text-error{% else %}text-warning{% endif %}">
+        <span class="w-7 h-7 rounded-full grid place-items-center text-[10px] {% if reussi %}bg-success{% elif echec %}bg-error{% else %}bg-warning{% endif %} text-base-100">
+          {% if reussi %}✓{% elif echec %}×{% else %}◐{% endif %}
+        </span>
+        <span class="hidden sm:inline">{% if reussi %}Confirmé{% elif echec %}Échec{% else %}En cours{% endif %}</span>
+      </span>
+    </div>
 
-        <!--
- ================================================
-           ÉTAT 1 : PAIEMENT RÉUSSI
-           ================================================ 
--->
-        {% if reussi %}
-        <div class="card bg-success text-success-content shadow-2xl">
-            <div class="card-body items-center text-center py-8">
+    {% if reussi %}
+    <!-- ===== RÉUSSI ===== -->
+    <div class="bg-base-100 border-2 border-success rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-success"></div>
+      <div class="p-10 text-center">
+        <div class="inline-flex w-24 h-24 rounded-full bg-success text-base-100 grid place-items-center font-display text-5xl mb-6 animate-bounce">✓</div>
 
-                <div class="text-9xl mb-4 animate-bounce">🎉</div>
-                <h1 class="font-display text-3xl font-bold">Paiement réussi !</h1>
-                <p class="opacity-90 mt-2">
-                    Votre réservation est confirmée.
-                </p>
+        <p class="eyebrow text-success mb-3">Confirmation</p>
+        <h1 class="font-display text-4xl font-light text-foret-900 mb-2">
+          Paiement <em class="font-display-italic text-success">réussi</em> !
+        </h1>
+        <p class="text-foret-700/80 mb-8">Votre réservation est confirmée.</p>
 
-                <!-- Récap final -->
-                <div class="bg-white/20 rounded-lg p-4 mt-6 w-full text-left">
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="opacity-80">N° réservation</span>
-                        <span class="font-mono font-semibold">{{ reservation.numero }}</span>
-                    </div>
-                    <div class="flex justify-between text-sm mb-1">
-                        <span class="opacity-80">N° transaction</span>
-                        <span class="font-mono text-xs">{{ paiement.reference_interne }}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-2 mt-2 border-t border-white/30">
-                        <span class="font-semibold">Payé via</span>
-                        <span>{{ paiement.moyen.libelle }}</span>
-                    </div>
-                    <div class="flex justify-between items-center mt-2">
-                        <span class="font-semibold">Montant</span>
-                        <span class="text-2xl font-bold font-mono">
-                            {{ paiement.montant|floatformat:0 }} FCFA
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 w-full">
-                    <a href="{% url 'reservation:bon_pdf' reservation_id=reservation.id %}"
-                       class="btn btn-accent btn-lg">
-                        📄 Télécharger le bon
-                    </a>
-                    <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}"
-                       class="btn btn-outline btn-lg text-success-content border-white/50 hover:bg-white hover:text-success">
-                        👁 Voir la réservation
-                    </a>
-                </div>
-
-                <p class="text-sm opacity-80 mt-4">
-                    📧 Un email de confirmation vous a été envoyé.
-                    Présentez le QR code à l'entrée du site.
-                </p>
+        <!-- Récap -->
+        <div class="bg-foret-900 text-base-100 rounded-2xl p-6 text-left relative overflow-hidden mb-6">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <dl class="relative space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">N° réservation</dt>
+              <dd class="font-mono">{{ reservation.numero }}</dd>
             </div>
+            <div class="flex justify-between">
+              <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">N° transaction</dt>
+              <dd class="font-mono text-xs">{{ paiement.reference_interne }}</dd>
+            </div>
+            <div class="flex justify-between pt-3 border-t border-base-100/15">
+              <dt class="text-base-100/70">Payé via</dt>
+              <dd class="font-medium">{{ paiement.moyen.libelle }}</dd>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <dt class="text-sm">Montant</dt>
+              <dd class="font-display text-2xl text-accent font-mono-num">{{ paiement.montant|floatformat:0 }} <span class="text-xs">FCFA</span></dd>
+            </div>
+          </dl>
         </div>
 
-        <!-- Confetti CSS pur (animations) -->
-        <style>
-            @keyframes confetti-fall {
-                0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-                100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-            }
-            .confetti {
-                position: fixed;
-                width: 10px;
-                height: 10px;
-                top: 0;
-                animation: confetti-fall 3s linear forwards;
-                pointer-events: none;
-                z-index: 100;
-            }
-        </style>
-        <script>
-        // Petit effet confetti au chargement
-        (function() {
-            const colors = ['#15803D', '#EAB308', '#3B82F6', '#EF4444', '#A855F7'];
-            for (let i = 0; i < 40; i++) {
-                const c = document.createElement('div');
-                c.className = 'confetti';
-                c.style.left = Math.random() * 100 + '%';
-                c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                c.style.animationDelay = Math.random() * 1 + 's';
-                c.style.animationDuration = (2 + Math.random() * 2) + 's';
-                document.body.appendChild(c);
-                setTimeout(() => c.remove(), 4000);
-            }
-        })();
-        </script>
-
-        <!--
- ================================================
-           ÉTAT 2 : ÉCHEC
-           ================================================ 
--->
-        {% elif echec %}
-        <div class="card bg-error text-error-content shadow-xl">
-            <div class="card-body items-center text-center py-8">
-
-                <div class="text-8xl mb-4">❌</div>
-                <h1 class="font-display text-3xl font-bold">Paiement échoué</h1>
-                <p class="opacity-90 mt-2">
-                    Le paiement n'a pas pu être confirmé.
-                </p>
-
-                {% if paiement.motif_echec %}
-                <div class="alert bg-white/20 mt-4 text-left">
-                    <span>⚠️</span>
-                    <div class="text-sm">
-                        <strong>Motif :</strong><br>
-                        {{ paiement.motif_echec }}
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="bg-white/20 rounded-lg p-3 mt-4 text-left text-sm w-full">
-                    <p><strong>N° réservation :</strong> {{ reservation.numero }}</p>
-                    <p><strong>Moyen :</strong> {{ paiement.moyen.libelle }}</p>
-                    <p class="text-xs opacity-80 mt-1">
-                        Aucun montant n'a été débité.
-                        Vous pouvez réessayer avec un autre moyen.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 w-full">
-                    <a href="{% url 'paiement:choix_moyen' reservation_id=reservation.id %}"
-                       class="btn btn-accent btn-lg">
-                        🔄 Réessayer
-                    </a>
-                    <a href="{% url 'reservation:mes_reservations' %}"
-                       class="btn btn-outline btn-lg text-error-content border-white/50 hover:bg-white hover:text-error">
-                        ← Mes réservations
-                    </a>
-                </div>
-            </div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <a href="{% url 'reservation:bon_pdf' reservation_id=reservation.id %}"
+             class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+            Télécharger le bon
+          </a>
+          <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}"
+             class="border border-foret-900 text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            Voir la réservation
+          </a>
         </div>
 
-        <!--
- ================================================
-           ÉTAT 3 : EN COURS
-           ================================================ 
--->
-        {% else %}
-        <div class="card bg-warning text-warning-content shadow-xl">
-            <div class="card-body items-center text-center py-8">
+        <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mt-6">
+          Un email de confirmation vous a été envoyé. Présentez le QR à l'entrée du site.
+        </p>
+      </div>
+    </div>
 
-                <div class="text-8xl mb-4 animate-pulse">⏳</div>
-                <h1 class="font-display text-3xl font-bold">Paiement en cours</h1>
-                <p class="opacity-90 mt-2">
-                    Nous attendons toujours la confirmation de votre transaction.
-                </p>
+    <!-- Confetti CSS -->
+    <style>
+      @keyframes confetti-fall { 0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+      .confetti { position: fixed; width: 10px; height: 14px; top: 0; animation: confetti-fall 3s linear forwards; pointer-events: none; z-index: 100; }
+    </style>
+    <script>
+    (function () {
+      const colors = ['oklch(40% 0.115 148)', 'oklch(76% 0.155 82)', 'oklch(54% 0.155 35)', 'oklch(58% 0.115 230)'];
+      for (let i = 0; i < 50; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = (Math.random() * 100) + '%';
+        c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDelay = (Math.random()) + 's';
+        c.style.animationDuration = (2 + Math.random() * 2) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 5000);
+      }
+    })();
+    </script>
 
-                <div class="bg-white/20 rounded-lg p-3 mt-4 text-left text-sm w-full">
-                    <p><strong>N° réservation :</strong> {{ reservation.numero }}</p>
-                    <p><strong>Référence :</strong> {{ paiement.reference_interne }}</p>
-                    <p><strong>Statut :</strong> {{ paiement.get_statut_display }}</p>
-                </div>
+    {% elif echec %}
+    <!-- ===== ÉCHEC ===== -->
+    <div class="bg-base-100 border-2 border-error rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-error"></div>
+      <div class="p-10 text-center">
+        <div class="inline-flex w-24 h-24 rounded-full bg-error text-base-100 grid place-items-center font-display text-5xl mb-6">×</div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 w-full">
-                    <a href="{% url 'paiement:attente_paiement' paiement_id=paiement.id %}"
-                       class="btn btn-accent btn-lg">
-                        🔄 Vérifier maintenant
-                    </a>
-                    <a href="{% url 'reservation:mes_reservations' %}"
-                       class="btn btn-outline btn-lg text-warning-content border-white/50">
-                        ← Mes réservations
-                    </a>
-                </div>
-            </div>
+        <p class="eyebrow text-error mb-3">Confirmation</p>
+        <h1 class="font-display text-4xl font-light text-foret-900 mb-2">
+          Paiement <em class="font-display-italic text-error">échoué</em>
+        </h1>
+        <p class="text-foret-700/80 mb-6">Le paiement n'a pas pu être confirmé.</p>
+
+        {% if paiement.motif_echec %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-5 mb-6 text-left flex gap-4">
+          <span class="font-mono text-error text-base flex-shrink-0">!</span>
+          <div>
+            <p class="eyebrow text-error mb-1">Motif</p>
+            <p class="text-sm text-foret-900">{{ paiement.motif_echec }}</p>
+          </div>
         </div>
         {% endif %}
+
+        <div class="bg-sable-50 border border-foret-100/60 rounded-2xl p-5 text-left text-sm mb-6">
+          <p><strong class="text-foret-900">N° réservation :</strong> <span class="font-mono">{{ reservation.numero }}</span></p>
+          <p class="mt-1"><strong class="text-foret-900">Moyen :</strong> {{ paiement.moyen.libelle }}</p>
+          <p class="text-xs text-foret-700/70 mt-2">Aucun montant n'a été débité. Vous pouvez réessayer avec un autre moyen.</p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-3">
+          <a href="{% url 'paiement:choix_moyen' reservation_id=reservation.id %}"
+             class="btn-carnet bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Réessayer
+          </a>
+          <a href="{% url 'reservation:liste_reservation' %}"
+             class="border border-foret-900 text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            ← Mes réservations
+          </a>
+        </div>
+      </div>
     </div>
+
+    {% else %}
+    <!-- ===== EN COURS ===== -->
+    <div class="bg-base-100 border-2 border-warning rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-warning"></div>
+      <div class="p-10 text-center">
+        <div class="inline-flex w-24 h-24 rounded-full bg-warning text-foret-900 grid place-items-center font-display text-5xl mb-6 animate-pulse">⏱</div>
+
+        <p class="eyebrow text-warning mb-3">Confirmation</p>
+        <h1 class="font-display text-4xl font-light text-foret-900 mb-2">
+          Paiement <em class="font-display-italic text-warning">en cours</em>
+        </h1>
+        <p class="text-foret-700/80 mb-6">Nous attendons la confirmation de votre transaction.</p>
+
+        <div class="bg-sable-50 border border-foret-100/60 rounded-2xl p-5 text-left text-sm mb-6">
+          <p><strong class="text-foret-900">N° réservation :</strong> <span class="font-mono">{{ reservation.numero }}</span></p>
+          <p class="mt-1"><strong class="text-foret-900">Référence :</strong> <span class="font-mono">{{ paiement.reference_interne }}</span></p>
+          <p class="mt-1"><strong class="text-foret-900">Statut :</strong> {{ paiement.get_statut_display }}</p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-3">
+          <a href="{% url 'paiement:attente_paiement' paiement_id=paiement.id %}"
+             class="btn-carnet bg-warning text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+            Vérifier maintenant
+          </a>
+          <a href="{% url 'reservation:liste_reservation' %}"
+             class="border border-foret-900 text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
+            ← Mes réservations
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

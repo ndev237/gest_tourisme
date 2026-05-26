@@ -1,0 +1,147 @@
+<!--
+  Modération des avis (admin) — file en attente + signalés.
+-->
+{% extends "base.html" %}
+
+{% block title %}Modération des avis — Administration{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span>
+        <span class="text-accent">Modération des avis</span>
+      </nav>
+      <p class="eyebrow text-accent mb-2">Modération</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light">Avis à examiner</h1>
+      <p class="text-sm text-base-100/60 mt-2 font-mono">
+        <span class="text-accent">{{ stats.en_attente }}</span> en attente ·
+        <span class="text-warning">{{ stats.signales }}</span> signalé{{ stats.signales|pluralize }}
+      </p>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6 space-y-6">
+
+    <!-- KPIs -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60">
+        <div class="p-6">
+          <p class="eyebrow mb-2">En attente</p>
+          <p class="font-display text-4xl font-medium text-warning">{{ stats.en_attente }}</p>
+        </div>
+        <div class="p-6">
+          <p class="eyebrow mb-2">Signalés</p>
+          <p class="font-display text-4xl font-medium text-error">{{ stats.signales }}</p>
+        </div>
+        <div class="p-6">
+          <p class="eyebrow mb-2">Publiés</p>
+          <p class="font-display text-4xl font-medium text-success">{{ stats.publies }}</p>
+        </div>
+        <div class="p-6">
+          <p class="eyebrow mb-2">Total</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.total_avis }}</p>
+        </div>
+      </div>
+    </div>
+
+    {% if avis_a_moderer %}
+    <div class="space-y-4">
+      {% for avis in avis_a_moderer %}
+      <article class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden">
+        <!-- Bandeau statut -->
+        <div class="px-7 py-3 flex items-center justify-between gap-3
+                    {% if avis.statut_moderation == 'signale' %}bg-error/10 border-b border-error/30{% else %}bg-warning/10 border-b border-warning/30{% endif %}">
+          <div class="flex items-center gap-3">
+            {% if avis.statut_moderation == 'signale' %}
+              <span class="badge-stamp text-error border-error/60 text-[10px]">Signalé ({{ avis.nombre_signalements }})</span>
+            {% else %}
+              <span class="badge-stamp text-warning border-warning/60 text-[10px]">En attente</span>
+            {% endif %}
+            <span class="text-xs font-mono uppercase tracking-wider text-foret-700/70">
+              {{ avis.created_at|date:"d M Y · H:i" }}
+            </span>
+          </div>
+          <span class="text-accent text-base">
+            {% for i in "12345"|make_list %}{% if forloop.counter <= avis.note %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+        </div>
+
+        <div class="p-7">
+          <div class="grid lg:grid-cols-3 gap-6">
+
+            <!-- Détails -->
+            <div class="lg:col-span-2">
+              <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60 mb-2">
+                {{ avis.touriste.user.nom_complet|default:avis.touriste.user.email }} sur
+                <a href="{% url 'catalogue:detail_site' slug=avis.site.slug %}" class="text-accent underline decoration-dotted underline-offset-4">
+                  {{ avis.site.nom }}
+                </a>
+              </p>
+              {% if avis.titre %}
+              <h3 class="font-display text-xl text-foret-900 mb-3">{{ avis.titre }}</h3>
+              {% endif %}
+              <p class="text-foret-900/85 leading-relaxed border-l-2 border-warning pl-4">
+                « {{ avis.commentaire }} »
+              </p>
+
+              {% if avis.note_accueil or avis.note_proprete or avis.note_rapport_qualite_prix %}
+              <div class="flex flex-wrap gap-3 mt-4 text-xs font-mono uppercase tracking-wider text-foret-700">
+                {% if avis.note_accueil %}<span>Accueil <span class="text-accent">{{ avis.note_accueil }}/5</span></span>{% endif %}
+                {% if avis.note_proprete %}<span>Propreté <span class="text-accent">{{ avis.note_proprete }}/5</span></span>{% endif %}
+                {% if avis.note_rapport_qualite_prix %}<span>Qualité/prix <span class="text-accent">{{ avis.note_rapport_qualite_prix }}/5</span></span>{% endif %}
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Form modération -->
+            <form method="post" action="{% url 'reviews:moderer_avis' avis_id=avis.id %}"
+                  x-data="{ decision: '' }"
+                  class="bg-sable-50 border border-foret-100/60 rounded-2xl p-4 space-y-3">
+              {% csrf_token %}
+              <p class="eyebrow">Décision</p>
+
+              <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-success/10 transition">
+                <input type="radio" name="decision" value="approuver" x-model="decision" required
+                       class="w-4 h-4 text-success focus:ring-success">
+                <span class="text-sm text-foret-900">✓ Approuver et publier</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-error/10 transition">
+                <input type="radio" name="decision" value="rejeter" x-model="decision"
+                       class="w-4 h-4 text-error focus:ring-error">
+                <span class="text-sm text-foret-900">× Rejeter</span>
+              </label>
+
+              <div x-show="decision === 'rejeter'" x-cloak x-transition>
+                <label for="motif-{{ avis.id }}" class="block text-[10px] font-mono uppercase tracking-wider text-foret-700 mb-1.5">Motif (visible par l'auteur)</label>
+                <textarea name="motif_rejet" id="motif-{{ avis.id }}" rows="2" maxlength="500"
+                          placeholder="Avis non vérifiable, contenu inapproprié…"
+                          class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition"></textarea>
+              </div>
+
+              <button type="submit" :disabled="!decision"
+                      class="btn-carnet w-full bg-foret-900 text-base-100 rounded-full px-4 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                Valider la décision
+              </button>
+            </form>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-success/10 text-success grid place-items-center text-3xl mb-5">✓</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">File d'attente vide</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">
+        Aucun avis à modérer pour le moment. Tout est à jour.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

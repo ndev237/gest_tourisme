@@ -1,0 +1,129 @@
+<!--
+  Liste publique des régions — grille des 10 régions du Cameroun
+  avec compteur de sites publiés et lien vers le filtre.
+-->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Explorer par région — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+
+<!-- Bandeau -->
+<section class="bg-foret-900 text-base-100 relative overflow-hidden">
+  <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-6">
+      <a href="{% url 'home' %}" class="hover:text-accent transition">Accueil</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-accent">Régions</span>
+    </nav>
+    <p class="eyebrow text-accent mb-4">Cartographie</p>
+    <h1 class="font-display text-4xl lg:text-6xl font-light leading-tight max-w-3xl">
+      Dix régions,<br>
+      <em class="font-display-italic text-accent">dix paysages</em>.
+    </h1>
+    <p class="text-base-100/70 mt-5 max-w-xl">
+      Du désert sahélien aux forêts équatoriales, le Cameroun condense en un seul pays
+      une variété de climats et de cultures qu'on ne trouve nulle part ailleurs.
+    </p>
+  </div>
+</section>
+
+<!-- Grille régions -->
+<section class="bg-base-100 py-16 lg:py-24">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    {% if regions %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
+      {% for region in regions %}
+      <a href="{% url 'catalogue:liste_sites' %}?region={{ region.id }}"
+         class="card-editorial group overflow-hidden">
+        <figure class="h-48 bg-foret-100/40 relative overflow-hidden">
+          {% if region.image %}
+            <img src="{{ region.image.url }}" alt="{{ region.nom }}"
+                 class="w-full h-full object-cover img-hover-bloom">
+          {% else %}
+            <div class="bg-pattern-kente w-full h-full grid place-items-center text-5xl opacity-50">◈</div>
+          {% endif %}
+
+          <span class="absolute top-3 right-3 badge-stamp text-accent border-accent bg-foret-900/80 backdrop-blur-sm text-[10px]">
+            {{ region.code }}
+          </span>
+
+          <span class="absolute bottom-3 left-3 font-display italic text-base-100/90 text-sm">
+            № {{ forloop.counter|stringformat:"02d" }}
+          </span>
+        </figure>
+
+        <div class="p-6">
+          <h2 class="font-display text-xl font-medium text-foret-900 group-hover:text-accent transition">{{ region.nom }}</h2>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/70 mt-1">
+            Chef-lieu · {{ region.chef_lieu }}
+          </p>
+
+          {% if region.description %}
+          <p class="text-sm text-foret-700/80 mt-3 line-clamp-2 leading-relaxed">
+            {{ region.description|truncatechars:140 }}
+          </p>
+          {% endif %}
+
+          <div class="flex items-center justify-between mt-5 pt-4 border-t border-foret-100/60">
+            <span class="text-xs font-mono uppercase tracking-wider text-foret-700/70">
+              <span class="font-mono-num text-accent text-base">{{ region.nb_sites }}</span>
+              site{{ region.nb_sites|pluralize }} publié{{ region.nb_sites|pluralize }}
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-medium text-accent group-hover:gap-3 transition-all">
+              Explorer <span>→</span>
+            </span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Bandeau secondaire — carte interactive -->
+    <div class="mt-16 bg-pattern-kente border border-foret-100/60 rounded-3xl overflow-hidden">
+      <div class="grid lg:grid-cols-2">
+        <div class="p-10 lg:p-12 flex flex-col justify-center">
+          <p class="eyebrow mb-4">Vue cartographique</p>
+          <h2 class="font-display text-3xl font-light text-foret-900 leading-tight">
+            Tous les sites sur une <em class="font-display-italic text-accent">carte</em>.
+          </h2>
+          <p class="text-sm text-foret-700/80 mt-4 max-w-md">
+            Filtrez par région et par catégorie sur la carte interactive pour découvrir
+            les sites touristiques où qu'ils se trouvent.
+          </p>
+          <a href="{% url 'localisation:carte' %}"
+             class="btn-carnet self-start inline-flex items-center gap-2 mt-6 bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+            Ouvrir la carte →
+          </a>
+        </div>
+        <div class="bg-foret-900 text-base-100 p-10 lg:p-12 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-30"></div>
+          <p class="relative eyebrow text-accent mb-4">Le saviez-vous ?</p>
+          <p class="relative text-base-100/85 leading-relaxed">
+            Le Cameroun est surnommé <em class="font-display-italic text-accent">« l'Afrique en miniature »</em>
+            car il rassemble sur son seul territoire des écosystèmes qui couvrent
+            l'ensemble du continent : forêt équatoriale au sud, savane au centre,
+            désert et montagnes au nord, façade atlantique à l'ouest.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-base-100 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune région à afficher</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">
+        Les 10 régions du Cameroun apparaîtront ici dès qu'elles seront créées par l'équipe.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

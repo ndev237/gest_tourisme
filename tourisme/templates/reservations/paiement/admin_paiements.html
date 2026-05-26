@@ -1,254 +1,190 @@
 <!--
- ============================================================
-   ADMIN PAIEMENTS : paiements/admin_paiements.html
-   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-   Vue admin globale des paiements avec KPIs financiers et filtres.
-
-   STRUCTURE :
-   - 4 KPIs (total / réussis / CA brut / CA net après remboursements)
-   - Filtres : recherche / statut / moyen / plage de dates
-   - Tableau avec actions (voir, rembourser)
-   ============================================================ 
+  Admin paiements — KPI financiers, filtres, tableau avec actions.
 -->
 {% extends "base.html" %}
 
 {% block title %}Paiements — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-6">
-    <div class="container mx-auto px-4 max-w-7xl">
+<section class="bg-sable-50 min-h-screen">
 
-        <div class="mb-4 flex items-center gap-2">
-            <span class="badge badge-error">Administration</span>
-        </div>
-
-        <header class="mb-6">
-            <nav class="text-sm breadcrumbs mb-2">
-                <ul>
-                    <li><a href="{% url 'compte:dashbord_admin' %}">Dashboard admin</a></li>
-                    <li>Paiements</li>
-                </ul>
-            </nav>
-            <h1 class="font-display text-3xl font-bold">💰 Paiements</h1>
-            <p class="text-base-content/70 mt-1">
-                Vue globale de tous les paiements sur la plateforme
-            </p>
-        </header>
-
-        <!-- - -- -- KPIs - -- -- -->
-        <div class="stats stats-vertical lg:stats-horizontal shadow w-full bg-base-100 mb-6">
-            <div class="stat">
-                <div class="stat-figure text-info text-3xl">📊</div>
-                <div class="stat-title">Total</div>
-                <div class="stat-value text-info">{{ stats.total }}</div>
-                <div class="stat-desc">Transactions</div>
-            </div>
-            <div class="stat">
-                <div class="stat-figure text-success text-3xl">✅</div>
-                <div class="stat-title">Réussis</div>
-                <div class="stat-value text-success">{{ stats.reussis }}</div>
-                <div class="stat-desc">
-                    {% if stats.total > 0 %}
-                        {% widthratio stats.reussis stats.total 100 %}% de réussite
-                    {% endif %}
-                </div>
-            </div>
-            <div class="stat">
-                <div class="stat-figure text-primary text-2xl">💰</div>
-                <div class="stat-title">CA brut</div>
-                <div class="stat-value text-primary text-2xl">{{ stats.ca_total|floatformat:0 }}</div>
-                <div class="stat-desc">FCFA encaissés</div>
-            </div>
-            <div class="stat">
-                <div class="stat-figure text-accent text-2xl">📈</div>
-                <div class="stat-title">CA net</div>
-                <div class="stat-value text-accent text-2xl">{{ stats.ca_net|floatformat:0 }}</div>
-                <div class="stat-desc">
-                    Après remboursements ({{ stats.rembourses|floatformat:0 }})
-                </div>
-            </div>
-        </div>
-
-        <!-- - -- -- Filtres - -- -- -->
-        <div class="card bg-base-100 shadow-lg mb-6">
-            <div class="card-body p-4">
-                <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-
-                    <div class="form-control md:col-span-2">
-                        <label class="label py-1"><span class="label-text text-sm">🔍 Recherche</span></label>
-                        <input type="text" name="q"
-                               value="{{ filtre_form.q.value|default:'' }}"
-                               placeholder="Réf, n° résa, n° tél..."
-                               class="input input-bordered input-sm">
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label py-1"><span class="label-text text-sm">Statut</span></label>
-                        <select name="statut" class="select select-bordered select-sm">
-                            {% for value, label in filtre_form.statut.field.choices %}
-                            <option value="{{ value }}" {% if filtre_form.statut.value == value %}selected{% endif %}>
-                                {{ label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label py-1"><span class="label-text text-sm">Moyen</span></label>
-                        <select name="moyen" class="select select-bordered select-sm">
-                            <option value="">Tous les moyens</option>
-                            {% for m in filtre_form.moyen.field.queryset %}
-                            <option value="{{ m.pk }}"
-                                    {% if filtre_form.moyen.value|stringformat:'s' == m.pk|stringformat:'s' %}selected{% endif %}>
-                                {{ m.libelle }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label py-1"><span class="label-text text-sm">Du</span></label>
-                        <input type="date" name="date_debut"
-                               value="{{ filtre_form.date_debut.value|date:'Y-m-d'|default:'' }}"
-                               class="input input-bordered input-sm">
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label py-1"><span class="label-text text-sm">Au</span></label>
-                        <input type="date" name="date_fin"
-                               value="{{ filtre_form.date_fin.value|date:'Y-m-d'|default:'' }}"
-                               class="input input-bordered input-sm">
-                    </div>
-
-                    <div class="md:col-span-5 flex justify-end gap-2">
-                        <a href="{% url 'paiement:admin_paiements' %}" class="btn btn-ghost btn-sm">
-                            Réinitialiser
-                        </a>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            Filtrer
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- - -- -- Tableau - -- -- -->
-        {% if paiements %}
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Référence</th>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Réservation</th>
-                                <th>Moyen</th>
-                                <th class="text-right">Montant</th>
-                                <th>Statut</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for p in paiements %}
-                            <tr class="hover">
-                                <td>
-                                    <p class="font-mono text-xs">{{ p.reference_interne }}</p>
-                                    {% if p.reference_externe %}
-                                    <p class="text-xs text-base-content/50 font-mono truncate max-w-[140px]"
-                                       title="{{ p.reference_externe }}">
-                                        {{ p.reference_externe }}
-                                    </p>
-                                    {% endif %}
-                                </td>
-                                <td class="text-xs">
-                                    <p>{{ p.created_at|date:'d/m/Y' }}</p>
-                                    <p class="text-base-content/50">{{ p.created_at|time:'H:i' }}</p>
-                                </td>
-                                <td>
-                                    {% if p.type_transaction == 'paiement' %}
-                                        <span class="badge badge-info badge-sm">💳 Paiement</span>
-                                    {% else %}
-                                        <span class="badge badge-accent badge-sm">↩ Remb.</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-xs">
-                                    <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}"
-                                       class="link font-mono">{{ p.reservation.numero }}</a>
-                                    <p class="text-base-content/50 truncate max-w-[120px]">
-                                        {{ p.reservation.touriste.user.nom_complet }}
-                                    </p>
-                                </td>
-                                <td class="text-xs">{{ p.moyen.libelle|truncatechars:18 }}</td>
-                                <td class="text-right font-mono font-semibold">
-                                    {% if p.type_transaction == 'remboursement' %}
-                                        <span class="text-accent">-</span>
-                                    {% endif %}
-                                    {{ p.montant|floatformat:0 }}
-                                </td>
-                                <td>
-                                    {% if p.statut == 'reussi' %}
-                                        <span class="badge badge-success badge-sm">✅</span>
-                                    {% elif p.statut == 'echoue' %}
-                                        <span class="badge badge-error badge-sm">❌</span>
-                                    {% elif p.statut == 'en_cours' %}
-                                        <span class="badge badge-warning badge-sm">⏳</span>
-                                    {% elif p.statut == 'rembourse' %}
-                                        <span class="badge badge-info badge-sm">↩</span>
-                                    {% else %}
-                                        <span class="badge badge-ghost badge-sm">{{ p.get_statut_display|truncatechars:8 }}</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-right">
-                                    <div class="join">
-                                        <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}"
-                                           class="btn btn-xs btn-ghost join-item" title="Voir réservation">
-                                            👁
-                                        </a>
-                                        {% if p.peut_etre_rembourse %}
-                                        <a href="{% url 'paiement:rembourser' paiement_id=p.id %}"
-                                           class="btn btn-xs btn-ghost join-item text-accent" title="Rembourser">
-                                            ↩
-                                        </a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        {% if paginator.num_pages > 1 %}
-        <nav class="flex justify-center mt-6">
-            <div class="join">
-                {% if paiements.has_previous %}
-                <a href="?page={{ paiements.previous_page_number }}" class="join-item btn btn-sm">«</a>
-                {% else %}
-                <button class="join-item btn btn-sm btn-disabled">«</button>
-                {% endif %}
-                <button class="join-item btn btn-sm">{{ paiements.number }} / {{ paginator.num_pages }}</button>
-                {% if paiements.has_next %}
-                <a href="?page={{ paiements.next_page_number }}" class="join-item btn btn-sm">»</a>
-                {% else %}
-                <button class="join-item btn btn-sm btn-disabled">»</button>
-                {% endif %}
-            </div>
-        </nav>
-        {% endif %}
-
-        {% else %}
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body items-center text-center py-12">
-                <div class="text-7xl mb-3">💰</div>
-                <h3 class="card-title">Aucun paiement</h3>
-                <p class="text-base-content/70">Aucun paiement ne correspond aux filtres sélectionnés.</p>
-            </div>
-        </div>
-        {% endif %}
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span>
+        <span class="text-accent">Paiements</span>
+      </nav>
+      <p class="eyebrow text-accent mb-2">Trésorerie</p>
+      <h1 class="font-display text-3xl lg:text-4xl font-light">Tous les paiements</h1>
+      <p class="text-sm text-base-100/60 mt-2 font-mono">Vue globale des transactions sur la plateforme</p>
     </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    <!-- KPIs -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden mb-8">
+      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Total</p>
+          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.total }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Transactions</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">Réussis</p>
+          <p class="font-display text-4xl font-medium text-success">{{ stats.reussis }}</p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">
+            {% if stats.total > 0 %}{% widthratio stats.reussis stats.total 100 %}% taux{% endif %}
+          </p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">CA brut</p>
+          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.ca_total|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">FCFA encaissés</p>
+        </div>
+        <div class="p-6 lg:p-7">
+          <p class="eyebrow mb-2">CA net</p>
+          <p class="font-display text-4xl font-medium text-accent font-mono-num">{{ stats.ca_net|floatformat:0 }}<span class="text-xl ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Après remb. (-{{ stats.rembourses|floatformat:0 }})</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="bg-sable-50 border border-foret-100/60 rounded-3xl p-6 mb-6">
+      <p class="eyebrow mb-4">Filtrer</p>
+      <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Recherche</label>
+          <input type="text" name="q" value="{{ filtre_form.q.value|default:'' }}" placeholder="Réf, n° résa, n° tél…"
+                 class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Statut</label>
+          <select name="statut" class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+            {% for value, label in filtre_form.statut.field.choices %}
+            <option value="{{ value }}" {% if filtre_form.statut.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Moyen</label>
+          <select name="moyen" class="w-full bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+            <option value="">Tous</option>
+            {% for m in filtre_form.moyen.field.queryset %}
+            <option value="{{ m.pk }}" {% if filtre_form.moyen.value|stringformat:'s' == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Période</label>
+          <div class="flex gap-1">
+            <input type="date" name="date_debut" value="{{ filtre_form.date_debut.value|date:'Y-m-d'|default:'' }}"
+                   class="w-1/2 bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-2 py-2.5 text-xs font-mono focus:outline-none">
+            <input type="date" name="date_fin" value="{{ filtre_form.date_fin.value|date:'Y-m-d'|default:'' }}"
+                   class="w-1/2 bg-base-100 border border-foret-100/60 focus:border-foret-700 rounded-xl px-2 py-2.5 text-xs font-mono focus:outline-none">
+          </div>
+        </div>
+
+        <div class="md:col-span-5 flex justify-end gap-3 pt-2 border-t border-foret-100/60">
+          <a href="{% url 'paiement:admin_paiements' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3 py-1.5">Réinitialiser</a>
+          <button type="submit" class="bg-foret-900 text-base-100 rounded-full px-6 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">Filtrer</button>
+        </div>
+      </form>
+    </div>
+
+    {% if paiements %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-5 py-3 text-left">Référence</th>
+              <th class="px-3 py-3 text-left">Date</th>
+              <th class="px-3 py-3 text-left">Type</th>
+              <th class="px-3 py-3 text-left">Réservation</th>
+              <th class="px-3 py-3 text-left">Moyen</th>
+              <th class="px-3 py-3 text-right">Montant</th>
+              <th class="px-3 py-3 text-left">Statut</th>
+              <th class="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for p in paiements %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-5 py-4">
+                <p class="font-mono text-xs text-foret-900">{{ p.reference_interne }}</p>
+                {% if p.reference_externe %}
+                <p class="text-[10px] text-foret-700/50 font-mono truncate max-w-[140px]" title="{{ p.reference_externe }}">{{ p.reference_externe }}</p>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4 text-xs text-foret-700">
+                <p class="font-mono-num">{{ p.created_at|date:"d/m/y" }}</p>
+                <p class="text-foret-700/60">{{ p.created_at|time:"H:i" }}</p>
+              </td>
+              <td class="px-3 py-4">
+                {% if p.type_transaction == 'paiement' %}
+                <span class="badge-stamp text-info border-info/40 text-[10px]">Paiement</span>
+                {% else %}
+                <span class="badge-stamp text-accent border-accent/40 text-[10px]">Remb.</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4 text-xs">
+                <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}" class="font-mono text-foret-900 hover:text-accent underline decoration-dotted underline-offset-4">{{ p.reservation.numero }}</a>
+                <p class="text-foret-700/60 truncate max-w-[140px]">{{ p.reservation.touriste.user.nom_complet }}</p>
+              </td>
+              <td class="px-3 py-4 text-xs text-foret-900">{{ p.moyen.libelle|truncatechars:18 }}</td>
+              <td class="px-3 py-4 text-right font-mono-num font-semibold text-foret-900">
+                {% if p.type_transaction == 'remboursement' %}<span class="text-accent">-</span>{% endif %}
+                {{ p.montant|floatformat:0 }}
+              </td>
+              <td class="px-3 py-4">
+                {% if p.statut == 'reussi' %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Réussi</span>
+                {% elif p.statut == 'echoue' %}
+                <span class="badge-stamp text-error border-error/40 text-[10px]">Échec</span>
+                {% elif p.statut == 'en_cours' %}
+                <span class="badge-stamp text-warning border-warning/40 text-[10px]">Attente</span>
+                {% elif p.statut == 'rembourse' %}
+                <span class="badge-stamp text-info border-info/40 text-[10px]">Remboursé</span>
+                {% else %}
+                <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">{{ p.get_statut_display|truncatechars:8 }}</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-4 text-right text-[10px] uppercase tracking-wider">
+                <a href="{% url 'reservation:detail_reservation' reservation_id=p.reservation.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Voir</a>
+                {% if p.peut_etre_rembourse %}
+                · <a href="{% url 'paiement:rembourser' paiement_id=p.id %}" class="text-accent hover:underline decoration-dotted underline-offset-4">Rembourser</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <nav class="flex items-center justify-center gap-2 mt-8">
+      {% if paiements.has_previous %}
+      <a href="?page={{ paiements.previous_page_number }}" class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition">←</a>
+      {% else %}<span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">←</span>{% endif %}
+      <span class="px-5 text-sm font-mono"><span class="text-foret-900 font-semibold">{{ paiements.number }}</span> <span class="text-foret-700/40">/</span> <span class="text-foret-700/60">{{ paginator.num_pages }}</span></span>
+      {% if paiements.has_next %}
+      <a href="?page={{ paiements.next_page_number }}" class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/60 hover:border-foret-900 hover:bg-foret-900 hover:text-base-100 transition">→</a>
+      {% else %}<span class="w-11 h-11 grid place-items-center rounded-full border border-foret-100/30 text-foret-700/30">→</span>{% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◯</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun paiement</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">Aucun paiement ne correspond aux filtres sélectionnés.</p>
+    </div>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

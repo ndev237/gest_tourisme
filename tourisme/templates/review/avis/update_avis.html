@@ -1,10 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--
+  Modifier un avis — note + titre + commentaire pré-remplis.
+-->
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Modifier mon avis{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'review:liste_avis' %}" class="hover:text-foret-900">Mes avis</a>
+      <span>/</span>
+      <span class="text-accent">Modifier</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Édition</p>
+        <h1 class="relative font-display text-2xl font-light">{{ avis.site.nom }}</h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" x-data="{ note: {{ form.note.value|default:avis.note }}, hover: 0 }" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-3">Votre note <span class="text-error">*</span></label>
+            <div class="flex items-center gap-2">
+              <template x-for="i in 5">
+                <button type="button" @click="note = i" @mouseenter="hover = i" @mouseleave="hover = 0"
+                        class="text-4xl transition-transform hover:scale-110"
+                        :class="(hover >= i || (hover === 0 && note >= i)) ? 'text-accent' : 'text-foret-100'">
+                  ★
+                </button>
+              </template>
+              <span class="ml-3 text-xs font-mono uppercase tracking-wider text-foret-700">
+                <span x-text="note"></span>/5
+              </span>
+            </div>
+            <input type="hidden" name="note" x-model.number="note" required>
+          </div>
+
+          <div>
+            <label for="id_titre" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Titre</label>
+            <input type="text" name="titre" id="id_titre" value="{{ form.titre.value|default:avis.titre|default:'' }}" maxlength="120"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <div>
+            <label for="id_commentaire" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Votre récit <span class="text-error">*</span></label>
+            <textarea name="commentaire" id="id_commentaire" rows="6" required minlength="20" maxlength="1500"
+                      class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition
+                             {% if form.commentaire.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">{{ form.commentaire.value|default:avis.commentaire }}</textarea>
+            {% if form.commentaire.errors %}<p class="mt-1 text-xs text-error">{{ form.commentaire.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="bg-warning/10 border border-warning/40 rounded-2xl p-4 flex gap-3 text-sm text-foret-900">
+            <span class="font-mono text-warning">!</span>
+            <p>Toute modification repasse en modération sous 24h.</p>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'review:liste_avis' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

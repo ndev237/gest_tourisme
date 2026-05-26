@@ -196,6 +196,19 @@
               <p class="font-display text-base text-accent">Visite effectuée</p>
               <p class="text-xs text-base-100/60 mt-1">Merci de partager votre expérience</p>
             </div>
+
+            <!-- Bouton "Laisser un avis" si pas encore fait -->
+            {% if reservation.avis %}
+              <a href="{% url 'reviews:update_avis' avis_id=reservation.avis.id %}"
+                 class="btn-carnet block w-full mt-3 border border-base-100/40 text-base-100 text-center rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
+                ★ Modifier mon avis
+              </a>
+            {% else %}
+              <a href="{% url 'reviews:add_avis' reservation_id=reservation.id %}"
+                 class="btn-carnet block w-full mt-3 bg-accent text-foret-900 text-center rounded-full px-6 py-4 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+                ★ Laisser un avis
+              </a>
+            {% endif %}
             {% endif %}
 
             {% if reservation.peut_etre_annulee %}

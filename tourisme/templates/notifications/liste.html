@@ -1,0 +1,122 @@
+<!--
+  Page Mes notifications — liste complète avec filtres et tout-marquer-lu.
+-->
+{% extends "base.html" %}
+
+{% block title %}Mes notifications — Tourisme Cameroun{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen">
+
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'home' %}" class="hover:text-accent">Accueil</a>
+        <span>/</span>
+        <span class="text-accent">Notifications</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Centre de notifications</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Mes notifications</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            {% if nb_non_lues %}<span class="text-accent">{{ nb_non_lues }}</span> non lue{{ nb_non_lues|pluralize }}{% else %}Tout est lu{% endif %}
+          </p>
+        </div>
+        {% if nb_non_lues %}
+        <form method="post" action="{% url 'notifications:marquer_toutes_lues' %}" class="self-start">
+          {% csrf_token %}
+          <button type="submit" class="bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+            ✓ Tout marquer lu
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    <!-- Filtres -->
+    <div class="flex items-center gap-2 mb-6 text-xs font-mono uppercase tracking-wider">
+      <a href="?filtre=toutes" class="px-4 py-2 rounded-full border transition
+                                      {% if filtre == 'toutes' %}bg-foret-900 text-base-100 border-foret-900{% else %}border-foret-100/60 text-foret-700 hover:border-foret-900 hover:text-foret-900{% endif %}">
+        Toutes
+      </a>
+      <a href="?filtre=non_lues" class="px-4 py-2 rounded-full border transition
+                                       {% if filtre == 'non_lues' %}bg-foret-900 text-base-100 border-foret-900{% else %}border-foret-100/60 text-foret-700 hover:border-foret-900 hover:text-foret-900{% endif %}">
+        Non lues
+      </a>
+      <a href="?filtre=lues" class="px-4 py-2 rounded-full border transition
+                                   {% if filtre == 'lues' %}bg-foret-900 text-base-100 border-foret-900{% else %}border-foret-100/60 text-foret-700 hover:border-foret-900 hover:text-foret-900{% endif %}">
+        Lues
+      </a>
+    </div>
+
+    {% if notifications %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <ul class="divide-y divide-foret-100/60">
+        {% for n in notifications %}
+        <li class="hover:bg-sable-50/60 transition {% if n.statut != 'lue' %}bg-accent/5{% endif %}">
+          <form method="post" action="{% url 'notifications:marquer_lue' notif_id=n.id %}">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-left px-7 py-5 flex items-start gap-4">
+              <!-- Pastille statut -->
+              <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-2
+                           {% if n.statut == 'lue' %}bg-foret-100{% else %}bg-accent{% endif %}"></span>
+
+              <!-- Icône par type -->
+              <span class="w-10 h-10 rounded-xl grid place-items-center font-mono text-base flex-shrink-0
+                           {% if n.type == 'res_creee' or n.type == 'res_confirmee' %}bg-success/15 text-success
+                           {% elif n.type == 'res_annulee' %}bg-error/15 text-error
+                           {% elif n.type == 'paiement_reussi' %}bg-success/15 text-success
+                           {% elif n.type == 'paiement_echoue' %}bg-error/15 text-error
+                           {% elif n.type == 'remboursement' %}bg-info/15 text-info
+                           {% elif n.type == 'avis_recu' or n.type == 'avis_approuve' %}bg-accent/15 text-accent
+                           {% elif n.type == 'reponse_gest' %}bg-info/15 text-info
+                           {% elif n.type == 'rappel_visite' %}bg-warning/15 text-warning
+                           {% else %}bg-sable-100 text-foret-700{% endif %}">
+                {% if n.type == 'paiement_reussi' or n.type == 'res_confirmee' %}✓
+                {% elif n.type == 'paiement_echoue' or n.type == 'res_annulee' %}×
+                {% elif n.type == 'avis_recu' or n.type == 'avis_approuve' %}★
+                {% elif n.type == 'rappel_visite' %}⏱
+                {% elif n.type == 'remboursement' %}↻
+                {% else %}◇{% endif %}
+              </span>
+
+              <div class="flex-1 min-w-0">
+                <p class="font-display text-base text-foret-900">{{ n.sujet }}</p>
+                <p class="text-sm text-foret-700/80 mt-1 leading-relaxed">{{ n.contenu }}</p>
+                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-2">
+                  {{ n.created_at|timesince }} avant
+                  {% if n.statut == 'lue' %} · Lu{% endif %}
+                </p>
+              </div>
+
+              {% if n.url_action %}
+              <span class="text-foret-700/40 text-xs uppercase tracking-wider mt-2">→</span>
+              {% endif %}
+            </button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◌</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">
+        {% if filtre == 'non_lues' %}Tout est à jour
+        {% elif filtre == 'lues' %}Aucune notification lue
+        {% else %}Aucune notification{% endif %}
+      </h3>
+      <p class="text-foret-700/70 max-w-md mx-auto">
+        {% if filtre == 'non_lues' %}Vous avez lu toutes vos notifications. Bravo !
+        {% else %}Les nouvelles notifications apparaîtront ici dès qu'un événement vous concerne (paiement, avis, réponse…).{% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

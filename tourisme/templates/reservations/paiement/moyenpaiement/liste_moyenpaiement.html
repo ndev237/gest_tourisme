@@ -1,143 +1,128 @@
 <!--
- ============================================================
-   LISTE MOYENS DE PAIEMENT (admin) :
-   paiements/moyenpaiement/liste_moyenpaiement.html
-   ============================================================ 
+  Liste moyens de paiement (admin) — tableau détaillé avec stats.
 -->
 {% extends "base.html" %}
 
 {% block title %}Moyens de paiement — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-6">
-    <div class="container mx-auto px-4 max-w-6xl">
+<section class="bg-sable-50 min-h-screen">
 
-        <div class="mb-4 flex items-center gap-2">
-            <span class="badge badge-error">Administration</span>
+  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
+        <span>/</span>
+        <a href="{% url 'paiement:admin_paiements' %}" class="hover:text-accent">Paiements</a>
+        <span>/</span>
+        <span class="text-accent">Moyens</span>
+      </nav>
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Configuration</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">Moyens de paiement</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            <span class="text-accent">{{ stats.actifs }}</span> actifs sur {{ stats.total }} configurés
+          </p>
         </div>
-
-        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-            <div>
-                <nav class="text-sm breadcrumbs">
-                    <ul>
-                        <li><a href="{% url 'compte:dashbord_admin' %}">Dashboard admin</a></li>
-                        <li>Moyens de paiement</li>
-                    </ul>
-                </nav>
-                <h1 class="font-display text-3xl font-bold mt-1">💳 Moyens de paiement</h1>
-                <p class="text-base-content/70 mt-1">
-                    {{ stats.actifs }} actifs sur {{ stats.total }} configurés
-                </p>
-            </div>
-
-            <a href="{% url 'paiement:add_moyenpaiement' %}" class="btn btn-primary">
-                ➕ Ajouter un moyen
-            </a>
-        </header>
-
-        {% if moyens %}
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Ordre</th>
-                                <th>Libellé</th>
-                                <th>Type</th>
-                                <th>Provider</th>
-                                <th>Limites</th>
-                                <th>Frais</th>
-                                <th>Stats</th>
-                                <th>État</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for m in moyens %}
-                            <tr class="hover">
-                                <td><span class="badge badge-neutral">{{ m.ordre_affichage }}</span></td>
-                                <td>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-2xl">
-                                            {% if m.provider == 'mtn_momo' %}📱
-                                            {% elif m.provider == 'orange_money' %}🟠
-                                            {% elif m.provider == 'stripe' %}💳
-                                            {% elif m.provider == 'flutterwave' %}🌍
-                                            {% elif m.provider == 'manuel' %}💵
-                                            {% else %}💰{% endif %}
-                                        </span>
-                                        <div>
-                                            <p class="font-semibold text-sm">{{ m.libelle }}</p>
-                                            <p class="text-xs text-base-content/60 font-mono">{{ m.code }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge badge-outline badge-sm">{{ m.get_type_display }}</span>
-                                </td>
-                                <td class="text-xs">{{ m.get_provider_display }}</td>
-                                <td class="text-xs font-mono">
-                                    {{ m.montant_min|floatformat:0 }}<br>
-                                    → {{ m.montant_max|floatformat:0 }}
-                                </td>
-                                <td class="text-xs">
-                                    {% if m.frais_pourcentage or m.frais_fixe %}
-                                        {% if m.frais_pourcentage %}{{ m.frais_pourcentage }}%{% endif %}
-                                        {% if m.frais_pourcentage and m.frais_fixe %}<br>+{% endif %}
-                                        {% if m.frais_fixe %}{{ m.frais_fixe|floatformat:0 }}{% endif %}
-                                    {% else %}
-                                        <span class="text-success">Gratuit</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-xs">
-                                    <p>{{ m.nb_paiements }} total</p>
-                                    {% if m.nb_paiements > 0 %}
-                                    <p class="text-success">{{ m.nb_reussis }} OK</p>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if m.est_actif %}
-                                        <span class="badge badge-success badge-sm">✓ Actif</span>
-                                    {% else %}
-                                        <span class="badge badge-ghost badge-sm">Inactif</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-right">
-                                    <div class="join">
-                                        <a href="{% url 'paiement:update_moyenpaiement' moyen_id=m.id %}"
-                                           class="btn btn-sm btn-ghost join-item" title="Modifier">
-                                            ✏️
-                                        </a>
-                                        <a href="{% url 'paiement:delete_moyenpaiement' moyen_id=m.id %}"
-                                           class="btn btn-sm btn-ghost join-item text-error" title="Supprimer">
-                                            🗑
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        {% else %}
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body items-center text-center py-12">
-                <div class="text-7xl mb-3">💳</div>
-                <h3 class="card-title">Aucun moyen de paiement</h3>
-                <p class="text-base-content/70 mb-4 max-w-md">
-                    Configurez au moins un moyen de paiement (MTN MoMo, Orange Money, Stripe, ou Cash)
-                    pour que les touristes puissent payer leurs réservations.
-                </p>
-                <a href="{% url 'paiement:add_moyenpaiement' %}" class="btn btn-primary">
-                    ➕ Premier moyen
-                </a>
-            </div>
-        </div>
-        {% endif %}
+        <a href="{% url 'paiement:add_moyenpaiement' %}"
+           class="btn-carnet bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition self-start">
+          + Nouveau moyen
+        </a>
+      </div>
     </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
+
+    {% if moyens %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+            <tr>
+              <th class="px-5 py-3 text-left">Ordre</th>
+              <th class="px-3 py-3 text-left">Moyen</th>
+              <th class="px-3 py-3 text-left">Type</th>
+              <th class="px-3 py-3 text-left">Provider</th>
+              <th class="px-3 py-3 text-right">Limites (FCFA)</th>
+              <th class="px-3 py-3 text-left">Frais</th>
+              <th class="px-3 py-3 text-right">Stats</th>
+              <th class="px-3 py-3 text-left">État</th>
+              <th class="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-foret-100/60">
+            {% for m in moyens %}
+            <tr class="hover:bg-sable-50/60 transition">
+              <td class="px-5 py-4 font-mono-num text-foret-900">{{ m.ordre_affichage }}</td>
+              <td class="px-3 py-4">
+                <div class="flex items-center gap-3">
+                  <span class="w-10 h-10 rounded-xl bg-foret-900 text-accent grid place-items-center font-display text-sm font-semibold flex-shrink-0">
+                    {{ m.libelle|first|upper }}
+                  </span>
+                  <div>
+                    <p class="font-display text-base text-foret-900">{{ m.libelle }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">{{ m.code }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-4">
+                <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">{{ m.get_type_display }}</span>
+              </td>
+              <td class="px-3 py-4 text-xs text-foret-700">{{ m.get_provider_display }}</td>
+              <td class="px-3 py-4 text-right font-mono-num text-xs text-foret-700">
+                <p>{{ m.montant_min|floatformat:0 }}</p>
+                <p class="text-foret-700/60">→ {{ m.montant_max|floatformat:0 }}</p>
+              </td>
+              <td class="px-3 py-4 text-xs">
+                {% if m.frais_pourcentage or m.frais_fixe %}
+                <span class="font-mono-num text-foret-900">
+                  {% if m.frais_pourcentage %}{{ m.frais_pourcentage }}%{% endif %}{% if m.frais_pourcentage and m.frais_fixe %} + {% endif %}{% if m.frais_fixe %}{{ m.frais_fixe|floatformat:0 }}{% endif %}
+                </span>
+                {% else %}
+                <span class="text-success font-mono uppercase tracking-wider text-[10px]">Gratuit</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4 text-right text-xs">
+                <p class="font-mono-num text-foret-900">{{ m.nb_paiements }}</p>
+                {% if m.nb_paiements > 0 %}
+                <p class="text-[10px] font-mono uppercase tracking-wider text-success">{{ m.nb_reussis }} OK</p>
+                {% endif %}
+              </td>
+              <td class="px-3 py-4">
+                {% if m.est_actif %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Actif</span>
+                {% else %}
+                <span class="badge-stamp text-foret-700/40 border-foret-700/20 text-[10px]">Inactif</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-4 text-right">
+                <div class="inline-flex gap-2 text-[10px] uppercase tracking-wider">
+                  <a href="{% url 'paiement:update_moyenpaiement' moyen_id=m.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+                  <a href="{% url 'paiement:delete_moyenpaiement' moyen_id=m.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun moyen configuré</h3>
+      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
+        Configurez au moins un moyen de paiement (MTN MoMo, Orange Money, Stripe, ou Cash) pour
+        que les touristes puissent payer leurs réservations.
+      </p>
+      <a href="{% url 'paiement:add_moyenpaiement' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Premier moyen
+      </a>
+    </div>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

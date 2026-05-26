@@ -1,231 +1,175 @@
 <!--
- ============================================================
-   AJOUTER MOYEN PAIEMENT (admin) :
-   paiements/moyenpaiement/add_moyenpaiement.html
-   ============================================================ 
+  Ajouter moyen de paiement (admin) — formulaire complet : identification, limites, frais.
 -->
 {% extends "base.html" %}
 
 {% block title %}Nouveau moyen de paiement — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-6">
-    <div class="container mx-auto px-4 max-w-3xl">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-3xl mx-auto px-4">
 
-        <nav class="text-sm breadcrumbs mb-4">
-            <ul>
-                <li><a href="{% url 'paiement:liste_moyenpaiement' %}">Moyens de paiement</a></li>
-                <li>Nouveau</li>
-            </ul>
-        </nav>
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'paiement:liste_moyenpaiement' %}" class="hover:text-foret-900">Moyens de paiement</a>
+      <span>/</span>
+      <span class="text-accent">Nouveau</span>
+    </nav>
 
-        <header class="mb-6">
-            <h1 class="font-display text-3xl font-bold">➕ Nouveau moyen de paiement</h1>
-        </header>
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Configuration paiement</p>
+        <h1 class="relative font-display text-2xl font-light">Nouveau moyen de paiement</h1>
+      </div>
 
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
+      <div class="p-8 lg:p-10">
 
-                {% if form.non_field_errors %}
-                <div class="alert alert-error">
-                    <span>{{ form.non_field_errors.0 }}</span>
-                </div>
-                {% endif %}
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
 
-                <form method="post" class="space-y-4">
-                    {% csrf_token %}
+        <form method="post" class="space-y-6">
+          {% csrf_token %}
 
-                    <!-- Identification -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label for="id_libelle" class="label">
-                                <span class="label-text font-semibold">Libellé <span class="text-error">*</span></span>
-                            </label>
-                            <input type="text" name="libelle" id="id_libelle"
-                                   value="{{ form.libelle.value|default:'' }}"
-                                   required maxlength="80"
-                                   placeholder="Ex: MTN Mobile Money"
-                                   class="input input-bordered {% if form.libelle.errors %}input-error{% endif %}">
-                            {% if form.libelle.errors %}
-                                <label class="label"><span class="label-text-alt text-error">{{ form.libelle.errors.0 }}</span></label>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-control">
-                            <label for="id_code" class="label">
-                                <span class="label-text font-semibold">Code interne <span class="text-error">*</span></span>
-                            </label>
-                            <input type="text" name="code" id="id_code"
-                                   value="{{ form.code.value|default:'' }}"
-                                   required maxlength="30"
-                                   placeholder="mtn_momo"
-                                   class="input input-bordered font-mono {% if form.code.errors %}input-error{% endif %}">
-                            {% if form.code.errors %}
-                                <label class="label"><span class="label-text-alt text-error">{{ form.code.errors.0 }}</span></label>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Type & Provider -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label for="id_type" class="label">
-                                <span class="label-text font-semibold">Type <span class="text-error">*</span></span>
-                            </label>
-                            <select name="type" id="id_type" required class="select select-bordered">
-                                {% for value, label in form.type.field.choices %}
-                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="form-control">
-                            <label for="id_provider" class="label">
-                                <span class="label-text font-semibold">Provider <span class="text-error">*</span></span>
-                            </label>
-                            <select name="provider" id="id_provider" required class="select select-bordered">
-                                {% for value, label in form.provider.field.choices %}
-                                <option value="{{ value }}" {% if form.provider.value == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="form-control">
-                        <label for="id_description" class="label">
-                            <span class="label-text font-semibold">Description publique</span>
-                        </label>
-                        <textarea name="description" id="id_description" rows="2"
-                                  placeholder="Affichée aux touristes lors du choix..."
-                                  class="textarea textarea-bordered">{{ form.description.value|default:'' }}</textarea>
-                    </div>
-
-                    <!-- Instructions -->
-                    <div class="form-control">
-                        <label for="id_instructions" class="label">
-                            <span class="label-text font-semibold">Instructions d'utilisation</span>
-                        </label>
-                        <textarea name="instructions" id="id_instructions" rows="3"
-                                  placeholder="Affichées sur la page d'attente après initiation..."
-                                  class="textarea textarea-bordered">{{ form.instructions.value|default:'' }}</textarea>
-                    </div>
-
-                    <!-- Devises supportées -->
-                    <div class="form-control">
-                        <label for="id_devises_supportees" class="label">
-                            <span class="label-text font-semibold">Devises supportées (JSON)</span>
-                        </label>
-                        <input type="text" name="devises_supportees" id="id_devises_supportees"
-                               value='{{ form.devises_supportees.value|default:"[\"XAF\"]" }}'
-                               class="input input-bordered font-mono">
-                        <label class="label">
-                            <span class="label-text-alt">Format JSON : ["XAF", "EUR", "USD"]</span>
-                        </label>
-                    </div>
-
-                    <!-- Limites de montant -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label for="id_montant_min" class="label">
-                                <span class="label-text font-semibold">Montant min (FCFA)</span>
-                            </label>
-                            <input type="number" name="montant_min" id="id_montant_min"
-                                   value="{{ form.montant_min.value|default:'100' }}"
-                                   min="0" step="100"
-                                   class="input input-bordered font-mono {% if form.montant_min.errors %}input-error{% endif %}">
-                            {% if form.montant_min.errors %}
-                                <label class="label"><span class="label-text-alt text-error">{{ form.montant_min.errors.0 }}</span></label>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-control">
-                            <label for="id_montant_max" class="label">
-                                <span class="label-text font-semibold">Montant max (FCFA)</span>
-                            </label>
-                            <input type="number" name="montant_max" id="id_montant_max"
-                                   value="{{ form.montant_max.value|default:'5000000' }}"
-                                   min="0" step="1000"
-                                   class="input input-bordered font-mono">
-                        </div>
-                    </div>
-
-                    <!-- Frais -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label for="id_frais_pourcentage" class="label">
-                                <span class="label-text font-semibold">Frais en %</span>
-                            </label>
-                            <div class="join">
-                                <input type="number" name="frais_pourcentage" id="id_frais_pourcentage"
-                                       value="{{ form.frais_pourcentage.value|default:'0' }}"
-                                       min="0" max="100" step="0.01"
-                                       class="input input-bordered join-item flex-1">
-                                <span class="btn btn-disabled join-item">%</span>
-                            </div>
-                        </div>
-
-                        <div class="form-control">
-                            <label for="id_frais_fixe" class="label">
-                                <span class="label-text font-semibold">Frais fixe (FCFA)</span>
-                            </label>
-                            <input type="number" name="frais_fixe" id="id_frais_fixe"
-                                   value="{{ form.frais_fixe.value|default:'0' }}"
-                                   min="0" step="50"
-                                   class="input input-bordered">
-                        </div>
-                    </div>
-
-                    <!-- Affichage -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label for="id_icone" class="label">
-                                <span class="label-text font-semibold">Icône</span>
-                            </label>
-                            <input type="text" name="icone" id="id_icone"
-                                   value="{{ form.icone.value|default:'' }}"
-                                   placeholder="📱 (emoji) ou nom"
-                                   class="input input-bordered">
-                        </div>
-
-                        <div class="form-control">
-                            <label for="id_ordre_affichage" class="label">
-                                <span class="label-text font-semibold">Ordre d'affichage</span>
-                            </label>
-                            <input type="number" name="ordre_affichage" id="id_ordre_affichage"
-                                   value="{{ form.ordre_affichage.value|default:'0' }}"
-                                   min="0" class="input input-bordered">
-                        </div>
-                    </div>
-
-                    <!-- Toggle actif -->
-                    <div class="form-control">
-                        <label class="label cursor-pointer justify-start gap-3 bg-base-200 rounded-lg p-3">
-                            <input type="checkbox" name="est_actif" value="on"
-                                   {% if form.est_actif.value|default:True %}checked{% endif %}
-                                   class="toggle toggle-success">
-                            <div>
-                                <span class="label-text font-semibold">✓ Activer ce moyen</span>
-                                <p class="text-xs text-base-content/60">Visible par les touristes</p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div class="card-actions justify-end pt-4 border-t border-base-200">
-                        <a href="{% url 'paiement:liste_moyenpaiement' %}" class="btn btn-ghost">
-                            Annuler
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            ✅ Créer le moyen
-                        </button>
-                    </div>
-                </form>
+          <!-- Identification -->
+          <fieldset>
+            <legend class="eyebrow mb-4">Identification</legend>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_libelle" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Libellé <span class="text-error">*</span></label>
+                <input type="text" name="libelle" id="id_libelle" value="{{ form.libelle.value|default:'' }}" required maxlength="80"
+                       placeholder="MTN Mobile Money"
+                       class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                              {% if form.libelle.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+                {% if form.libelle.errors %}<p class="mt-1.5 text-xs text-error">{{ form.libelle.errors.0 }}</p>{% endif %}
+              </div>
+              <div>
+                <label for="id_code" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Code interne <span class="text-error">*</span></label>
+                <input type="text" name="code" id="id_code" value="{{ form.code.value|default:'' }}" required maxlength="30"
+                       placeholder="mtn_momo"
+                       class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                              {% if form.code.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+                {% if form.code.errors %}<p class="mt-1.5 text-xs text-error">{{ form.code.errors.0 }}</p>{% endif %}
+              </div>
             </div>
-        </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow mb-4">Type & provider</legend>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_type" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Type <span class="text-error">*</span></label>
+                <select name="type" id="id_type" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  {% for value, label in form.type.field.choices %}
+                  <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="id_provider" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Provider <span class="text-error">*</span></label>
+                <select name="provider" id="id_provider" required class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  {% for value, label in form.provider.field.choices %}
+                  <option value="{{ value }}" {% if form.provider.value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow mb-4">Contenu</legend>
+            <div class="space-y-4">
+              <div>
+                <label for="id_description" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Description publique</label>
+                <textarea name="description" id="id_description" rows="2"
+                          placeholder="Affichée aux touristes lors du choix…"
+                          class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.description.value|default:'' }}</textarea>
+              </div>
+              <div>
+                <label for="id_instructions" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Instructions d'utilisation</label>
+                <textarea name="instructions" id="id_instructions" rows="3"
+                          placeholder="Affichées sur la page d'attente après initiation…"
+                          class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition">{{ form.instructions.value|default:'' }}</textarea>
+              </div>
+              <div>
+                <label for="id_devises_supportees" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Devises supportées (JSON)</label>
+                <input type="text" name="devises_supportees" id="id_devises_supportees" value='{{ form.devises_supportees.value|default:"[\"XAF\"]" }}'
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Format : ["XAF", "EUR", "USD"]</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow mb-4">Limites & frais</legend>
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="id_montant_min" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Montant min (FCFA)</label>
+                <input type="number" name="montant_min" id="id_montant_min" value="{{ form.montant_min.value|default:'100' }}" min="0" step="100"
+                       class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                              {% if form.montant_min.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+                {% if form.montant_min.errors %}<p class="mt-1.5 text-xs text-error">{{ form.montant_min.errors.0 }}</p>{% endif %}
+              </div>
+              <div>
+                <label for="id_montant_max" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Montant max (FCFA)</label>
+                <input type="number" name="montant_max" id="id_montant_max" value="{{ form.montant_max.value|default:'5000000' }}" min="0" step="1000"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_frais_pourcentage" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Frais en %</label>
+                <div class="flex">
+                  <input type="number" name="frais_pourcentage" id="id_frais_pourcentage" value="{{ form.frais_pourcentage.value|default:'0' }}" min="0" max="100" step="0.01"
+                         class="flex-1 bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-l-xl px-4 py-3 text-sm font-mono-num focus:outline-none transition">
+                  <span class="bg-foret-900 text-base-100 rounded-r-xl px-4 py-3 text-sm font-mono flex items-center">%</span>
+                </div>
+              </div>
+              <div>
+                <label for="id_frais_fixe" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Frais fixe (FCFA)</label>
+                <input type="number" name="frais_fixe" id="id_frais_fixe" value="{{ form.frais_fixe.value|default:'0' }}" min="0" step="50"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow mb-4">Affichage</legend>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_icone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Icône</label>
+                <input type="text" name="icone" id="id_icone" value="{{ form.icone.value|default:'' }}" placeholder="phone, card…"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+              <div>
+                <label for="id_ordre_affichage" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ordre d'affichage</label>
+                <input type="number" name="ordre_affichage" id="id_ordre_affichage" value="{{ form.ordre_affichage.value|default:'0' }}" min="0"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+          </fieldset>
+
+          <label class="flex items-start gap-4 cursor-pointer bg-sable-50 border border-foret-100/60 rounded-2xl p-4">
+            <input type="checkbox" name="est_actif" value="on" {% if form.est_actif.value|default:True %}checked{% endif %}
+                   class="w-12 h-6 rounded-full appearance-none bg-foret-100/60 checked:bg-success transition cursor-pointer relative mt-0.5
+                          after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:rounded-full after:bg-base-100 after:transition
+                          checked:after:translate-x-6">
+            <div>
+              <p class="font-display text-base text-foret-900">Activer ce moyen</p>
+              <p class="text-xs text-foret-700/60 mt-1">Visible par les touristes au moment du paiement</p>
+            </div>
+          </label>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'paiement:liste_moyenpaiement' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Créer le moyen
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </section>
 {% endblock %}

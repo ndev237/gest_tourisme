@@ -22,6 +22,7 @@ urlpatterns = [
     # A. PUBLIQUES
     # =========================================================
     path('carte/', views.carte_view, name='carte'),
+    path('regions/', views.liste_regions_publique_view, name='liste_regions_publique'),
 
     # =========================================================
     # B. ADMIN — REGIONS

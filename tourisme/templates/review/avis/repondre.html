@@ -1,0 +1,85 @@
+<!--
+  Réponse du gestionnaire à un avis — affichée publiquement sous l'avis.
+-->
+{% extends "base.html" %}
+
+{% block title %}Répondre à un avis — {{ avis.site.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-foret-900">Dashboard</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:detail_site' slug=avis.site.slug %}" class="hover:text-foret-900">{{ avis.site.nom }}</a>
+      <span>/</span>
+      <span class="text-accent">Répondre</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Réponse gestionnaire</p>
+        <h1 class="relative font-display text-2xl font-light">{{ avis.site.nom }}</h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+
+        <!-- Rappel de l'avis -->
+        <div class="bg-sable-50 border border-foret-100/60 rounded-2xl p-5 mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-mono uppercase tracking-wider text-foret-700/70">
+              {{ avis.touriste.user.nom_complet|default:"Visiteur" }} · {{ avis.created_at|date:"d M Y" }}
+            </p>
+            <span class="text-accent">
+              {% for i in "12345"|make_list %}{% if forloop.counter <= avis.note %}★{% else %}☆{% endif %}{% endfor %}
+            </span>
+          </div>
+          {% if avis.titre %}
+          <p class="font-display text-base text-foret-900 mb-2">{{ avis.titre }}</p>
+          {% endif %}
+          <p class="text-sm text-foret-900/85 italic">« {{ avis.commentaire }} »</p>
+        </div>
+
+        {% if avis.reponse_gestionnaire %}
+        <div class="bg-info/10 border border-info/30 rounded-2xl p-4 mb-6 text-sm text-foret-900 flex gap-3">
+          <span class="font-mono text-info">i</span>
+          <p>Vous aviez déjà répondu le {{ avis.date_reponse|date:"d M Y" }}. Vous pouvez modifier votre réponse.</p>
+        </div>
+        {% endif %}
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_reponse" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Votre réponse publique</label>
+            <textarea name="reponse" id="id_reponse" rows="6" required minlength="10" maxlength="800"
+                      placeholder="Merci pour votre visite et votre retour…"
+                      class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition
+                             {% if form.reponse.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">{{ form.reponse.value|default:'' }}</textarea>
+            <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">10 à 800 caractères · Visible publiquement sous l'avis</p>
+            {% if form.reponse.errors %}<p class="mt-1 text-xs text-error">{{ form.reponse.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="bg-warning/10 border border-warning/40 rounded-2xl p-4 flex gap-3 text-sm text-foret-900">
+            <span class="font-mono text-warning">!</span>
+            <p>Restez professionnel et constructif. Une réponse argumentée vaut mieux qu'une réaction à chaud.</p>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:detail_site' slug=avis.site.slug %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Publier la réponse
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

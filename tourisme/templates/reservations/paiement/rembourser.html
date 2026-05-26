@@ -1,151 +1,134 @@
 <!--
- ============================================================
-   REMBOURSEMENT : paiements/rembourser.html
-   - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-   Admin uniquement. Crée une transaction de remboursement liée
-   au paiement source.
-
-   PÉDAGOGIE :
-   - Récap du paiement source clair
-   - Montant pré-rempli avec le total
-   - Double confirmation (motif + checkbox)
-   ============================================================ 
+  Remboursement — admin only. Récap paiement source + form de remboursement.
 -->
 {% extends "base.html" %}
 
 {% block title %}Rembourser {{ paiement.reference_interne }}{% endblock %}
 
 {% block content %}
-<section class="bg-base-200 min-h-screen py-12">
-    <div class="container mx-auto px-4 max-w-2xl">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
 
-        <nav class="text-sm breadcrumbs mb-4">
-            <ul>
-                <li><a href="{% url 'paiement:admin_paiements' %}">Paiements</a></li>
-                <li>Remboursement</li>
-            </ul>
-        </nav>
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'paiement:admin_paiements' %}" class="hover:text-foret-900">Paiements</a>
+      <span>/</span>
+      <span class="text-accent">Remboursement</span>
+    </nav>
 
-        <header class="mb-6">
-            <div class="badge badge-error mb-2">Administration</div>
-            <h1 class="font-display text-3xl font-bold">↩ Initier un remboursement</h1>
-            <p class="text-base-content/70 mt-1">
-                Pour la transaction <code>{{ paiement.reference_interne }}</code>
-            </p>
-        </header>
-
-        <!-- - -- -- Récap paiement source - -- -- -->
-        <div class="card bg-base-100 shadow-lg mb-4">
-            <div class="card-body p-4">
-                <h2 class="card-title text-base">📋 Paiement à rembourser</h2>
-
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-base-content/60">Réservation</span>
-                        <a href="{% url 'reservation:detail_reservation' reservation_id=paiement.reservation.id %}"
-                           class="link font-mono text-xs">{{ paiement.reservation.numero }}</a>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-base-content/60">Touriste</span>
-                        <span>{{ paiement.reservation.touriste.user.nom_complet }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-base-content/60">Moyen utilisé</span>
-                        <span>{{ paiement.moyen.libelle }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-base-content/60">Date du paiement</span>
-                        <span>{{ paiement.date_paiement|date:'d/m/Y à H:i' }}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-2 mt-2 border-t border-base-200">
-                        <span class="font-semibold">Montant initial</span>
-                        <span class="text-2xl font-bold text-primary font-mono">
-                            {{ paiement.montant|floatformat:0 }} {{ paiement.devise }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- - -- -- Form remboursement - -- -- -->
-        <div class="card bg-base-100 shadow-xl border-t-4 border-accent">
-            <div class="card-body">
-
-                {% if form.non_field_errors %}
-                <div class="alert alert-error">
-                    <span>⚠️</span>
-                    <div>{{ form.non_field_errors.0 }}</div>
-                </div>
-                {% endif %}
-
-                <form method="post" class="space-y-4">
-                    {% csrf_token %}
-
-                    <div class="form-control">
-                        <label for="id_montant" class="label">
-                            <span class="label-text font-semibold">Montant à rembourser <span class="text-error">*</span></span>
-                            <span class="label-text-alt">Max : {{ paiement.montant|floatformat:0 }} {{ paiement.devise }}</span>
-                        </label>
-                        <div class="join">
-                            <input type="number" name="montant" id="id_montant"
-                                   value="{{ form.montant.value|default:paiement.montant|floatformat:'0u' }}"
-                                   required min="0.01" max="{{ paiement.montant|floatformat:'0u' }}"
-                                   step="100"
-                                   class="input input-bordered join-item flex-1 font-mono {% if form.montant.errors %}input-error{% endif %}">
-                            <span class="btn btn-disabled join-item">{{ paiement.devise }}</span>
-                        </div>
-                        {% if form.montant.errors %}
-                            <label class="label"><span class="label-text-alt text-error">{{ form.montant.errors.0 }}</span></label>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-control">
-                        <label for="id_motif" class="label">
-                            <span class="label-text font-semibold">Motif <span class="text-error">*</span></span>
-                            <span class="label-text-alt">Min 10 caractères</span>
-                        </label>
-                        <textarea name="motif" id="id_motif" rows="3"
-                                  required minlength="10" maxlength="500"
-                                  placeholder="Annulation client, erreur de saisie, geste commercial..."
-                                  class="textarea textarea-bordered {% if form.motif.errors %}textarea-error{% endif %}">{{ form.motif.value|default:'' }}</textarea>
-                        {% if form.motif.errors %}
-                            <label class="label"><span class="label-text-alt text-error">{{ form.motif.errors.0 }}</span></label>
-                        {% endif %}
-                    </div>
-
-                    <div class="alert alert-warning">
-                        <span>⚠️</span>
-                        <div class="text-sm">
-                            <strong>Cette action :</strong>
-                            <ul class="list-disc list-inside mt-1 space-y-0.5">
-                                <li>Crée une transaction de type "remboursement"</li>
-                                <li>Sera transmise au provider ({{ paiement.moyen.libelle }})</li>
-                                <li>Peut prendre quelques jours à apparaître sur le compte du touriste</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label cursor-pointer justify-start gap-3 bg-base-200 rounded-lg p-3">
-                            <input type="checkbox" name="confirmation" required
-                                   class="checkbox checkbox-warning">
-                            <span class="label-text">
-                                Je confirme vouloir initier ce remboursement
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="card-actions justify-end gap-2 pt-2">
-                        <a href="{% url 'paiement:admin_paiements' %}" class="btn btn-ghost">
-                            ← Annuler
-                        </a>
-                        <button type="submit" class="btn btn-accent">
-                            ↩ Initier le remboursement
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div class="mb-8">
+      <p class="eyebrow mb-3">Administration</p>
+      <h1 class="font-display text-4xl font-light text-foret-900 leading-tight">
+        Initier un <em class="font-display-italic text-accent">remboursement</em>
+      </h1>
+      <p class="text-sm text-foret-700/70 mt-2">
+        Transaction <code class="font-mono text-foret-900">{{ paiement.reference_interne }}</code>
+      </p>
     </div>
+
+    <!-- Récap paiement source -->
+    <div class="bg-foret-900 text-base-100 rounded-3xl p-6 mb-6 relative overflow-hidden">
+      <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+      <div class="relative">
+        <p class="eyebrow text-accent mb-4">Paiement à rembourser</p>
+
+        <dl class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Réservation</dt>
+            <dd>
+              <a href="{% url 'reservation:detail_reservation' reservation_id=paiement.reservation.id %}" class="font-mono text-accent hover:text-base-100 underline decoration-dotted underline-offset-4">
+                {{ paiement.reservation.numero }}
+              </a>
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Touriste</dt>
+            <dd>{{ paiement.reservation.touriste.user.nom_complet }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Moyen</dt>
+            <dd>{{ paiement.moyen.libelle }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-base-100/60 text-xs font-mono uppercase tracking-wider">Payé le</dt>
+            <dd class="font-mono-num text-xs">{{ paiement.date_paiement|date:"d/m/Y à H:i" }}</dd>
+          </div>
+          <div class="flex justify-between items-baseline pt-3 border-t border-base-100/15">
+            <dt class="text-sm">Montant initial</dt>
+            <dd class="font-display text-2xl text-accent font-mono-num">{{ paiement.montant|floatformat:0 }} <span class="text-xs">{{ paiement.devise }}</span></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-accent"></div>
+      <div class="p-8">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_montant" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Montant à rembourser <span class="text-error">*</span>
+              <span class="text-foret-700/40 normal-case ml-2">(max {{ paiement.montant|floatformat:0 }} {{ paiement.devise }})</span>
+            </label>
+            <div class="flex">
+              <input type="number" name="montant" id="id_montant"
+                     value="{{ form.montant.value|default:paiement.montant|floatformat:'0u' }}"
+                     required min="0.01" max="{{ paiement.montant|floatformat:'0u' }}" step="100"
+                     class="flex-1 bg-sable-50 border rounded-l-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                            {% if form.montant.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+              <span class="bg-foret-900 text-base-100 rounded-r-xl px-4 py-3 text-sm font-mono flex items-center">{{ paiement.devise }}</span>
+            </div>
+            {% if form.montant.errors %}<p class="mt-1.5 text-xs text-error">{{ form.montant.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="id_motif" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Motif <span class="text-error">*</span>
+              <span class="text-foret-700/40 normal-case ml-2">(min 10 caractères)</span>
+            </label>
+            <textarea name="motif" id="id_motif" rows="3" required minlength="10" maxlength="500"
+                      placeholder="Annulation client, erreur de saisie, geste commercial…"
+                      class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition
+                             {% if form.motif.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">{{ form.motif.value|default:'' }}</textarea>
+            {% if form.motif.errors %}<p class="mt-1.5 text-xs text-error">{{ form.motif.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="bg-warning/10 border border-warning/40 rounded-2xl p-5 flex gap-4">
+            <span class="font-mono text-warning text-base flex-shrink-0">!</span>
+            <div class="text-sm text-foret-900">
+              <p class="eyebrow text-warning mb-2">Conséquences</p>
+              <ul class="space-y-1 list-disc list-inside">
+                <li>Crée une transaction de type « remboursement »</li>
+                <li>Sera transmise au provider ({{ paiement.moyen.libelle }})</li>
+                <li>Peut prendre quelques jours à apparaître sur le compte du touriste</li>
+              </ul>
+            </div>
+          </div>
+
+          <label class="flex items-start gap-3 cursor-pointer bg-warning/5 border border-warning/30 rounded-2xl p-4">
+            <input type="checkbox" name="confirmation" required
+                   class="w-4 h-4 mt-0.5 rounded border-warning/50 text-warning focus:ring-warning flex-shrink-0">
+            <span class="text-sm text-foret-900">
+              Je confirme vouloir <strong>initier ce remboursement</strong>.
+            </span>
+          </label>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'paiement:admin_paiements' %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Annuler</a>
+            <button type="submit" class="btn-carnet bg-accent text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+              Initier le remboursement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock %}
