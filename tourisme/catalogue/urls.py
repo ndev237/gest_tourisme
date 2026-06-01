@@ -64,6 +64,27 @@ urlpatterns = [
     path('gestionnaire/hebergement/<int:hebergement_id>/supprimer/',
          views.delete_hebergement_view, name='delete_hebergement'),
 
+    # Vue globale « Mes hebergements » (point d'entree sidebar)
+    path('gestionnaire/mes-hebergements/',
+         views.mes_hebergements_view, name='mes_hebergements'),
+
+    # Mediatheque : point d'entree global photos sites + hebergements
+    path('gestionnaire/mediatheque/',
+         views.mediatheque_view, name='mediatheque'),
+    path('gestionnaire/hebergement/<int:hebergement_id>/publier/',
+         views.toggle_publication_hebergement_view,
+         name='toggle_publication_hebergement'),
+
+    # Galerie photos d'un hebergement (multi-photos)
+    path('gestionnaire/hebergement/<int:hebergement_id>/photos/',
+         views.liste_photohebergement_view, name='liste_photohebergement'),
+    path('gestionnaire/hebergement/<int:hebergement_id>/photo/ajouter/',
+         views.add_photohebergement_view, name='add_photohebergement'),
+    path('gestionnaire/photo-hebergement/<int:photo_id>/modifier/',
+         views.update_photohebergement_view, name='update_photohebergement'),
+    path('gestionnaire/photo-hebergement/<int:photo_id>/supprimer/',
+         views.delete_photohebergement_view, name='delete_photohebergement'),
+
     # =========================================================
     # D. GESTIONNAIRE — PHOTOS (galerie d'un site)
     # =========================================================

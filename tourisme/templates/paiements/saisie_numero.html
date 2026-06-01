@@ -1,0 +1,114 @@
+<!--
+  Saisie numéro Mobile Money — étape 2 du tunnel (MoMo/Orange).
+-->
+{% extends "base.html" %}
+
+{% block title %}Numéro {{ moyen.libelle }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'paiement:choix_moyen' reservation_id=reservation.id %}" class="hover:text-foret-900">Choix moyen</a>
+      <span>/</span>
+      <span class="text-accent">{{ moyen.libelle }}</span>
+    </nav>
+
+    <!-- Stepper -->
+    <div class="flex items-center justify-center gap-3 mb-10 text-xs font-mono uppercase tracking-[0.18em]">
+      <span class="flex items-center gap-2 text-foret-900"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100">✓</span><span class="hidden sm:inline">Moyen</span></span>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <span class="flex items-center gap-2 text-foret-900"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100">02</span><span class="hidden sm:inline">Paiement</span></span>
+      <span class="w-12 h-px bg-foret-100/60"></span>
+      <span class="flex items-center gap-2 text-foret-700/40"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] border border-foret-100/60">03</span><span class="hidden sm:inline">Confirmation</span></span>
+    </div>
+
+    <div class="text-center mb-8">
+      <div class="inline-flex w-20 h-20 rounded-2xl bg-foret-900 text-accent grid place-items-center font-display text-3xl mb-5">
+        {{ moyen.libelle|first|upper }}
+      </div>
+      <p class="eyebrow mb-3">Étape 02</p>
+      <h1 class="font-display text-3xl font-light text-foret-900">{{ moyen.libelle }}</h1>
+      <p class="text-sm text-foret-700/70 mt-2">Entrez le numéro associé à votre compte Mobile Money</p>
+    </div>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl p-8">
+
+      {% if form.non_field_errors %}
+      <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+      {% endif %}
+
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        <div>
+          <label for="id_numero_telephone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+            Numéro de téléphone <span class="text-error">*</span>
+          </label>
+          <div class="flex">
+            <span class="bg-foret-900 text-base-100 rounded-l-xl px-4 py-3 text-sm font-mono flex items-center">+237</span>
+            <input type="tel" name="numero_telephone" id="id_numero_telephone"
+                   value="{{ form.numero_telephone.value|default:'' }}"
+                   required inputmode="tel" autocomplete="tel-national"
+                   placeholder="6XX XX XX XX" pattern="[0-9 ]+"
+                   class="flex-1 bg-sable-50 border-y border-r rounded-r-xl px-4 py-3 text-base font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition
+                          {% if form.numero_telephone.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">
+          </div>
+          {% if form.numero_telephone.errors %}
+          <p class="mt-1.5 text-xs text-error">{{ form.numero_telephone.errors.0 }}</p>
+          {% else %}
+          <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">
+            {% if moyen.provider == 'mtn_momo' %}Préfixe MTN attendu : 67, 68, 65, 66
+            {% elif moyen.provider == 'orange_money' %}Préfixe Orange attendu : 69, 65, 66{% endif %}
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- Récap -->
+        <div class="bg-foret-900 text-base-100 rounded-2xl p-5 relative overflow-hidden">
+          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+          <div class="relative">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-mono uppercase tracking-wider text-base-100/60">Réservation</span>
+              <span class="font-mono text-xs">{{ reservation.numero }}</span>
+            </div>
+            <div class="flex justify-between items-baseline pt-3 border-t border-base-100/15">
+              <span class="text-sm">Montant à payer</span>
+              <span class="font-display text-2xl text-accent font-mono-num">{{ reservation.montant_total|floatformat:0 }} <span class="text-xs">FCFA</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Étapes -->
+        <div class="bg-info/10 border border-info/30 rounded-2xl p-5 flex gap-4">
+          <span class="font-mono text-info text-base flex-shrink-0">i</span>
+          <div class="text-sm text-foret-900">
+            <p class="eyebrow text-info mb-2">Étapes suivantes</p>
+            <ol class="list-decimal list-inside space-y-1 text-xs text-foret-900/85">
+              <li>Cliquez sur « Valider »</li>
+              <li>Vous recevrez une notification {{ moyen.libelle }}</li>
+              <li>Tapez votre code PIN sur le téléphone</li>
+              <li>Le paiement sera validé automatiquement</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center pt-4 border-t border-foret-100/60">
+          <a href="{% url 'paiement:choix_moyen' reservation_id=reservation.id %}" class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">← Retour</a>
+          <button type="submit" class="btn-carnet bg-accent text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition">
+            Valider le paiement
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="bg-success/10 border border-success/30 rounded-2xl p-5 mt-6 flex gap-4">
+      <span class="font-mono text-success text-base flex-shrink-0">◐</span>
+      <p class="text-sm text-foret-900">
+        <strong>Paiement sécurisé.</strong> Aucun code PIN n'est saisi sur notre site. La confirmation se fait directement sur votre téléphone via {{ moyen.libelle }}.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

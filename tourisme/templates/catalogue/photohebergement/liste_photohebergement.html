@@ -1,0 +1,91 @@
+<!--
+  Galerie photos d'un hébergement — grille avec actions par photo.
+-->
+{% extends "base.html" %}
+
+{% block title %}Photos — {{ hebergement.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-10">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:mes_hebergements' %}" class="hover:text-foret-900">Mes hébergements</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:update_hebergement' hebergement_id=hebergement.id %}" class="hover:text-foret-900">{{ hebergement.nom|truncatechars:25 }}</a>
+      <span>/</span>
+      <span class="text-accent">Photos</span>
+    </nav>
+
+    <header class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative mb-8">
+      <div aria-hidden="true" class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 bg-grain opacity-25"></div>
+      </div>
+      <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <p class="eyebrow text-accent mb-2">Galerie photos</p>
+          <h1 class="font-display text-3xl lg:text-4xl font-light">{{ hebergement.nom }}</h1>
+          <p class="text-sm text-base-100/60 mt-2 font-mono">
+            {{ photos|length }} photo{{ photos|length|pluralize }} · {{ hebergement.get_type_display }} · {{ hebergement.etoiles }}★
+          </p>
+        </div>
+        <a href="{% url 'catalogue:add_photohebergement' hebergement_id=hebergement.id %}"
+           class="bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition shadow-xl whitespace-nowrap">
+          + Ajouter une photo
+        </a>
+      </div>
+    </header>
+
+    {% if photos %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for p in photos %}
+      <article class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden group">
+        <figure class="aspect-[4/3] bg-foret-100/40 relative overflow-hidden">
+          <img src="{{ p.image.url }}" alt="{{ p.legende }}" class="w-full h-full object-cover img-hover-bloom">
+          {% if p.est_principale %}
+          <span class="absolute top-3 left-3 badge-stamp text-accent bg-foret-900 border-accent text-[10px]">★ Couverture</span>
+          {% endif %}
+          <span class="absolute top-3 right-3 font-mono text-[10px] bg-base-100/90 backdrop-blur-sm px-2 py-1 rounded-full text-foret-700">
+            #{{ p.ordre|default:0 }}
+          </span>
+        </figure>
+        <div class="p-4">
+          <p class="text-sm text-foret-900 mb-3 line-clamp-2 min-h-[2.5rem]">
+            {{ p.legende|default:"Sans légende"|truncatechars:80 }}
+          </p>
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50">
+              {{ p.created_at|date:"d/m/Y" }}
+            </p>
+            <div class="flex gap-2">
+              <a href="{% url 'catalogue:update_photohebergement' photo_id=p.id %}"
+                 class="text-xs uppercase tracking-wider px-3 py-1.5 rounded-full bg-foret-900 text-base-100 hover:bg-foret-700 transition">
+                Modifier
+              </a>
+              <a href="{% url 'catalogue:delete_photohebergement' photo_id=p.id %}"
+                 class="text-xs uppercase tracking-wider px-3 py-1.5 rounded-full border border-error text-error hover:bg-error hover:text-base-100 transition">
+                ×
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">⌗</div>
+      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucune photo</h3>
+      <p class="text-foret-700/70 mb-6 max-w-md mx-auto">
+        Cet hébergement n'a aucune photo additionnelle. Ajoutez des photos pour donner envie aux touristes de réserver.
+      </p>
+      <a href="{% url 'catalogue:add_photohebergement' hebergement_id=hebergement.id %}"
+         class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+        + Ajouter ma première photo
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,299 +1,410 @@
 <!--
-  Dashboard admin — KPI globaux, validations en attente, modération, activité.
+  Dashboard admin "tour de controle" — sidebar complete + KPI + modules + activite.
+  Layout : sidebar fixe gauche (272 px) + zone principale + sidebar droite.
+  L'admin a un acces direct a TOUS les modules CRUD via la sidebar et les module cards.
 -->
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Administration — Tourisme Cameroun{% endblock %}
 
 {% block content %}
-<section class="bg-sable-50 min-h-screen">
+<!-- La sidebar admin est gérée par base.html (affichage conditionnel global). -->
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-  <!-- Bandeau -->
-  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
-    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
-    <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-error/15 blur-3xl"></div>
+      <!-- ============================================================
+           WELCOME BAR
+           ============================================================ -->
+      <section class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative overflow-hidden mb-8">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-        <div>
-          <p class="eyebrow text-accent mb-3">Administration · Niveau {{ user.profil_admin.niveau_acces|default:1 }}/5</p>
-          <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
-            <em class="font-display-italic text-accent">Vue</em> d'ensemble.
-          </h1>
-          <p class="text-base-100/70 mt-3 text-sm font-mono uppercase tracking-wider">
-            {{ user.first_name|default:user.email }} ·
-            <span class="badge-stamp text-accent border-accent/60 ml-2">{{ user.profil_admin.get_role_display|default:"Admin" }}</span>
-          </p>
-        </div>
+        <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div>
+            <p class="eyebrow text-accent mb-3">
+              {% now "l j F Y"|upper %}
+            </p>
+            <h1 class="font-display text-4xl lg:text-5xl font-light leading-tight">
+              <em class="font-display-italic text-accent">Vue</em> d'ensemble.
+            </h1>
+            <p class="text-base-100/70 mt-3 text-sm font-mono uppercase tracking-wider">
+              {{ user.first_name|default:user.email }}
+              <span class="text-accent ml-2">·</span>
+              <span class="badge-stamp text-accent border-accent/60 ml-1">{{ user.profil_admin.get_role_display|default:"Admin" }}</span>
+            </p>
+            <p class="text-base-100/60 mt-4 max-w-xl text-sm">
+              Tableau de bord administrateur — pilotage global de la plateforme,
+              accès direct à tous les modules de gestion.
+            </p>
+          </div>
 
-        <!-- Dropdown actions rapides -->
-        <div class="relative" x-data="{ open: false }">
-          <button @click="open = !open" class="bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider flex items-center gap-2 hover:bg-accent/90 transition">
-            Actions rapides <span :class="open ? 'rotate-180' : ''" class="transition">▾</span>
-          </button>
-          <div x-show="open" x-cloak @click.away="open = false"
-               x-transition:enter="transition ease-out duration-200"
-               x-transition:enter-start="opacity-0 -translate-y-2"
-               x-transition:enter-end="opacity-100 translate-y-0"
-               class="absolute right-0 mt-2 w-64 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-50 text-foret-900">
-            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Gérer les utilisateurs</a>
-            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Valider gestionnaires</a>
-            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Modérer les avis</a>
-            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Rapports</a>
-            <a href="#" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">Paramètres</a>
+          <!-- Dropdown actions rapides -->
+          <div class="relative" x-data="{ open: false }">
+            <button @click="open = !open"
+                    class="bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider flex items-center gap-2 hover:bg-accent/90 transition shadow-xl">
+              Actions rapides <span :class="open ? 'rotate-180' : ''" class="transition">▾</span>
+            </button>
+            <div x-show="open" x-cloak @click.away="open = false"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="absolute right-0 mt-2 w-72 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-50 text-foret-900">
+              <a href="{% url 'catalogue:add_sites' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">+ Nouveau site touristique</a>
+              <a href="{% url 'catalogue:add_categorie' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">+ Nouvelle catégorie</a>
+              <a href="{% url 'localisation:add_region' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">+ Nouvelle région</a>
+              <a href="{% url 'paiement:add_moyenpaiement' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">+ Moyen de paiement</a>
+              <hr class="my-1 border-foret-100/60">
+              <a href="{% url 'reviews:moderation' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition">★ Modérer les avis</a>
+              <a href="{% url 'compte:admin_liste_utilisateurs' %}" class="block px-5 py-2.5 text-sm hover:bg-sable-50 transition text-accent">→ Gérer les utilisateurs</a>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </header>
+      </section>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8">
 
-    <!-- KPIs globaux -->
-    <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-10">
-      <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60 stagger">
-        <div class="p-6 lg:p-7">
-          <p class="eyebrow mb-2">Utilisateurs</p>
-          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_users|default:0 }}</p>
-          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">
+      <!-- ============================================================
+           KPIs avec icones colorees
+           ============================================================ -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10 stagger">
+
+        <article class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:shadow-xl hover:border-accent transition">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-14 h-14 rounded-2xl bg-foret-900 text-accent grid place-items-center font-display text-2xl">◉</div>
+            <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">Actifs</span>
+          </div>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60">Utilisateurs</p>
+          <p class="font-display text-5xl font-medium text-foret-900 mt-1">{{ stats.nb_users|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-2 font-mono uppercase tracking-wider">
             {% if stats.nouveaux_users_semaine %}<span class="text-success">↗ +{{ stats.nouveaux_users_semaine }}</span> cette semaine
             {% else %}Membres inscrits{% endif %}
           </p>
-        </div>
-        <div class="p-6 lg:p-7">
-          <p class="eyebrow mb-2">Sites publiés</p>
-          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_sites|default:0 }}</p>
-          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">Sur {{ stats.nb_sites_total|default:0 }} au total</p>
-        </div>
-        <div class="p-6 lg:p-7">
-          <p class="eyebrow mb-2">Réservations</p>
-          <p class="font-display text-4xl font-medium text-foret-900">{{ stats.nb_resa|default:0 }}</p>
-          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">{{ stats.nb_resa_mois|default:0 }} ce mois</p>
-        </div>
-        <div class="p-6 lg:p-7">
-          <p class="eyebrow mb-2">CA généré</p>
-          <p class="font-display text-4xl font-medium text-foret-900 font-mono-num">{{ stats.revenu_global|default:0|floatformat:0 }}<span class="text-xl text-accent ml-1">F</span></p>
-          <p class="text-xs text-foret-700/60 mt-1 font-mono uppercase tracking-wider">FCFA cumulés</p>
-        </div>
-      </div>
-    </div>
+        </article>
 
-    <div class="grid lg:grid-cols-3 gap-6">
-
-      <div class="lg:col-span-2 space-y-6">
-
-        <!-- Validations en attente -->
-        <section class="bg-warning/5 border border-warning/30 rounded-3xl p-8">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <p class="eyebrow text-warning mb-2">À traiter</p>
-              <h2 class="font-display text-2xl text-foret-900">Validations en attente</h2>
-            </div>
-            <span class="badge-stamp text-warning border-warning/60">{{ stats.total_en_attente|default:0 }}</span>
+        <article class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:shadow-xl hover:border-accent transition">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-14 h-14 rounded-2xl bg-success/15 text-success grid place-items-center font-display text-2xl">◈</div>
+            <span class="badge-stamp text-success border-success/40 text-[10px]">Catalogue</span>
           </div>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60">Sites publiés</p>
+          <p class="font-display text-5xl font-medium text-foret-900 mt-1">{{ stats.nb_sites|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-2 font-mono uppercase tracking-wider">Sur {{ stats.nb_sites_total|default:0 }} au total</p>
+        </article>
 
-          {% if gestionnaires_attente %}
-          <div class="mb-6">
-            <p class="eyebrow mb-3">Gestionnaires</p>
-            <div class="space-y-2">
-              {% for g in gestionnaires_attente|slice:":3" %}
-              <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
-                <div>
-                  <p class="font-display text-base text-foret-900">{{ g.entreprise }}</p>
-                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
-                    {{ g.user.nom_complet }} · {{ g.created_at|date:"d M Y" }}
-                  </p>
-                </div>
-                <div class="flex gap-2">
-                  <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓</button>
-                  <button class="border border-error text-error rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">✕</button>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
+        <article class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:shadow-xl hover:border-accent transition">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-14 h-14 rounded-2xl bg-accent/15 text-accent grid place-items-center font-display text-2xl">◇</div>
+            <span class="badge-stamp text-accent border-accent/60 text-[10px]">Activité</span>
           </div>
-          {% endif %}
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60">Réservations</p>
+          <p class="font-display text-5xl font-medium text-foret-900 mt-1">{{ stats.nb_resa|default:0 }}</p>
+          <p class="text-xs text-foret-700/60 mt-2 font-mono uppercase tracking-wider">{{ stats.nb_resa_mois|default:0 }} ce mois</p>
+        </article>
 
-          {% if guides_attente %}
+        <article class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:shadow-xl hover:border-accent transition">
+          <div class="flex items-start justify-between mb-5">
+            <div class="w-14 h-14 rounded-2xl bg-info/15 text-info grid place-items-center font-display text-2xl">$</div>
+            <span class="badge-stamp text-info border-info/40 text-[10px]">Finances</span>
+          </div>
+          <p class="text-xs font-mono uppercase tracking-wider text-foret-700/60">CA généré</p>
+          <p class="font-display text-3xl lg:text-4xl font-medium text-foret-900 mt-1 font-mono-num">{{ stats.revenu_global|default:0|floatformat:0 }}<span class="text-2xl text-accent ml-1">F</span></p>
+          <p class="text-xs text-foret-700/60 mt-2 font-mono uppercase tracking-wider">FCFA cumulés</p>
+        </article>
+      </section>
+
+
+      <!-- ============================================================
+           MODULES DE GESTION — grandes cards d'acces direct
+           ============================================================ -->
+      <section class="mb-10">
+        <div class="flex items-end justify-between mb-6">
           <div>
-            <p class="eyebrow mb-3">Guides</p>
-            <div class="space-y-2">
-              {% for g in guides_attente|slice:":3" %}
-              <div class="flex items-center justify-between p-4 bg-base-100 border border-foret-100/60 rounded-2xl">
-                <div>
-                  <p class="font-display text-base text-foret-900">{{ g.user.nom_complet }}</p>
-                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
-                    Licence {{ g.licence_pro }} · {{ g.annees_experience }} ans d'exp.
-                  </p>
-                </div>
-                <div class="flex gap-2">
-                  <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓</button>
-                  <button class="border border-error text-error rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">✕</button>
-                </div>
+            <p class="eyebrow mb-2">Modules de gestion</p>
+            <h2 class="font-display text-3xl font-light text-foret-900">Tout piloter <em class="font-display-italic text-accent">depuis ici</em></h2>
+          </div>
+          <a href="{% url 'compte:admin_liste_utilisateurs' %}" class="link-editorial text-sm">Vue d'ensemble utilisateurs →</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 stagger">
+
+          <!-- 1. Catalogue sites -->
+          <a href="{% url 'catalogue:liste_sites' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-foret-900/10 text-foret-900 grid place-items-center font-display text-xl mb-4 group-hover:bg-foret-900 group-hover:text-accent transition">◈</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-accent transition">Sites touristiques</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Catalogue complet des sites — CRUD, publication, photos.</p>
+          </a>
+
+          <!-- 2. Catégories -->
+          <a href="{% url 'catalogue:liste_categorie' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-success/15 text-success grid place-items-center font-display text-xl mb-4 group-hover:bg-success group-hover:text-base-100 transition">◆</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-success transition">Catégories & tags</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Plages, parcs, musées, montagnes — taxonomie du catalogue.</p>
+          </a>
+
+          <!-- 3. Régions -->
+          <a href="{% url 'localisation:liste_region' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-warning/15 text-warning grid place-items-center font-display text-xl mb-4 group-hover:bg-warning group-hover:text-foret-900 transition">◯</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-warning transition">Régions du Cameroun</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Référentiel des 10 régions et chefs-lieux.</p>
+          </a>
+
+          <!-- 4. Utilisateurs -->
+          <a href="{% url 'compte:admin_liste_utilisateurs' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-info/15 text-info grid place-items-center font-display text-xl mb-4 group-hover:bg-info group-hover:text-base-100 transition">◉</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-info transition">Utilisateurs</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Touristes, gestionnaires, guides, admins — comptes.</p>
+          </a>
+
+          <!-- 5. Réservations -->
+          <a href="{% url 'reservation:admin_reservations' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-accent/15 text-accent grid place-items-center font-display text-xl mb-4 group-hover:bg-accent group-hover:text-foret-900 transition">◇</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-accent transition">Réservations</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Toutes les réservations + filtres + détails.</p>
+          </a>
+
+          <!-- 6. Paiements -->
+          <a href="{% url 'paiement:admin_paiements' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group">
+            <div class="w-12 h-12 rounded-2xl bg-success/15 text-success grid place-items-center font-display text-xl mb-4 group-hover:bg-success group-hover:text-base-100 transition">$</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-success transition">Paiements</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">CA, transactions, remboursements et moyens.</p>
+          </a>
+
+          <!-- 7. Modération avis -->
+          <a href="{% url 'reviews:moderation' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group relative">
+            <div class="w-12 h-12 rounded-2xl bg-error/15 text-error grid place-items-center font-display text-xl mb-4 group-hover:bg-error group-hover:text-base-100 transition">★</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-error transition">Modération</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Avis à examiner, signalements et réponses.</p>
+            {% if stats.total_en_attente %}
+            <span class="absolute top-4 right-4 min-w-[22px] h-[22px] rounded-full bg-error text-base-100 text-[10px] font-mono font-semibold grid place-items-center px-1.5">{{ stats.total_en_attente }}</span>
+            {% endif %}
+          </a>
+
+          <!-- 8. Notifications -->
+          <a href="{% url 'notifications:liste' %}" class="bg-base-100 border border-foret-100/60 rounded-3xl p-6 hover:border-accent hover:shadow-xl transition group relative">
+            <div class="w-12 h-12 rounded-2xl bg-info/15 text-info grid place-items-center font-display text-xl mb-4 group-hover:bg-info group-hover:text-base-100 transition">◐</div>
+            <h3 class="font-display text-base font-medium text-foret-900 group-hover:text-info transition">Notifications</h3>
+            <p class="text-xs text-foret-700/70 mt-2 leading-relaxed">Centre de notifications et préférences.</p>
+            {% if nb_notif_non_lues %}
+            <span class="absolute top-4 right-4 min-w-[22px] h-[22px] rounded-full bg-error text-base-100 text-[10px] font-mono font-semibold grid place-items-center px-1.5">{{ nb_notif_non_lues }}</span>
+            {% endif %}
+          </a>
+
+        </div>
+      </section>
+
+
+      <!-- ============================================================
+           CONTENU SECONDAIRE : validations / modération / sidebar droite
+           ============================================================ -->
+      <div class="grid lg:grid-cols-3 gap-6">
+
+        <div class="lg:col-span-2 space-y-6">
+
+          <!-- Validations en attente -->
+          <section class="bg-base-100 border border-warning/30 rounded-3xl p-7
+                          {% if stats.total_en_attente %}border-warning/40 ring-1 ring-warning/20{% endif %}">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <p class="eyebrow text-warning mb-2">À traiter</p>
+                <h2 class="font-display text-xl text-foret-900">Validations en attente</h2>
               </div>
+              <span class="badge-stamp text-warning border-warning/60">{{ stats.total_en_attente|default:0 }}</span>
+            </div>
+
+            {% if gestionnaires_attente %}
+            <div class="mb-5">
+              <p class="eyebrow mb-3">Gestionnaires</p>
+              <div class="space-y-2">
+                {% for g in gestionnaires_attente|slice:":3" %}
+                <div class="flex items-center justify-between p-3 bg-sable-50 border border-foret-100/60 rounded-2xl">
+                  <div>
+                    <p class="font-display text-sm text-foret-900">{{ g.entreprise }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 mt-0.5">{{ g.user.nom_complet }} · {{ g.created_at|date:"d M Y" }}</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <form method="post" action="{% url 'compte:admin_valider_gestionnaire' gestionnaire_id=g.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="bg-success text-base-100 rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:opacity-90 transition" title="Valider">✓</button>
+                    </form>
+                    <form method="post" action="{% url 'compte:admin_rejeter_gestionnaire' gestionnaire_id=g.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="border border-error text-error rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition" title="Rejeter">×</button>
+                    </form>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if guides_attente %}
+            <div>
+              <p class="eyebrow mb-3">Guides</p>
+              <div class="space-y-2">
+                {% for g in guides_attente|slice:":3" %}
+                <div class="flex items-center justify-between p-3 bg-sable-50 border border-foret-100/60 rounded-2xl">
+                  <div>
+                    <p class="font-display text-sm text-foret-900">{{ g.user.nom_complet }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 mt-0.5">Licence {{ g.licence_pro }} · {{ g.annees_experience }} ans</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <form method="post" action="{% url 'compte:admin_valider_guide' guide_id=g.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="bg-success text-base-100 rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:opacity-90 transition" title="Valider">✓</button>
+                    </form>
+                    <form method="post" action="{% url 'compte:admin_rejeter_guide' guide_id=g.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="border border-error text-error rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition" title="Rejeter">×</button>
+                    </form>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if not gestionnaires_attente and not guides_attente %}
+            <div class="text-center py-6 bg-sable-50 rounded-2xl">
+              <div class="inline-flex w-12 h-12 rounded-full bg-base-100 grid place-items-center text-xl mb-3">✓</div>
+              <p class="text-sm text-foret-700/70">Tout est à jour. Aucune validation en attente.</p>
+            </div>
+            {% endif %}
+          </section>
+
+          <!-- Modération avis signalés -->
+          <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-7">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <p class="eyebrow mb-2">Modération</p>
+                <h2 class="font-display text-xl text-foret-900">Avis signalés</h2>
+              </div>
+              <a href="{% url 'reviews:moderation' %}" class="link-editorial text-xs">Tous →</a>
+            </div>
+
+            {% if avis_signales %}
+            <div class="space-y-3">
+              {% for avis in avis_signales|slice:":3" %}
+              <article class="p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+                <div class="flex items-start justify-between mb-2">
+                  <div>
+                    <p class="font-display text-sm text-foret-900">{{ avis.touriste.user.nom_complet }}</p>
+                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 mt-0.5">{{ avis.site.nom }} · {{ avis.created_at|date:"d M Y" }}</p>
+                  </div>
+                  <span class="badge-stamp text-warning border-warning/60 text-[10px]">{{ avis.nombre_signalements|default:1 }} signal.</span>
+                </div>
+                <p class="text-xs italic text-foret-900/75 line-clamp-2">« {{ avis.commentaire|truncatechars:140 }} »</p>
+              </article>
               {% endfor %}
             </div>
-          </div>
-          {% endif %}
-
-          {% if not gestionnaires_attente and not guides_attente %}
-          <div class="text-center py-8">
-            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">✓</div>
-            <p class="text-foret-700/70">Tout est à jour. Aucune validation en attente.</p>
-          </div>
-          {% endif %}
-        </section>
-
-        <!-- Modération avis -->
-        <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-8">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <p class="eyebrow mb-2">Modération</p>
-              <h2 class="font-display text-2xl text-foret-900">Avis signalés</h2>
+            {% else %}
+            <div class="text-center py-6 bg-sable-50 rounded-2xl">
+              <div class="inline-flex w-12 h-12 rounded-full bg-base-100 grid place-items-center text-xl mb-3">✓</div>
+              <p class="text-sm text-foret-700/70">Aucun avis à modérer.</p>
             </div>
-            <a href="#" class="link-editorial text-sm">Tous →</a>
+            {% endif %}
+          </section>
+        </div>
+
+
+        <!-- ============================================================
+             SIDEBAR DROITE : Répartition + Activité + Alertes
+             ============================================================ -->
+        <aside class="space-y-6">
+
+          <!-- Répartition users -->
+          <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+            <p class="eyebrow mb-5">Répartition users</p>
+            <div class="space-y-4">
+              {% with total=stats.nb_users|default:1 %}
+              <div>
+                <div class="flex justify-between text-sm mb-1.5">
+                  <span class="text-foret-900">Touristes</span>
+                  <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_touristes|default:0 }}</span>
+                </div>
+                <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                  <div class="h-full bg-foret-700" style="width: {% widthratio stats.nb_touristes|default:0 total 100 %}%;"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-sm mb-1.5">
+                  <span class="text-foret-900">Gestionnaires</span>
+                  <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_gestionnaires|default:0 }}</span>
+                </div>
+                <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                  <div class="h-full bg-accent" style="width: {% widthratio stats.nb_gestionnaires|default:0 total 100 %}%;"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-sm mb-1.5">
+                  <span class="text-foret-900">Guides</span>
+                  <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_guides|default:0 }}</span>
+                </div>
+                <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                  <div class="h-full bg-info" style="width: {% widthratio stats.nb_guides|default:0 total 100 %}%;"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-sm mb-1.5">
+                  <span class="text-foret-900">Admins</span>
+                  <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_admins|default:0 }}</span>
+                </div>
+                <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
+                  <div class="h-full bg-error" style="width: {% widthratio stats.nb_admins|default:0 total 100 %}%;"></div>
+                </div>
+              </div>
+              {% endwith %}
+            </div>
           </div>
 
-          {% if avis_signales %}
-          <div class="space-y-4">
-            {% for avis in avis_signales|slice:":5" %}
-            <article class="p-5 bg-sable-50 border border-foret-100/60 rounded-2xl">
-              <div class="flex items-start justify-between mb-3">
-                <div>
-                  <p class="font-display text-base text-foret-900">{{ avis.touriste.user.nom_complet }}</p>
-                  <p class="text-xs text-foret-700/60 font-mono uppercase tracking-wider mt-1">
-                    Sur {{ avis.site.nom }} · {{ avis.created_at|date:"d M Y" }}
+          <!-- Activité récente -->
+          <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+            <p class="eyebrow mb-4">Activité récente</p>
+            {% if dernieres_actions %}
+            <ul class="space-y-2 -mx-2">
+              {% for action in dernieres_actions|slice:":7" %}
+              <li class="flex items-start gap-3 p-2 rounded-xl hover:bg-sable-50 transition">
+                <span class="w-7 h-7 rounded-full bg-sable-100 text-foret-700 grid place-items-center text-xs flex-shrink-0 mt-0.5">
+                  {% if action.action == 'create' %}+
+                  {% elif action.action == 'update' %}✎
+                  {% elif action.action == 'delete' %}×
+                  {% elif action.action == 'login' %}◐
+                  {% else %}◇{% endif %}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-foret-900 truncate">
+                    <strong>{{ action.utilisateur.email|default:"Système" }}</strong> {{ action.action }} {{ action.ressource }}
+                  </p>
+                  <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-0.5">
+                    {{ action.created_at|timesince }} avant
                   </p>
                 </div>
-                <span class="badge-stamp text-warning border-warning/60 text-[10px]">
-                  {{ avis.nb_signalements|default:1 }} signal.
-                </span>
-              </div>
-              <p class="text-sm italic text-foret-900/85 leading-relaxed mb-3 border-l-2 border-warning pl-3">
-                « {{ avis.commentaire|truncatechars:140 }} »
-              </p>
-              <div class="flex gap-2">
-                <button class="bg-success text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">✓ Valider</button>
-                <button class="bg-error text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:opacity-90 transition">Supprimer</button>
-                <a href="#" class="text-xs text-foret-700 hover:text-foret-900 self-center px-3 underline decoration-dotted underline-offset-4">Voir détail</a>
-              </div>
-            </article>
-            {% endfor %}
+              </li>
+              {% endfor %}
+            </ul>
+            <a href="#" class="block mt-3 text-[10px] uppercase tracking-wider font-medium text-foret-700 hover:text-foret-900 text-center underline decoration-dotted underline-offset-4">
+              Voir le journal complet →
+            </a>
+            {% else %}
+            <p class="text-sm text-foret-700/60 text-center py-4">Aucune activité récente.</p>
+            {% endif %}
           </div>
-          {% else %}
-          <div class="text-center py-8 bg-sable-50 rounded-2xl">
-            <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">✓</div>
-            <p class="text-foret-700/70">Aucun avis à modérer.</p>
-          </div>
-          {% endif %}
-        </section>
-      </div>
 
-      <!-- Sidebar -->
-      <aside class="space-y-6">
-
-        <!-- Répartition des users -->
-        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
-          <p class="eyebrow mb-5">Répartition users</p>
-
-          <div class="space-y-4">
-            {% with total=stats.nb_users|default:1 %}
-            <div>
-              <div class="flex justify-between text-sm mb-1.5">
-                <span class="text-foret-900">Touristes</span>
-                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_touristes|default:0 }}</span>
-              </div>
-              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
-                <div class="h-full bg-foret-700" style="width: {% widthratio stats.nb_touristes|default:0 total 100 %}%;"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-sm mb-1.5">
-                <span class="text-foret-900">Gestionnaires</span>
-                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_gestionnaires|default:0 }}</span>
-              </div>
-              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
-                <div class="h-full bg-accent" style="width: {% widthratio stats.nb_gestionnaires|default:0 total 100 %}%;"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-sm mb-1.5">
-                <span class="text-foret-900">Guides</span>
-                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_guides|default:0 }}</span>
-              </div>
-              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
-                <div class="h-full bg-info" style="width: {% widthratio stats.nb_guides|default:0 total 100 %}%;"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="flex justify-between text-sm mb-1.5">
-                <span class="text-foret-900">Admins</span>
-                <span class="font-mono-num font-semibold text-foret-900">{{ stats.nb_admins|default:0 }}</span>
-              </div>
-              <div class="h-1.5 bg-foret-100/60 rounded-full overflow-hidden">
-                <div class="h-full bg-error" style="width: {% widthratio stats.nb_admins|default:0 total 100 %}%;"></div>
-              </div>
-            </div>
-            {% endwith %}
-          </div>
-        </div>
-
-        <!-- Activité récente -->
-        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
-          <p class="eyebrow mb-4">Activité récente</p>
-
-          {% if dernieres_actions %}
-          <ul class="space-y-2">
-            {% for action in dernieres_actions|slice:":7" %}
-            <li class="flex items-start gap-3 p-3 rounded-xl hover:bg-sable-50 transition">
-              <span class="w-7 h-7 rounded-full bg-sable-100 text-foret-700 grid place-items-center text-xs flex-shrink-0">
-                {% if action.action == 'create' %}+
-                {% elif action.action == 'update' %}✎
-                {% elif action.action == 'delete' %}×
-                {% elif action.action == 'login' %}◐
-                {% else %}◇{% endif %}
-              </span>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-foret-900 truncate">
-                  <strong>{{ action.utilisateur.email|default:"Système" }}</strong>
-                  {{ action.action }} {{ action.ressource }}
-                </p>
-                <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-0.5">
-                  {{ action.created_at|timesince }} avant
-                </p>
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
-          <a href="#" class="block mt-3 text-xs uppercase tracking-wider font-medium text-foret-700 hover:text-foret-900 text-center underline decoration-dotted underline-offset-4">
-            Voir le journal complet →
-          </a>
-          {% else %}
-          <p class="text-sm text-foret-700/60 text-center py-4">Aucune activité récente.</p>
-          {% endif %}
-        </div>
-
-        <!-- Alertes système -->
-        <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
-          <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
-          <p class="relative eyebrow text-accent mb-4">Alertes système</p>
-          <ul class="relative space-y-2 text-sm">
-            {% if stats.paiements_echec_24h %}
+          <!-- Alertes système -->
+          <div class="bg-foret-900 text-base-100 rounded-3xl p-6 relative overflow-hidden">
+            <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+            <p class="relative eyebrow text-accent mb-4">Alertes système</p>
+            <ul class="relative space-y-2 text-sm">
+              {% if stats.paiements_echec_24h %}
               <li class="flex items-start gap-2"><span class="text-error">●</span> {{ stats.paiements_echec_24h }} paiement{{ stats.paiements_echec_24h|pluralize }} échoué{{ stats.paiements_echec_24h|pluralize }} (24h)</li>
-            {% endif %}
-            {% if stats.notifications_echec %}
+              {% endif %}
+              {% if stats.notifications_echec %}
               <li class="flex items-start gap-2"><span class="text-warning">●</span> {{ stats.notifications_echec }} notification{{ stats.notifications_echec|pluralize }} non délivrée{{ stats.notifications_echec|pluralize }}</li>
-            {% endif %}
-            {% if not stats.paiements_echec_24h and not stats.notifications_echec %}
+              {% endif %}
+              {% if not stats.paiements_echec_24h and not stats.notifications_echec %}
               <li class="flex items-start gap-2 text-base-100/70"><span class="text-success">●</span> Aucune alerte. Tout fonctionne normalement.</li>
-            {% endif %}
-          </ul>
-        </div>
-      </aside>
+              {% endif %}
+            </ul>
+          </div>
+        </aside>
+      </div>
     </div>
-  </div>
-</section>
 {% endblock %}

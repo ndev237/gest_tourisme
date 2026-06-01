@@ -1,79 +1,108 @@
 <!--
-  Liste gestionnaires (admin) — tableau editorial.
+  Liste gestionnaires (admin) — actions valider/rejeter inline.
 -->
 {% extends "base.html" %}
 
-{% block title %}Gestionnaires - Administration{% endblock %}
+{% block title %}Gestionnaires — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-sable-50 min-h-screen">
-  <header class="bg-foret-900 text-base-100 relative overflow-hidden">
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <header class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative overflow-hidden mb-8">
     <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
-        <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent">Admin</a>
-        <span>/</span><span class="text-accent">Gestionnaires</span>
-      </nav>
-      <p class="eyebrow text-accent mb-2">Utilisateurs</p>
-      <h1 class="font-display text-3xl lg:text-4xl font-light">Gestionnaires</h1>
-      <p class="text-sm text-base-100/60 mt-2 font-mono">{{ gestionnaires|length|default:0 }} gestionnaire{{ gestionnaires|length|pluralize }}</p>
-    </div>
+    <nav class="relative flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+      <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent transition">Admin</a>
+      <span>/</span>
+      <span class="text-accent">Gestionnaires</span>
+    </nav>
+    <p class="relative eyebrow text-accent mb-2">Comptes pros</p>
+    <h1 class="relative font-display text-3xl lg:text-4xl font-light">Gestionnaires</h1>
+    <p class="relative text-sm text-base-100/60 mt-2 font-mono">{{ total }} compte{{ total|pluralize }} gestionnaire</p>
   </header>
 
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
-    {% if gestionnaires %}
-    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
-            <tr>
-              <th class="px-7 py-4 text-left">Gestionnaire</th>
-              <th class="px-3 py-4 text-left">Email</th>
-              <th class="px-3 py-4 text-left">Telephone</th>
-              <th class="px-3 py-4 text-left">Statut</th>
-              <th class="px-7 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-foret-100/60">
-            {% for item in gestionnaires %}
-            <tr class="hover:bg-sable-50/60 transition">
-              <td class="px-7 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-sm">{{ item.user.first_name|first|upper|default:item.user.email|first|upper }}</div>
-                  <div>
-                    <p class="font-display text-base text-foret-900">{{ item.user.nom_complet|default:item.user.username }}</p>
-                    <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">N {{ item.id|stringformat:"04d" }}</p>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-4 font-mono text-xs text-foret-700">{{ item.user.email }}</td>
-              <td class="px-3 py-4 font-mono-num text-xs text-foret-700">{{ item.user.telephone|default:"-" }}</td>
-              <td class="px-3 py-4">
-                {% if item.user.is_active %}
-                <span class="badge-stamp text-success border-success/40 text-[10px]">Actif</span>
-                {% else %}
-                <span class="badge-stamp text-error border-error/40 text-[10px]">Suspendu</span>
-                {% endif %}
-              </td>
-              <td class="px-7 py-4 text-right text-[10px] uppercase tracking-wider">
-                <a href="/backoffice/compte/gestionnaire/{{ item.id }}/" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Backoffice</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+  <form method="get" class="bg-base-100 border border-foret-100/60 rounded-3xl p-5 mb-6 flex flex-wrap gap-4 items-end">
+    <div class="flex-1 min-w-[200px]">
+      <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Recherche</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Entreprise, RC, email…"
+             class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
     </div>
-    {% else %}
-    <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
-      <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">o</div>
-      <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun gestionnaire</h3>
-      <p class="text-foret-700/70 max-w-md mx-auto mb-6">
-        La gestion detaillee des utilisateurs est centralisee dans le backoffice Django pour la securite et la tracabilite.
-      </p>
-      <a href="/backoffice/" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">Ouvrir le backoffice</a>
+    <div>
+      <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Statut</label>
+      <select name="statut" class="bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+        <option value="">Tous</option>
+        <option value="en_attente" {% if statut_filter == 'en_attente' %}selected{% endif %}>En attente</option>
+        <option value="valide"     {% if statut_filter == 'valide' %}selected{% endif %}>Validés</option>
+        <option value="rejete"     {% if statut_filter == 'rejete' %}selected{% endif %}>Rejetés</option>
+      </select>
     </div>
-    {% endif %}
+    <button type="submit" class="bg-foret-900 text-base-100 rounded-full px-6 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">Filtrer</button>
+  </form>
+
+  {% if gestionnaires %}
+  <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+          <tr>
+            <th class="px-7 py-4 text-left">Entreprise</th>
+            <th class="px-3 py-4 text-left">Représentant</th>
+            <th class="px-3 py-4 text-left">N° RC</th>
+            <th class="px-3 py-4 text-left">Inscription</th>
+            <th class="px-3 py-4 text-left">Statut</th>
+            <th class="px-7 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-foret-100/60">
+          {% for g in gestionnaires %}
+          <tr class="hover:bg-sable-50/60 transition">
+            <td class="px-7 py-4">
+              <p class="font-display text-base text-foret-900">{{ g.entreprise }}</p>
+            </td>
+            <td class="px-3 py-4">
+              <p class="text-foret-900">{{ g.user.nom_complet|default:g.user.email }}</p>
+              <p class="text-[10px] font-mono text-foret-700/60">{{ g.user.email }}</p>
+            </td>
+            <td class="px-3 py-4 font-mono text-xs text-foret-700">{{ g.num_registre_commerce }}</td>
+            <td class="px-3 py-4 font-mono-num text-xs text-foret-700">{{ g.created_at|date:"d/m/Y" }}</td>
+            <td class="px-3 py-4">
+              {% if g.statut_validation == 'valide' %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Validé</span>
+              {% elif g.statut_validation == 'en_attente' %}
+                <span class="badge-stamp text-warning border-warning/40 text-[10px]">En attente</span>
+              {% else %}
+                <span class="badge-stamp text-error border-error/40 text-[10px]">Rejeté</span>
+              {% endif %}
+            </td>
+            <td class="px-7 py-4 text-right">
+              {% if g.statut_validation == 'en_attente' %}
+              <div class="inline-flex gap-2">
+                <form method="post" action="{% url 'compte:admin_valider_gestionnaire' gestionnaire_id=g.id %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="bg-success text-base-100 rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:opacity-90 transition">✓ Valider</button>
+                </form>
+                <form method="post" action="{% url 'compte:admin_rejeter_gestionnaire' gestionnaire_id=g.id %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="border border-error text-error rounded-full px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider hover:bg-error hover:text-base-100 transition">× Rejeter</button>
+                </form>
+              </div>
+              {% else %}
+              <span class="text-[10px] uppercase tracking-wider text-foret-700/40">— Décidé —</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-</section>
+
+  {% include "partials/_pagination.html" %}
+  {% else %}
+  <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+    <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">◇</div>
+    <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun gestionnaire</h3>
+    <p class="text-foret-700/70">Aucun compte gestionnaire ne correspond.</p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

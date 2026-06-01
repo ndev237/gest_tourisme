@@ -400,6 +400,63 @@ class Hebergement(TimestampedModel):
 
 
 # ============================================================
+# 5-bis. PHOTOS D'HEBERGEMENT (galerie multi-photos par hébergement)
+# ============================================================
+class PhotoHebergement(TimestampedModel):
+    """
+    Photo additionnelle d'un hebergement.
+
+    Le champ `Hebergement.photo` (ImageField unique) reste la photo
+    principale affichee dans les listings. Ce modele permet de gerer
+    une galerie multi-photos (chambres, exterieur, salle a manger…).
+    """
+    hebergement = models.ForeignKey(
+        Hebergement,
+        on_delete=models.CASCADE,
+        related_name='photos',
+        verbose_name="Hébergement"
+    )
+    image = models.ImageField(
+        upload_to='hebergements/%Y/%m/',
+        verbose_name="Image"
+    )
+    legende = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Légende"
+    )
+    est_principale = models.BooleanField(
+        default=False,
+        verbose_name="Photo principale",
+        help_text="Si coché, devient la photo de couverture de l'hébergement."
+    )
+    ordre = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Ordre d'affichage"
+    )
+
+    class Meta:
+        verbose_name = "Photo d'hébergement"
+        verbose_name_plural = "Photos d'hébergements"
+        ordering = ['hebergement', 'ordre', 'created_at']
+        indexes = [
+            models.Index(fields=['hebergement', 'est_principale']),
+        ]
+
+    def __str__(self):
+        return f"Photo de {self.hebergement.nom} - {self.legende or 'Sans légende'}"
+
+    def save(self, *args, **kwargs):
+        """Garantit qu'une seule photo est marquée comme principale par hébergement."""
+        if self.est_principale:
+            PhotoHebergement.objects.filter(
+                hebergement=self.hebergement,
+                est_principale=True,
+            ).exclude(pk=self.pk).update(est_principale=False)
+        super().save(*args, **kwargs)
+
+
+# ============================================================
 # 6. DISPONIBILITE (places disponibles par jour)
 # ============================================================
 class Disponibilite(TimestampedModel):

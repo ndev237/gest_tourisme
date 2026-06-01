@@ -1,0 +1,97 @@
+<!--
+  Modifier une photo de la galerie d'un hébergement.
+-->
+{% extends "base.html" %}
+
+{% block title %}Modifier la photo — {{ hebergement.nom }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'catalogue:mes_hebergements' %}" class="hover:text-foret-900">Mes hébergements</a>
+      <span>/</span>
+      <a href="{% url 'catalogue:liste_photohebergement' hebergement_id=hebergement.id %}" class="hover:text-foret-900">{{ hebergement.nom|truncatechars:25 }}</a>
+      <span>/</span>
+      <span class="text-accent">Modifier</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-foret-900 text-base-100 px-8 py-6 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Modifier · Photo</p>
+        <h1 class="relative font-display text-2xl font-light">{{ hebergement.nom }}</h1>
+      </div>
+
+      <div class="p-8 lg:p-10">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error">
+          {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <!-- Photo actuelle -->
+        <div class="mb-6 inline-flex items-center gap-4 p-3 bg-sable-50 border border-foret-100/60 rounded-2xl">
+          <img src="{{ photo.image.url }}" alt="" class="w-24 h-24 rounded-xl object-cover">
+          <div>
+            <p class="text-xs text-foret-700/70 font-mono uppercase tracking-wider">Photo actuelle</p>
+            <p class="text-sm text-foret-900 mt-1">{{ photo.legende|default:"Sans légende" }}</p>
+            {% if photo.est_principale %}
+            <span class="badge-stamp text-accent border-accent/40 text-[10px] mt-2 inline-block">★ Couverture</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-5" novalidate>
+          {% csrf_token %}
+
+          <div>
+            <label for="id_image" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Remplacer l'image</label>
+            <input type="file" name="image" id="id_image" accept="image/*"
+                   class="w-full text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-mono file:uppercase file:tracking-wider file:bg-foret-900 file:text-base-100 hover:file:bg-foret-700 file:cursor-pointer">
+            <p class="text-[11px] text-foret-700/60 mt-1.5 font-mono">Laissez vide pour conserver l'image actuelle</p>
+            {% if form.image.errors %}{% for err in form.image.errors %}<p class="text-xs text-error mt-1.5">↳ {{ err }}</p>{% endfor %}{% endif %}
+          </div>
+
+          <div>
+            <label for="id_legende" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Légende</label>
+            <input type="text" name="legende" id="id_legende"
+                   value="{{ form.legende.value|default:'' }}" maxlength="200"
+                   class="w-full bg-sable-50 border {% if form.legende.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            {% if form.legende.errors %}{% for err in form.legende.errors %}<p class="text-xs text-error mt-1.5">↳ {{ err }}</p>{% endfor %}{% endif %}
+          </div>
+
+          <div>
+            <label for="id_ordre" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Ordre d'affichage</label>
+            <input type="number" name="ordre" id="id_ordre" value="{{ form.ordre.value|default:'0' }}" min="0"
+                   class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+          </div>
+
+          <label class="flex items-center gap-3 text-sm text-foret-900 cursor-pointer">
+            <input type="checkbox" name="est_principale" value="on"
+                   {% if form.est_principale.value %}checked{% endif %}
+                   class="w-4 h-4 rounded border-foret-300 text-accent focus:ring-accent">
+            <span>Définir comme photo de couverture</span>
+          </label>
+
+          <div class="flex justify-between items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'catalogue:delete_photohebergement' photo_id=photo.id %}"
+               class="text-xs text-error uppercase tracking-wider underline decoration-dotted underline-offset-4">
+              Supprimer
+            </a>
+            <div class="flex items-center gap-3">
+              <a href="{% url 'catalogue:liste_photohebergement' hebergement_id=hebergement.id %}"
+                 class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer →
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

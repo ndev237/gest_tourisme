@@ -38,12 +38,13 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from catalogue.models import (
-    Categorie, Tag, SiteTouristique, PhotoSite, Hebergement, Disponibilite,
+    Categorie, Tag, SiteTouristique, PhotoSite,
+    Hebergement, PhotoHebergement, Disponibilite,
 )
 from catalogue.forms import (
     CategorieForm, TagForm, LocalisationForm, SiteTouristiqueForm,
-    PhotoSiteForm, PhotoSiteFormSet, HebergementForm, DisponibiliteForm,
-    SiteFiltreForm,
+    PhotoSiteForm, PhotoSiteFormSet, HebergementForm, PhotoHebergementForm,
+    DisponibiliteForm, SiteFiltreForm,
 )
 from localisation.models import Region, Localisation
 
@@ -603,6 +604,246 @@ def delete_hebergement_view(request, hebergement_id):
     return render(request, 'catalogue/hebergement/delete_hebergement.html', {
         'hebergement': hebergement,
         'page_title': f"Supprimer : {hebergement.nom}",
+    })
+
+
+# -----------------------------------------------------------
+# C-bis. GESTIONNAIRE — VUE GLOBALE « MES HEBERGEMENTS »
+# -----------------------------------------------------------
+# Pourquoi une vue globale en plus des vues par site ?
+#  - Le sidebar gestionnaire propose un raccourci « Mes hebergements »
+#    qui n'est pas attache a un slug de site precis.
+#  - On agrege ici TOUS les hebergements de TOUS les sites du
+#    gestionnaire, avec filtres simples (q + site + disponibilite).
+#  - Pagination 6/page coherente avec les autres listes admin.
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def mes_hebergements_view(request):
+    """
+    Liste globale des hebergements du gestionnaire connecte,
+    tous sites confondus. Filtres : recherche, site, disponibilite.
+    """
+    profil = request.user.profil_gestionnaire
+
+    qs = (Hebergement.objects
+          .filter(site__gestionnaire=profil)
+          .select_related('site')
+          .order_by('-est_disponible', 'site__nom', '-etoiles', 'prix_nuit'))
+
+    # --- Filtres ---
+    q = (request.GET.get('q') or '').strip()
+    site_id = request.GET.get('site') or ''
+    statut = request.GET.get('statut') or ''  # disponible / indisponible / ''
+
+    if q:
+        qs = qs.filter(
+            Q(nom__icontains=q)
+            | Q(description__icontains=q)
+            | Q(site__nom__icontains=q)
+        )
+    if site_id:
+        qs = qs.filter(site_id=site_id)
+    if statut == 'disponible':
+        qs = qs.filter(est_disponible=True)
+    elif statut == 'indisponible':
+        qs = qs.filter(est_disponible=False)
+
+    total = qs.count()
+    paginator = Paginator(qs, 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # Sites du gestionnaire pour le filtre + le menu « + Ajouter »
+    mes_sites = (SiteTouristique.objects
+                 .filter(gestionnaire=profil)
+                 .order_by('nom'))
+
+    return render(request, 'catalogue/hebergement/mes_hebergements.html', {
+        'hebergements': page_obj,
+        'page_obj': page_obj,
+        'mes_sites': mes_sites,
+        'total': total,
+        'q': q,
+        'site_filter': site_id,
+        'statut_filter': statut,
+        'page_title': "Mes hébergements",
+    })
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+@require_POST
+def toggle_publication_hebergement_view(request, hebergement_id):
+    """
+    Bascule la disponibilite (= publication) d'un hebergement.
+    Pedago : on protege l'action en POST seul + CSRF + ownership.
+    """
+    hebergement = get_object_or_404(Hebergement, id=hebergement_id)
+    if not check_site_ownership(hebergement.site, request.user):
+        return HttpResponseForbidden()
+
+    hebergement.est_disponible = not hebergement.est_disponible
+    hebergement.save(update_fields=['est_disponible', 'updated_at'])
+    log_action(request.user,
+               'publish' if hebergement.est_disponible else 'unpublish',
+               'Hebergement', hebergement.id, request)
+
+    if hebergement.est_disponible:
+        messages.success(request, f"✅ « {hebergement.nom} » est maintenant publié.")
+    else:
+        messages.info(request, f"« {hebergement.nom} » est dépublié (invisible aux touristes).")
+
+    # Retour : la page d'origine (referer) ou la liste globale
+    return redirect(request.META.get('HTTP_REFERER') or 'catalogue:mes_hebergements')
+
+
+# -----------------------------------------------------------
+# C-mediatheque. GESTIONNAIRE — VUE GLOBALE PHOTOS
+# -----------------------------------------------------------
+# Point d'entree « Gerer les photos » du sidebar : liste TOUS les
+# sites et hebergements du gestionnaire avec le compteur de photos
+# pour chacun, et un acces direct a chaque galerie.
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def mediatheque_view(request):
+    """
+    Mediatheque du gestionnaire : sites + hebergements avec
+    compteur de photos et acces direct aux galeries.
+    """
+    profil = request.user.profil_gestionnaire
+
+    sites = (SiteTouristique.objects
+             .filter(gestionnaire=profil)
+             .annotate(nb_photos=Count('photos', distinct=True))
+             .order_by('nom'))
+
+    hebergements = (Hebergement.objects
+                    .filter(site__gestionnaire=profil)
+                    .select_related('site')
+                    .annotate(nb_photos=Count('photos', distinct=True))
+                    .order_by('site__nom', 'nom'))
+
+    # KPIs
+    total_photos_sites = sum(s.nb_photos for s in sites)
+    total_photos_heb = sum(h.nb_photos for h in hebergements)
+
+    return render(request, 'catalogue/mediatheque.html', {
+        'sites': sites,
+        'hebergements': hebergements,
+        'total_photos_sites': total_photos_sites,
+        'total_photos_heb': total_photos_heb,
+        'nb_sites_sans_photo': sum(1 for s in sites if s.nb_photos == 0),
+        'nb_heb_sans_photo': sum(1 for h in hebergements if h.nb_photos == 0),
+        'page_title': "Médiathèque",
+    })
+
+
+# -----------------------------------------------------------
+# C-ter. GESTIONNAIRE — PHOTOS D'HEBERGEMENT (galerie)
+# -----------------------------------------------------------
+
+def _check_hebergement_ownership(hebergement, user):
+    """Helper : meme logique que check_site_ownership mais via l'hebergement."""
+    return check_site_ownership(hebergement.site, user)
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def liste_photohebergement_view(request, hebergement_id):
+    """Galerie de photos d'un hébergement."""
+    hebergement = get_object_or_404(Hebergement, id=hebergement_id)
+    if not _check_hebergement_ownership(hebergement, request.user):
+        return HttpResponseForbidden()
+
+    photos = hebergement.photos.order_by('-est_principale', 'ordre', 'created_at')
+
+    return render(request, 'catalogue/photohebergement/liste_photohebergement.html', {
+        'hebergement': hebergement,
+        'site': hebergement.site,
+        'photos': photos,
+        'page_title': f"Photos de {hebergement.nom}",
+    })
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def add_photohebergement_view(request, hebergement_id):
+    """Ajouter une photo à la galerie d'un hébergement."""
+    hebergement = get_object_or_404(Hebergement, id=hebergement_id)
+    if not _check_hebergement_ownership(hebergement, request.user):
+        return HttpResponseForbidden()
+
+    if request.method == 'POST':
+        form = PhotoHebergementForm(request.POST, request.FILES)
+        if form.is_valid():
+            photo = form.save(commit=False)
+            photo.hebergement = hebergement
+            photo.save()
+            log_action(request.user, 'create', 'PhotoHebergement', photo.id, request)
+            messages.success(request, "✅ Photo ajoutée.")
+            return redirect('catalogue:liste_photohebergement',
+                            hebergement_id=hebergement.id)
+    else:
+        form = PhotoHebergementForm()
+
+    return render(request, 'catalogue/photohebergement/add_photohebergement.html', {
+        'form': form,
+        'hebergement': hebergement,
+        'site': hebergement.site,
+        'page_title': f"Ajouter une photo à {hebergement.nom}",
+    })
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def update_photohebergement_view(request, photo_id):
+    """Modifier une photo d'hébergement."""
+    photo = get_object_or_404(PhotoHebergement, id=photo_id)
+    if not _check_hebergement_ownership(photo.hebergement, request.user):
+        return HttpResponseForbidden()
+
+    if request.method == 'POST':
+        form = PhotoHebergementForm(request.POST, request.FILES, instance=photo)
+        if form.is_valid():
+            form.save()
+            log_action(request.user, 'update', 'PhotoHebergement', photo.id, request)
+            messages.success(request, "✅ Photo mise à jour.")
+            return redirect('catalogue:liste_photohebergement',
+                            hebergement_id=photo.hebergement.id)
+    else:
+        form = PhotoHebergementForm(instance=photo)
+
+    return render(request, 'catalogue/photohebergement/update_photohebergement.html', {
+        'form': form,
+        'photo': photo,
+        'hebergement': photo.hebergement,
+        'site': photo.hebergement.site,
+        'page_title': "Modifier la photo",
+    })
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def delete_photohebergement_view(request, photo_id):
+    """Supprimer une photo d'hébergement."""
+    photo = get_object_or_404(PhotoHebergement, id=photo_id)
+    if not _check_hebergement_ownership(photo.hebergement, request.user):
+        return HttpResponseForbidden()
+
+    hebergement_id = photo.hebergement.id
+
+    if request.method == 'POST':
+        log_action(request.user, 'delete', 'PhotoHebergement', photo.id, request)
+        photo.delete()
+        messages.success(request, "✅ Photo supprimée.")
+        return redirect('catalogue:liste_photohebergement',
+                        hebergement_id=hebergement_id)
+
+    return render(request, 'catalogue/photohebergement/delete_photohebergement.html', {
+        'photo': photo,
+        'hebergement': photo.hebergement,
+        'page_title': "Supprimer la photo",
     })
 
 

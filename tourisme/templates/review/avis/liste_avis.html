@@ -67,8 +67,8 @@
                 {% endif %}
               </div>
               <div class="flex gap-2 text-[10px] uppercase tracking-wider">
-                <a href="{% url 'review:update_avis' avis_id=avis.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
-                <a href="{% url 'review:delete_avis' avis_id=avis.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
+                <a href="{% url 'reviews:update_avis' avis_id=avis.id %}" class="text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Modifier</a>
+                <a href="{% url 'reviews:delete_avis' avis_id=avis.id %}" class="text-error hover:underline decoration-dotted underline-offset-4">Suppr.</a>
               </div>
             </div>
           </div>
@@ -83,7 +83,7 @@
       <p class="text-foret-700/70 max-w-md mx-auto mb-6">
         Une fois votre visite terminée, partagez votre expérience pour aider les autres voyageurs.
       </p>
-      <a href="{% url 'reservation:liste_reservation' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+      <a href="{% url 'reservation:mes_reservations' %}" class="inline-flex items-center gap-2 bg-foret-900 text-base-100 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
         Mes réservations
       </a>
     </div>

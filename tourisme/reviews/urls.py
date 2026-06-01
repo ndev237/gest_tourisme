@@ -33,11 +33,13 @@ urlpatterns = [
          views.delete_favori_view, name='delete_favori'),
 
     # =========================================================
-    # B. ADMIN — Modération
+    # B. ADMIN — Modération + consultation
     # =========================================================
     path('admin/moderation/', views.moderation_avis_view, name='moderation'),
     path('admin/avis/<int:avis_id>/moderer/',
          views.moderer_avis_view, name='moderer_avis'),
+    path('admin/tous-les-avis/',     views.admin_liste_tous_avis,     name='admin_liste_tous_avis'),
+    path('admin/tous-les-favoris/',  views.admin_liste_tous_favoris,  name='admin_liste_tous_favoris'),
 
     # =========================================================
     # C. GESTIONNAIRE — Réponse

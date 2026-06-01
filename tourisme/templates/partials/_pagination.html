@@ -1,0 +1,51 @@
+<!--
+  Pagination reutilisable — style « Carnet de voyage ».
+  Attend dans le contexte : page_obj (django.core.paginator.Page).
+
+  Le tag querystring (Django 5.1+) conserve automatiquement les
+  parametres GET courants (q, type, statut, region…) et ne remplace que
+  « page » : les filtres et recherches restent donc actifs en naviguant.
+
+  IMPORTANT : ne jamais ecrire de balise de template active (include,
+  querystring, url…) dans ce commentaire HTML — Django les EXECUTE meme
+  entre <!-- -->. Inclure ce partial via la balise include depuis la page.
+-->
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="flex items-center justify-center gap-1.5 mt-8 select-none"
+     aria-label="Pagination">
+
+  <!-- Précédent -->
+  {% if page_obj.has_previous %}
+  <a href="{% querystring page=page_obj.previous_page_number %}"
+     class="inline-flex items-center justify-center h-10 px-4 rounded-full border border-foret-100/60 bg-base-100 text-foret-900 text-sm hover:bg-foret-900 hover:text-base-100 transition"
+     aria-label="Page précédente">←</a>
+  {% else %}
+  <span class="inline-flex items-center justify-center h-10 px-4 rounded-full border border-foret-100/40 bg-sable-50 text-foret-700/30 text-sm cursor-not-allowed">←</span>
+  {% endif %}
+
+  <!-- Numéros de page -->
+  {% for num in page_obj.paginator.page_range %}
+    {% if num == page_obj.number %}
+    <span aria-current="page"
+          class="inline-flex items-center justify-center h-10 min-w-10 px-3 rounded-full bg-foret-900 text-base-100 font-mono-num text-sm font-semibold shadow-lg">{{ num }}</span>
+    {% else %}
+    <a href="{% querystring page=num %}"
+       class="inline-flex items-center justify-center h-10 min-w-10 px-3 rounded-full border border-foret-100/60 bg-base-100 text-foret-900 font-mono-num text-sm hover:border-foret-700 hover:text-accent transition">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+
+  <!-- Suivant -->
+  {% if page_obj.has_next %}
+  <a href="{% querystring page=page_obj.next_page_number %}"
+     class="inline-flex items-center justify-center h-10 px-4 rounded-full border border-foret-100/60 bg-base-100 text-foret-900 text-sm hover:bg-foret-900 hover:text-base-100 transition"
+     aria-label="Page suivante">→</a>
+  {% else %}
+  <span class="inline-flex items-center justify-center h-10 px-4 rounded-full border border-foret-100/40 bg-sable-50 text-foret-700/30 text-sm cursor-not-allowed">→</span>
+  {% endif %}
+</nav>
+
+<p class="text-center text-[11px] font-mono uppercase tracking-wider text-foret-700/50 mt-3">
+  Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+  · {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}
+</p>
+{% endif %}

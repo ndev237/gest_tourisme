@@ -1,0 +1,154 @@
+{% load static %}
+<!--
+  Sidebar gestionnaire — navigation persistante de l'espace gestionnaire.
+  Sections : Pilotage / Mes sites / Réservations / Notifications / Compte.
+  Item actif souligné en or, le reste en blanc cassé.
+  Sticky, scroll interne.
+-->
+<aside class="hidden lg:block w-72 flex-shrink-0 bg-foret-900 text-base-100 sticky top-20 self-start h-[calc(100vh-5rem)] overflow-y-auto"
+       style="scrollbar-width: thin;">
+  <div class="relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+
+    <!-- Logo + identité gestionnaire -->
+    <div class="relative px-6 py-7 border-b border-base-100/15">
+      <a href="{% url 'home' %}" class="flex items-center gap-3 group">
+        <span class="grid place-items-center w-11 h-11 rounded-full bg-accent text-foret-900 font-display text-xl italic font-semibold">tc</span>
+        <div>
+          <p class="font-display text-base leading-tight">Tourisme<span class="text-accent">.</span>Cameroun</p>
+          <p class="text-[10px] font-mono uppercase tracking-[0.2em] text-base-100/50 mt-0.5">Espace gestionnaire</p>
+        </div>
+      </a>
+    </div>
+
+    {% with rm=request.resolver_match.url_name %}
+    <nav class="relative px-3 py-5 text-sm space-y-6">
+
+      <!-- PILOTAGE -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Pilotage</p>
+        <a href="{% url 'compte:dashbord_gestionnaire_site' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition
+                  {% if rm == 'dashbord_gestionnaire_site' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-5 rounded-full {% if rm == 'dashbord_gestionnaire_site' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Tableau de bord</span>
+        </a>
+      </div>
+
+      <!-- MES SITES -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Mes sites</p>
+        <a href="{% url 'catalogue:mes_sites' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'mes_sites' or rm == 'update_sites' or rm == 'delete_sites' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'mes_sites' or rm == 'update_sites' or rm == 'delete_sites' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mes sites publiés</span>
+        </a>
+      </div>
+
+      <!-- MES HEBERGEMENTS -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Hébergement</p>
+        <a href="{% url 'catalogue:mes_hebergements' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'mes_hebergements' or rm == 'liste_hebergement' or rm == 'add_hebergement' or rm == 'update_hebergement' or rm == 'delete_hebergement' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'mes_hebergements' or rm == 'liste_hebergement' or rm == 'add_hebergement' or rm == 'update_hebergement' or rm == 'delete_hebergement' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mes hébergements</span>
+        </a>
+      </div>
+
+      <!-- MEDIATHEQUE (photos sites + hebergements) -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Galerie</p>
+        <a href="{% url 'catalogue:mediatheque' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'mediatheque' or rm == 'liste_photosite' or rm == 'add_photosite' or rm == 'update_photosite' or rm == 'delete_photosite' or rm == 'liste_photohebergement' or rm == 'add_photohebergement' or rm == 'update_photohebergement' or rm == 'delete_photohebergement' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'mediatheque' or rm == 'liste_photosite' or rm == 'add_photosite' or rm == 'update_photosite' or rm == 'delete_photosite' or rm == 'liste_photohebergement' or rm == 'add_photohebergement' or rm == 'update_photohebergement' or rm == 'delete_photohebergement' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Gérer les photos</span>
+        </a>
+      </div>
+
+      <!-- RÉSERVATIONS -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Réservations</p>
+        <a href="{% url 'reservation:reservations_gestionnaire' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'reservations_gestionnaire' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'reservations_gestionnaire' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Réservations reçues</span>
+        </a>
+        <a href="{% url 'reservation:scan_qr' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'scan_qr' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'scan_qr' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Scanner un QR</span>
+        </a>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Notifications</p>
+        <a href="{% url 'notifications:liste' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'liste' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'liste' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Centre notifications</span>
+          {% if nb_notif_non_lues %}
+          <span class="ml-auto text-[10px] font-mono bg-error text-base-100 rounded-full px-2 py-0.5">{{ nb_notif_non_lues }}</span>
+          {% endif %}
+        </a>
+      </div>
+
+      <!-- COMPTE -->
+      <div class="pt-3 border-t border-base-100/15">
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Compte</p>
+        <a href="{% url 'compte:profil' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'profil' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'profil' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mon entreprise</span>
+        </a>
+        <a href="{% url 'compte:changer_password' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'changer_password' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'changer_password' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mot de passe</span>
+        </a>
+      </div>
+    </nav>
+    {% endwith %}
+
+    <!-- Pied de sidebar -->
+    <div class="relative px-6 py-5 border-t border-base-100/15">
+      <div class="flex items-center gap-3">
+        {% if user.photo_profil %}
+        <img src="{{ user.photo_profil.url }}" alt="" class="w-10 h-10 rounded-full object-cover ring-2 ring-accent">
+        {% else %}
+        <div class="w-10 h-10 rounded-full bg-accent text-foret-900 grid place-items-center font-display text-sm font-semibold">
+          {{ user.first_name|first|upper }}{{ user.last_name|first|upper|default:'' }}
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="font-display text-sm truncate">{{ user.profil_gestionnaire.entreprise|default:user.first_name|default:user.email }}</p>
+          <p class="text-[10px] font-mono uppercase tracking-wider text-accent">
+            {% if user.profil_gestionnaire.statut_validation == 'valide' %}
+              Compte validé
+            {% elif user.profil_gestionnaire.statut_validation == 'en_attente' %}
+              En attente
+            {% else %}
+              Gestionnaire
+            {% endif %}
+          </p>
+        </div>
+        <form method="post" action="{% url 'compte:deconnexion' %}" class="flex-shrink-0">
+          {% csrf_token %}
+          <button type="submit" class="text-base-100/60 hover:text-error transition" title="Déconnexion">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</aside>

@@ -82,7 +82,7 @@
 
 {% block content %}
 <section class="bg-base-100">
-  {{ sites_json|json_script:"sites-data" }}
+  {{ sites_data|json_script:"sites-data" }}
 
   <div class="flex flex-col lg:flex-row h-[calc(100vh-5rem)]"
        x-data="{ sidebarOuverte: false }">
@@ -118,12 +118,32 @@
           <span class="btn-label">Centrer sur ma position</span>
         </button>
 
-        <form method="get" class="space-y-5 pt-7 border-t border-foret-100/60">
-          <p class="eyebrow">Affiner</p>
+        <!--
+          Filtrage 100 % côté client : chaque champ déclenche un filtrage
+          instantané des marqueurs et de la liste (aucun rechargement).
+        -->
+        <div class="space-y-5 pt-7 border-t border-foret-100/60">
+          <div class="flex items-center justify-between">
+            <p class="eyebrow">Affiner</p>
+            <button type="button" id="filter-reset"
+                    class="hidden text-[11px] font-mono uppercase tracking-wider text-foret-700 hover:text-accent underline decoration-dotted underline-offset-4">
+              Réinitialiser
+            </button>
+          </div>
+
+          <div>
+            <label for="filter-search" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Rechercher</label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-foret-700/50 pointer-events-none">⌕</span>
+              <input type="search" id="filter-search" autocomplete="off"
+                     placeholder="Nom, ville, région…"
+                     class="w-full bg-sable-50 border border-foret-100/60 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
+            </div>
+          </div>
 
           <div>
             <label for="filter-region" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Région</label>
-            <select name="region" id="filter-region"
+            <select id="filter-region"
                     class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
               <option value="">Toutes les régions</option>
               {% for region in regions %}
@@ -136,7 +156,7 @@
 
           <div>
             <label for="filter-categorie" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Catégorie</label>
-            <select name="categorie" id="filter-categorie"
+            <select id="filter-categorie"
                     class="w-full bg-sable-50 border border-foret-100/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-foret-700">
               <option value="">Toutes les catégories</option>
               {% for cat in categories %}
@@ -147,17 +167,8 @@
             </select>
           </div>
 
-          <div class="flex gap-2 pt-2">
-            <button type="submit" class="flex-1 btn-carnet bg-foret-900 text-base-100 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">
-              Appliquer
-            </button>
-            {% if region_active or categorie_active %}
-            <a href="{% url 'localisation:carte' %}" class="text-xs text-foret-700 hover:text-foret-900 self-center px-3 underline decoration-dotted underline-offset-4">
-              Réinitialiser
-            </a>
-            {% endif %}
-          </div>
-        </form>
+          <p id="filter-count" class="text-xs text-foret-700/70 font-mono"></p>
+        </div>
 
         {% if categories %}
         <div class="pt-7 border-t border-foret-100/60">
@@ -320,77 +331,124 @@ document.addEventListener('DOMContentLoaded', function () {
     return root;
   }
 
-  const markers = [];
-  const groupeMarkers = L.layerGroup().addTo(carte);
-
-  sitesData.forEach(site => {
-    const marker = L.marker(
+  // --- Création de TOUS les marqueurs (un par site, index aligné) ---
+  const markers = sitesData.map(site =>
+    L.marker(
       [site.lat, site.lng],
       { icon: creerMarker(site.couleur, '◈'), title: site.nom }
     ).bindPopup(genererPopupNode(site), {
       maxWidth: 300,
       closeButton: true,
       autoPanPadding: [40, 80],
-    });
+    })
+  );
 
-    marker.addTo(groupeMarkers);
-    markers.push(marker);
-  });
+  const groupeMarkers = L.layerGroup().addTo(carte);
 
-  if (markers.length > 0) {
-    const groupe = L.featureGroup(markers);
-    carte.fitBounds(groupe.getBounds(), {
-      padding: [50, 50],
-      maxZoom: 12,
-    });
-  }
-
-  // Liste latérale — construction DOM intégrale
+  // --- Éléments de filtrage ---
+  const inputSearch = document.getElementById('filter-search');
+  const selectRegion = document.getElementById('filter-region');
+  const selectCategorie = document.getElementById('filter-categorie');
+  const btnReset = document.getElementById('filter-reset');
   const listeContainer = document.getElementById('liste-sites-visibles');
-  while (listeContainer.firstChild) listeContainer.removeChild(listeContainer.firstChild);
+  const countEl = document.getElementById('filter-count');
 
-  if (sitesData.length === 0) {
-    listeContainer.appendChild(el('p', {
-      cls: 'text-xs text-foret-700/50 italic font-mono',
-      text: 'Aucun site visible',
+  // Construit une mini-carte (bouton liste latérale) pour un site donné
+  function creerMiniCarte(site, index) {
+    const btn = el('button', {
+      cls: 'site-mini-card w-full text-left p-3 rounded-xl hover:bg-sable-50 transition flex gap-3 items-center group',
+      type: 'button',
+      dataset: { index: String(index) },
+    });
+    btn.appendChild(el('span', {
+      cls: 'w-3 h-3 rounded-full mt-1 flex-shrink-0 ring-2 ring-base-100',
+      style: 'background-color:' + site.couleur,
     }));
-  } else {
+    const text = el('div', { cls: 'flex-1 min-w-0' });
+    text.appendChild(el('p', {
+      cls: 'font-display text-sm font-medium text-foret-900 truncate group-hover:text-accent transition',
+      text: site.nom,
+    }));
+    text.appendChild(el('p', {
+      cls: 'text-[10px] text-foret-700/60 font-mono uppercase tracking-wider truncate',
+      text: site.ville + (site.region ? ' · ' + site.region : ''),
+    }));
+    btn.appendChild(text);
+    btn.appendChild(el('span', {
+      cls: 'text-foret-700/40 group-hover:text-accent transition',
+      text: '→',
+    }));
+    btn.addEventListener('click', () => {
+      carte.setView([site.lat, site.lng], 13, { animate: true });
+      markers[index].openPopup();
+    });
+    return btn;
+  }
+
+  // Cœur du filtrage : recalcule les sites visibles et met tout à jour
+  function appliquerFiltres(recentrer) {
+    const q = (inputSearch.value || '').trim().toLowerCase();
+    const regionVal = selectRegion.value;
+    const categorieVal = selectCategorie.value;
+
+    const visibles = [];
     sitesData.forEach((site, index) => {
-      const btn = el('button', {
-        cls: 'site-mini-card w-full text-left p-3 rounded-xl hover:bg-sable-50 transition flex gap-3 items-center group',
-        type: 'button',
-        dataset: { index: String(index) },
-      });
+      const okRegion = !regionVal || String(site.region_id) === regionVal;
+      const okCat = !categorieVal || String(site.categorie_id) === categorieVal;
+      const okSearch = !q
+        || (site.nom && site.nom.toLowerCase().includes(q))
+        || (site.ville && site.ville.toLowerCase().includes(q))
+        || (site.region && site.region.toLowerCase().includes(q))
+        || (site.categorie && site.categorie.toLowerCase().includes(q));
+      if (okRegion && okCat && okSearch) visibles.push(index);
+    });
 
-      btn.appendChild(el('span', {
-        cls: 'w-3 h-3 rounded-full mt-1 flex-shrink-0 ring-2 ring-base-100',
-        style: 'background-color:' + site.couleur,
+    // --- Marqueurs ---
+    groupeMarkers.clearLayers();
+    visibles.forEach(i => groupeMarkers.addLayer(markers[i]));
+
+    // --- Liste latérale ---
+    while (listeContainer.firstChild) listeContainer.removeChild(listeContainer.firstChild);
+    if (visibles.length === 0) {
+      listeContainer.appendChild(el('p', {
+        cls: 'text-xs text-foret-700/50 italic font-mono py-2',
+        text: sitesData.length === 0 ? 'Aucun site géolocalisé.' : 'Aucun site ne correspond à ces critères.',
       }));
+    } else {
+      visibles.forEach(i => listeContainer.appendChild(creerMiniCarte(sitesData[i], i)));
+    }
 
-      const text = el('div', { cls: 'flex-1 min-w-0' });
-      text.appendChild(el('p', {
-        cls: 'font-display text-sm font-medium text-foret-900 truncate group-hover:text-accent transition',
-        text: site.nom,
-      }));
-      text.appendChild(el('p', {
-        cls: 'text-[10px] text-foret-700/60 font-mono uppercase tracking-wider truncate',
-        text: site.ville,
-      }));
-      btn.appendChild(text);
+    // --- Compteur + recentrage ---
+    const n = visibles.length;
+    if (countEl) {
+      countEl.textContent = n + ' site' + (n > 1 ? 's' : '') + ' affiché' + (n > 1 ? 's' : '')
+        + (n !== sitesData.length ? ' sur ' + sitesData.length : '');
+    }
 
-      btn.appendChild(el('span', {
-        cls: 'text-foret-700/40 group-hover:text-accent transition',
-        text: '→',
-      }));
+    const filtreActif = !!(q || regionVal || categorieVal);
+    if (btnReset) btnReset.classList.toggle('hidden', !filtreActif);
 
-      btn.addEventListener('click', () => {
-        carte.setView([site.lat, site.lng], 13, { animate: true });
-        markers[index].openPopup();
-      });
+    if (recentrer && n > 0) {
+      const groupe = L.featureGroup(visibles.map(i => markers[i]));
+      carte.fitBounds(groupe.getBounds(), { padding: [50, 50], maxZoom: 12 });
+    }
+  }
 
-      listeContainer.appendChild(btn);
+  // Écouteurs : filtrage instantané
+  inputSearch.addEventListener('input', () => appliquerFiltres(false));
+  selectRegion.addEventListener('change', () => appliquerFiltres(true));
+  selectCategorie.addEventListener('change', () => appliquerFiltres(true));
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      inputSearch.value = '';
+      selectRegion.value = '';
+      selectCategorie.value = '';
+      appliquerFiltres(true);
     });
   }
+
+  // Premier rendu (respecte les menus pré-sélectionnés via ?region=… )
+  appliquerFiltres(true);
 
   // Géolocalisation
   const btnPosition = document.getElementById('btn-ma-position');

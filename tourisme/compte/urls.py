@@ -30,5 +30,23 @@ urlpatterns = [
     path('dashboard/touriste/', views.dashbord_touriste_view, name='dashbord_touriste'),
     path('dashboard/gestionnaire/', views.dashbord_gestionnaire_view, name='dashbord_gestionnaire_site'),
     path('dashboard/guide/', views.dashbord_guide_view, name='dashbord_guide'),
+    path('dashboard/guide/planning/', views.planning_guide_view, name='planning_guide'),
     path('dashboard/admin/', views.dashbord_admin_view, name='dashbord_admin'),
+
+    # ===== ADMIN — GESTION INTERNE DES UTILISATEURS =====
+    # (remplace le backoffice Django : tout se passe sur la plateforme)
+    path('admin/utilisateurs/',    views.admin_liste_utilisateurs,    name='admin_liste_utilisateurs'),
+    path('admin/touristes/',       views.admin_liste_touristes,       name='admin_liste_touristes'),
+    path('admin/gestionnaires/',   views.admin_liste_gestionnaires,   name='admin_liste_gestionnaires'),
+    path('admin/guides/',          views.admin_liste_guides,          name='admin_liste_guides'),
+    path('admin/administrateurs/', views.admin_liste_administrateurs, name='admin_liste_administrateurs'),
+
+    # Actions de validation
+    path('admin/gestionnaire/<int:gestionnaire_id>/valider/', views.admin_valider_gestionnaire, name='admin_valider_gestionnaire'),
+    path('admin/gestionnaire/<int:gestionnaire_id>/rejeter/', views.admin_rejeter_gestionnaire, name='admin_rejeter_gestionnaire'),
+    path('admin/guide/<int:guide_id>/valider/',               views.admin_valider_guide,         name='admin_valider_guide'),
+    path('admin/guide/<int:guide_id>/rejeter/',               views.admin_rejeter_guide,         name='admin_rejeter_guide'),
+
+    # Suspendre / réactiver un user (User PK = UUID)
+    path('admin/utilisateur/<uuid:user_id>/toggle/', views.admin_toggle_user_actif, name='admin_toggle_user_actif'),
 ]

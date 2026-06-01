@@ -1,4 +1,4 @@
-{% load static %}
+{% load static string_filters %}
 <!DOCTYPE html>
 <html lang="fr" data-theme="cameroun">
 <head>
@@ -46,13 +46,30 @@
     {% include "partials/_navbar.html" %}
     {% include "partials/_messages.html" %}
 
-    <main class="flex-grow">
-        {% block content %}
-            <div class="container mx-auto px-4 py-12 text-center">
-                <p class="text-base-content/70">Aucun contenu à afficher pour cette page.</p>
-            </div>
-        {% endblock %}
-    </main>
+    <!--
+      Layout adaptatif : un seul wrapper qui devient flex+sidebar pour
+      tout utilisateur connecte (admin/touriste/guide/gestionnaire) sur
+      une page de gestion. Sinon, layout classique pleine largeur.
+      Un seul block content pour eviter le doublon de Django.
+    -->
+    {% with rm=request.resolver_match.url_name hide_urls='home,connexion,inscription,deconnexion,compte_suspendu,detail_site,a_propos,contact,mentions_legales,page_404,page_500'|split:',' sidebar_roles='admin,touriste,guide,gestionnaire'|split:',' %}
+    <div class="{% if user.is_authenticated and user.type_user in sidebar_roles and rm and rm not in hide_urls %}flex flex-grow bg-sable-50{% else %}flex-grow flex flex-col{% endif %}">
+        {% if user.is_authenticated and user.type_user in sidebar_roles and rm and rm not in hide_urls %}
+            {% if user.type_user == 'admin' %}{% include "partials/_sidebar_admin.html" %}
+            {% elif user.type_user == 'touriste' %}{% include "partials/_sidebar_touriste.html" %}
+            {% elif user.type_user == 'guide' %}{% include "partials/_sidebar_guide.html" %}
+            {% elif user.type_user == 'gestionnaire' %}{% include "partials/_sidebar_gestionnaire.html" %}
+            {% endif %}
+        {% endif %}
+        <main class="{% if user.is_authenticated and user.type_user in sidebar_roles and rm and rm not in hide_urls %}flex-1 min-w-0 flex flex-col{% else %}flex-grow{% endif %}">
+            {% block content %}
+                <div class="container mx-auto px-4 py-12 text-center">
+                    <p class="text-base-content/70">Aucun contenu a afficher pour cette page.</p>
+                </div>
+            {% endblock %}
+        </main>
+    </div>
+    {% endwith %}
 
     {% include "partials/_footer.html" %}
 

@@ -1,0 +1,147 @@
+{% load static %}
+<!--
+  Sidebar touriste — navigation persistante de l'espace voyageur.
+  Sections : Pilotage / Découvrir / Mes voyages / Mon contenu / Compte.
+  Item actif souligné en or, le reste en blanc cassé.
+  Sticky, scroll interne.
+-->
+<aside class="hidden lg:block w-72 flex-shrink-0 bg-foret-900 text-base-100 sticky top-20 self-start h-[calc(100vh-5rem)] overflow-y-auto"
+       style="scrollbar-width: thin;">
+  <div class="relative overflow-hidden">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+
+    <!-- Logo + identité touriste -->
+    <div class="relative px-6 py-7 border-b border-base-100/15">
+      <a href="{% url 'home' %}" class="flex items-center gap-3 group">
+        <span class="grid place-items-center w-11 h-11 rounded-full bg-accent text-foret-900 font-display text-xl italic font-semibold">tc</span>
+        <div>
+          <p class="font-display text-base leading-tight">Tourisme<span class="text-accent">.</span>Cameroun</p>
+          <p class="text-[10px] font-mono uppercase tracking-[0.2em] text-base-100/50 mt-0.5">Espace voyageur</p>
+        </div>
+      </a>
+    </div>
+
+    {% with rm=request.resolver_match.url_name %}
+    <nav class="relative px-3 py-5 text-sm space-y-6">
+
+      <!-- PILOTAGE -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Pilotage</p>
+        <a href="{% url 'compte:dashbord_touriste' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition
+                  {% if rm == 'dashbord_touriste' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-5 rounded-full {% if rm == 'dashbord_touriste' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Tableau de bord</span>
+        </a>
+      </div>
+
+      <!-- DÉCOUVRIR -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Découvrir</p>
+        <a href="{% url 'catalogue:liste_sites' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'liste_sites' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'liste_sites' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Catalogue des sites</span>
+        </a>
+        <a href="{% url 'localisation:carte' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'carte' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'carte' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Carte interactive</span>
+        </a>
+      </div>
+
+      <!-- MES VOYAGES -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Mes voyages</p>
+        <a href="{% url 'reservation:mes_reservations' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'mes_reservations' or rm == 'detail_reservation' or rm == 'annuler_reservation' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'mes_reservations' or rm == 'detail_reservation' or rm == 'annuler_reservation' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mes réservations</span>
+        </a>
+      </div>
+
+      <!-- MON CONTENU -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Mon contenu</p>
+        <a href="{% url 'reviews:liste_avis' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'liste_avis' or rm == 'add_avis' or rm == 'update_avis' or rm == 'delete_avis' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'liste_avis' or rm == 'add_avis' or rm == 'update_avis' or rm == 'delete_avis' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mes avis</span>
+        </a>
+        <a href="{% url 'reviews:liste_favori' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'liste_favori' or rm == 'delete_favori' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'liste_favori' or rm == 'delete_favori' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mes favoris</span>
+        </a>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div>
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Notifications</p>
+        <a href="{% url 'notifications:liste' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'liste' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'liste' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Centre notifications</span>
+          {% if nb_notif_non_lues %}
+          <span class="ml-auto text-[10px] font-mono bg-error text-base-100 rounded-full px-2 py-0.5">{{ nb_notif_non_lues }}</span>
+          {% endif %}
+        </a>
+      </div>
+
+      <!-- COMPTE -->
+      <div class="pt-3 border-t border-base-100/15">
+        <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-accent/80">Compte</p>
+        <a href="{% url 'compte:profil' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'profil' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'profil' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mon profil</span>
+        </a>
+        <a href="{% url 'compte:changer_password' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-xl transition
+                  {% if rm == 'changer_password' %}bg-base-100/10 text-accent{% else %}text-base-100/80 hover:bg-base-100/5 hover:text-base-100{% endif %}">
+          <span class="w-1 h-4 rounded-full {% if rm == 'changer_password' %}bg-accent{% else %}bg-transparent{% endif %}"></span>
+          <span>Mot de passe</span>
+        </a>
+      </div>
+    </nav>
+    {% endwith %}
+
+    <!-- Pied de sidebar -->
+    <div class="relative px-6 py-5 border-t border-base-100/15">
+      <div class="flex items-center gap-3">
+        {% if user.photo_profil %}
+        <img src="{{ user.photo_profil.url }}" alt="" class="w-10 h-10 rounded-full object-cover ring-2 ring-accent">
+        {% else %}
+        <div class="w-10 h-10 rounded-full bg-accent text-foret-900 grid place-items-center font-display text-sm font-semibold">
+          {{ user.first_name|first|upper }}{{ user.last_name|first|upper|default:'' }}
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="font-display text-sm truncate">{{ user.first_name|default:user.email }}</p>
+          <p class="text-[10px] font-mono uppercase tracking-wider text-accent">
+            {% if user.profil_touriste.points_fidelite %}
+              {{ user.profil_touriste.points_fidelite }} pts fidélité
+            {% else %}
+              Voyageur
+            {% endif %}
+          </p>
+        </div>
+        <form method="post" action="{% url 'compte:deconnexion' %}" class="flex-shrink-0">
+          {% csrf_token %}
+          <button type="submit" class="text-base-100/60 hover:text-error transition" title="Déconnexion">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,392 @@
+<!--
+  Choix moyen de paiement — étape 1 du tunnel.
+  Direction créative : « billet d'embarquement » / tampon de voyage.
+   - Stepper progression visuelle (1/3)
+   - Cards moyens de paiement grandes, avec logo coloré dédié par provider
+   - Sélection : ring d'or + icône check + lift subtil
+   - Récap latéral : coupon à coins crantés (perforations) + grain
+-->
+{% extends "base.html" %}
+
+{% block title %}Mode de paiement — {{ reservation.numero }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Coupon : effet ticket avec encoches latérales (gauche + droite) */
+  .coupon-recap { position: relative; }
+  .coupon-recap::before,
+  .coupon-recap::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    background: var(--color-sable-50);
+    border-radius: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  .coupon-recap::before { left: -14px; }
+  .coupon-recap::after  { right: -14px; }
+
+  /* Carte radio : transition au check */
+  .moyen-card {
+    position: relative;
+    transition: transform 0.25s var(--ease-out-expo), border-color 0.25s ease,
+                box-shadow 0.25s ease, background-color 0.25s ease;
+  }
+  .moyen-card:hover {
+    border-color: color-mix(in oklch, var(--color-accent) 40%, transparent);
+    transform: translateX(2px);
+  }
+  .moyen-card .check-pin {
+    opacity: 0; transform: scale(0.5) rotate(-30deg);
+    transition: opacity 0.25s ease, transform 0.3s var(--ease-out-expo);
+  }
+  /* On utilise le :has() — si non supporté, Alpine prend le relais via x-bind */
+  .moyen-card:has(input[type="radio"]:checked),
+  .moyen-card.is-selected {
+    border-color: var(--color-accent);
+    background: color-mix(in oklch, var(--color-accent) 4%, var(--color-base-100));
+    box-shadow: 0 16px 32px -16px color-mix(in oklch, var(--color-accent) 50%, transparent);
+    transform: translateX(0);
+  }
+  .moyen-card:has(input[type="radio"]:checked) .check-pin,
+  .moyen-card.is-selected .check-pin {
+    opacity: 1; transform: scale(1) rotate(0);
+  }
+
+  /* Sceau « OK » qui apparaît */
+  .seal-ok {
+    background: var(--color-accent);
+    color: var(--color-foret-900);
+  }
+
+  /* Logo provider — base monogramme, fallback si pas d'icône */
+  .provider-logo {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .provider-logo svg { display: block; }
+  .provider-mtn { background: linear-gradient(135deg, #FFCB05 0%, #FFA500 100%); }
+  .provider-orange { background: linear-gradient(135deg, #FF7900 0%, #FF4D00 100%); }
+  .provider-stripe { background: linear-gradient(135deg, #6772E5 0%, #4F4FC9 100%); }
+  .provider-flutter { background: linear-gradient(135deg, #F5A623 0%, #FF6A00 100%); }
+  .provider-manuel { background: linear-gradient(135deg, #15803D 0%, #16A34A 100%); }
+  .provider-cash   { background: linear-gradient(135deg, #B45309 0%, #92400E 100%); }
+  .provider-default { background: linear-gradient(135deg, var(--color-foret-700) 0%, var(--color-foret-900) 100%); }
+
+  /* Cacher le natif radio mais le garder focusable */
+  .moyen-card input[type="radio"] {
+    position: absolute; opacity: 0; pointer-events: none;
+    width: 1px; height: 1px;
+  }
+  .moyen-card:focus-within {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-10 lg:py-14">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Fil d'Ariane -->
+    <nav class="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-7">
+      <a href="{% url 'reservation:mes_reservations' %}" class="hover:text-foret-900 transition">Mes réservations</a>
+      <span class="text-foret-700/30">/</span>
+      <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}" class="hover:text-foret-900 transition">{{ reservation.numero }}</a>
+      <span class="text-foret-700/30">/</span>
+      <span class="text-accent">Paiement</span>
+    </nav>
+
+    <!-- Hero + Stepper -->
+    <header class="text-center mb-10">
+      <p class="eyebrow mb-3">Tunnel de paiement · Étape 01 sur 03</p>
+      <h1 class="font-display text-4xl lg:text-5xl font-light text-foret-900 leading-tight">
+        Comment souhaitez-vous <em class="font-display-italic text-accent">payer</em> ?
+      </h1>
+      <p class="text-sm text-foret-700/70 mt-3 max-w-xl mx-auto">
+        Choisissez le moyen qui vous arrange. Tout passe par un canal sécurisé —
+        aucune donnée bancaire n'est conservée sur nos serveurs.
+      </p>
+    </header>
+
+    <!-- Stepper graphique -->
+    <div class="flex items-center justify-center gap-2 mb-12 text-xs font-mono uppercase tracking-[0.18em]">
+      <div class="flex items-center gap-2 text-foret-900">
+        <span class="w-9 h-9 rounded-full grid place-items-center text-[10px] bg-foret-900 text-base-100 shadow-lg">01</span>
+        <span class="hidden sm:inline">Moyen</span>
+      </div>
+      <span class="w-10 sm:w-16 h-px bg-foret-900/40"></span>
+      <div class="flex items-center gap-2 text-foret-700/40">
+        <span class="w-9 h-9 rounded-full grid place-items-center text-[10px] border border-foret-100">02</span>
+        <span class="hidden sm:inline">Paiement</span>
+      </div>
+      <span class="w-10 sm:w-16 h-px bg-foret-100"></span>
+      <div class="flex items-center gap-2 text-foret-700/40">
+        <span class="w-9 h-9 rounded-full grid place-items-center text-[10px] border border-foret-100">03</span>
+        <span class="hidden sm:inline">Confirmation</span>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-5 gap-8">
+
+      <!-- ============== COLONNE FORM (3/5) ============== -->
+      <div class="lg:col-span-3">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-6 text-sm text-error flex gap-3">
+          <span class="font-mono">!</span>
+          <span>{{ form.non_field_errors.0 }}</span>
+        </div>
+        {% endif %}
+
+        {% if form.moyen.field.queryset.count == 0 %}
+        <div class="bg-warning/10 border border-warning/40 rounded-3xl p-8 text-center">
+          <div class="inline-flex w-16 h-16 rounded-full bg-warning/20 items-center justify-center text-3xl text-warning mb-4">!</div>
+          <p class="eyebrow text-warning mb-2">Aucun moyen disponible</p>
+          <p class="text-sm text-foret-900 mb-4">
+            Aucun moyen de paiement ne couvre le montant de
+            <strong class="font-mono-num">{{ reservation.montant_total|floatformat:0 }} FCFA</strong>.
+          </p>
+          <p class="text-xs text-foret-700/70">Merci de contacter l'administrateur.</p>
+        </div>
+        {% else %}
+
+        <form method="post" x-data="{ selectedId: null }">
+          {% csrf_token %}
+
+          <div class="space-y-3">
+            {% for moyen in form.moyen.field.queryset %}
+            <label class="moyen-card block bg-base-100 border-2 border-foret-100 rounded-3xl p-5 cursor-pointer"
+                   :class="selectedId === {{ moyen.id }} ? 'is-selected' : ''"
+                   @click="selectedId = {{ moyen.id }}">
+              <input type="radio" name="moyen" value="{{ moyen.id }}" required
+                     x-model.number="selectedId">
+
+              <div class="flex items-center gap-5">
+                <!-- Logo provider -->
+                {% if moyen.provider == 'mtn_momo' %}
+                <div class="provider-logo provider-mtn">
+                  <svg viewBox="0 0 64 64" width="56" height="56" fill="none">
+                    <rect x="6" y="20" width="52" height="24" rx="4" fill="#fff"/>
+                    <text x="32" y="37" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="13" fill="#0052A5">MTN</text>
+                    <text x="32" y="51" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="7" fill="#FFCB05">MoMo</text>
+                  </svg>
+                </div>
+                {% elif moyen.provider == 'orange_money' %}
+                <div class="provider-logo provider-orange">
+                  <svg viewBox="0 0 64 64" width="56" height="56" fill="none">
+                    <rect x="10" y="14" width="44" height="14" fill="#fff"/>
+                    <text x="32" y="25" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="10" fill="#FF7900">orange</text>
+                    <text x="32" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="8" fill="#fff">MONEY</text>
+                  </svg>
+                </div>
+                {% elif moyen.provider == 'stripe' %}
+                <div class="provider-logo provider-stripe">
+                  <svg viewBox="0 0 64 64" width="48" height="48">
+                    <path fill="#fff" d="M33.1 25.2c0-1.7 1.4-2.4 3.7-2.4 3.3 0 7.5 1 10.8 2.8v-10C44 14.3 40.4 13.7 36.8 13.7c-9 0-15 4.7-15 12.5 0 12.2 16.9 10.3 16.9 15.6 0 2-1.7 2.6-4.1 2.6-3.6 0-8.2-1.5-11.8-3.4v10.1c4 1.7 8.1 2.5 11.8 2.5 9.2 0 15.5-4.5 15.5-12.5 0-13.1-17-10.8-17-15.9z"/>
+                  </svg>
+                </div>
+                {% elif moyen.provider == 'flutterwave' %}
+                <div class="provider-logo provider-flutter">
+                  <svg viewBox="0 0 64 64" width="44" height="44">
+                    <path fill="#fff" d="M14 14h20l-6 22 22-22v36H30l6-22-22 22z"/>
+                  </svg>
+                </div>
+                {% elif moyen.provider == 'manuel' or moyen.provider == 'cash' %}
+                <div class="provider-logo provider-cash">
+                  <svg viewBox="0 0 64 64" width="40" height="40" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="8" y="18" width="48" height="28" rx="3"/>
+                    <circle cx="32" cy="32" r="7"/>
+                    <circle cx="14" cy="24" r="1.5" fill="#fff"/>
+                    <circle cx="50" cy="40" r="1.5" fill="#fff"/>
+                  </svg>
+                </div>
+                {% else %}
+                <div class="provider-logo provider-default">
+                  <span class="font-display text-2xl text-base-100">{{ moyen.libelle|first|upper }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Détails -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-3 mb-1">
+                    <h3 class="font-display text-lg text-foret-900 leading-tight">{{ moyen.libelle }}</h3>
+                    <!-- Sceau OK -->
+                    <span class="check-pin seal-ok inline-flex items-center justify-center w-9 h-9 rounded-full font-bold text-base flex-shrink-0">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </span>
+                  </div>
+
+                  {% if moyen.description %}
+                  <p class="text-xs text-foret-700/70 leading-relaxed mb-3">{{ moyen.description|truncatechars:140 }}</p>
+                  {% endif %}
+
+                  <div class="flex flex-wrap items-center gap-2 mt-2">
+                    {% if moyen.frais_pourcentage or moyen.frais_fixe %}
+                    <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">
+                      Frais :
+                      {% if moyen.frais_pourcentage %}{{ moyen.frais_pourcentage }}%{% endif %}
+                      {% if moyen.frais_pourcentage and moyen.frais_fixe %} + {% endif %}
+                      {% if moyen.frais_fixe %}{{ moyen.frais_fixe|floatformat:0 }} F{% endif %}
+                    </span>
+                    {% else %}
+                    <span class="badge-stamp text-success border-success/40 text-[10px]">Sans frais</span>
+                    {% endif %}
+
+                    {% if moyen.provider == 'mtn_momo' or moyen.provider == 'orange_money' %}
+                    <span class="badge-stamp text-info border-info/40 text-[10px]">Mobile</span>
+                    {% elif moyen.provider == 'stripe' or moyen.provider == 'flutterwave' %}
+                    <span class="badge-stamp text-info border-info/40 text-[10px]">Carte bancaire</span>
+                    {% elif moyen.provider == 'manuel' or moyen.provider == 'cash' %}
+                    <span class="badge-stamp text-info border-info/40 text-[10px]">Sur place</span>
+                    {% endif %}
+
+                    {% if moyen.montant_minimum %}
+                    <span class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">
+                      ≥ {{ moyen.montant_minimum|floatformat:0 }} F
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+
+          {% if form.moyen.errors %}
+          <p class="mt-4 text-sm text-error font-medium">{{ form.moyen.errors.0 }}</p>
+          {% endif %}
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between mt-10 pt-6 border-t border-foret-100">
+            <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}"
+               class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 transition">
+              ← Retour
+            </a>
+
+            <button type="submit"
+                    x-bind:disabled="!selectedId"
+                    class="btn-carnet bg-foret-900 text-base-100 rounded-full px-9 py-3.5 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition disabled:opacity-30 disabled:cursor-not-allowed shadow-xl flex items-center gap-3"
+                    title="Passer à l'étape suivante">
+              <span>Continuer</span>
+              <span class="text-base">→</span>
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- ============== COLONNE COUPON (2/5) ============== -->
+      <aside class="lg:col-span-2">
+        <div class="lg:sticky lg:top-28 self-start">
+
+          <!-- Coupon récap : carte foncée façon ticket -->
+          <div class="coupon-recap bg-foret-900 text-base-100 rounded-3xl relative">
+            <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25 rounded-3xl pointer-events-none"></div>
+
+            <!-- Header coupon -->
+            <div class="relative p-7 pb-5">
+              <div class="flex items-start justify-between mb-5">
+                <div>
+                  <p class="eyebrow text-accent">Récapitulatif</p>
+                  <p class="text-[10px] font-mono uppercase tracking-[0.25em] text-base-100/40 mt-1">Réservation</p>
+                </div>
+                <span class="font-mono-num text-[10px] bg-accent text-foret-900 px-2.5 py-1 rounded-full font-bold tracking-wider">
+                  {{ reservation.numero }}
+                </span>
+              </div>
+
+              <!-- Site -->
+              <div class="pb-5 border-b border-dashed border-base-100/25">
+                <p class="text-[10px] font-mono uppercase tracking-wider text-base-100/50 mb-1">Destination</p>
+                <p class="font-display text-xl leading-tight">{{ reservation.site.nom }}</p>
+                <p class="text-xs font-mono uppercase tracking-wider text-base-100/60 mt-1">
+                  {{ reservation.site.localisation.ville }}{% if reservation.site.localisation.region %} · {{ reservation.site.localisation.region.nom }}{% endif %}
+                </p>
+              </div>
+
+              <!-- Infos pratiques -->
+              <dl class="grid grid-cols-2 gap-y-4 gap-x-3 my-5 text-sm">
+                <div>
+                  <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50 mb-1">Date visite</dt>
+                  <dd class="font-mono-num text-base">{{ reservation.date_visite|date:"d M Y" }}</dd>
+                </div>
+                {% if reservation.heure_visite %}
+                <div>
+                  <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50 mb-1">Heure</dt>
+                  <dd class="font-mono-num text-base">{{ reservation.heure_visite|time:"H:i" }}</dd>
+                </div>
+                {% endif %}
+                <div>
+                  <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50 mb-1">Adultes</dt>
+                  <dd class="font-mono-num text-base">{{ reservation.nb_adultes }}</dd>
+                </div>
+                {% if reservation.nb_enfants %}
+                <div>
+                  <dt class="text-[10px] font-mono uppercase tracking-wider text-base-100/50 mb-1">Enfants</dt>
+                  <dd class="font-mono-num text-base">{{ reservation.nb_enfants }}</dd>
+                </div>
+                {% endif %}
+              </dl>
+            </div>
+
+            <!-- Ligne perforée -->
+            <div class="relative px-7" aria-hidden="true">
+              <div class="border-t-2 border-dashed border-base-100/30"></div>
+            </div>
+
+            <!-- Total -->
+            <div class="relative p-7 pt-5">
+              <p class="text-[10px] font-mono uppercase tracking-[0.25em] text-base-100/50 mb-2">Total à régler</p>
+              <div class="flex items-baseline gap-2">
+                <span class="font-display text-5xl font-light text-accent font-mono-num leading-none">
+                  {{ reservation.montant_total|floatformat:0 }}
+                </span>
+                <span class="text-sm font-mono uppercase tracking-wider text-base-100/60">FCFA</span>
+              </div>
+              <p class="text-[11px] text-base-100/40 mt-2">Toutes taxes comprises</p>
+            </div>
+          </div>
+
+          <!-- Carte sécurité -->
+          <div class="mt-5 bg-base-100 border border-foret-100/60 rounded-3xl p-5 flex items-start gap-4">
+            <span class="grid place-items-center w-11 h-11 rounded-2xl bg-success/15 text-success flex-shrink-0">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+            <div>
+              <p class="eyebrow text-success mb-1">Paiement sécurisé</p>
+              <p class="text-xs text-foret-700/80 leading-relaxed">
+                Vos coordonnées bancaires ne transitent jamais par nos serveurs.
+                Toutes les transactions sont chiffrées de bout en bout.
+              </p>
+            </div>
+          </div>
+
+          <!-- Petits drapeaux des moyens supportés -->
+          <div class="mt-5 text-center">
+            <p class="text-[10px] font-mono uppercase tracking-[0.2em] text-foret-700/50 mb-3">Tous moyens acceptés</p>
+            <div class="inline-flex flex-wrap gap-2 justify-center text-[10px] font-mono uppercase tracking-wider">
+              <span class="px-3 py-1.5 rounded-full bg-base-100 border border-foret-100 text-foret-700">MTN MoMo</span>
+              <span class="px-3 py-1.5 rounded-full bg-base-100 border border-foret-100 text-foret-700">Orange Money</span>
+              <span class="px-3 py-1.5 rounded-full bg-base-100 border border-foret-100 text-foret-700">Visa</span>
+              <span class="px-3 py-1.5 rounded-full bg-base-100 border border-foret-100 text-foret-700">Espèces</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

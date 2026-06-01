@@ -1,0 +1,101 @@
+<!--
+  Tous les avis (admin) — vue d'ensemble avec filtre statut.
+-->
+{% extends "base.html" %}
+
+{% block title %}Tous les avis — Administration{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <header class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative overflow-hidden mb-8">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <nav class="relative flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+      <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-accent transition">Admin</a>
+      <span>/</span>
+      <span class="text-accent">Tous les avis</span>
+    </nav>
+    <p class="relative eyebrow text-accent mb-2">Modération · Vue d'ensemble</p>
+    <h1 class="relative font-display text-3xl lg:text-4xl font-light">Tous les avis</h1>
+    <p class="relative text-sm text-base-100/60 mt-2 font-mono">{{ total }} avis enregistré{{ total|pluralize }}</p>
+  </header>
+
+  <form method="get" class="bg-base-100 border border-foret-100/60 rounded-3xl p-5 mb-6 flex flex-wrap gap-4 items-end">
+    <div class="flex-1 min-w-[200px]">
+      <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Recherche</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Site, touriste, titre…"
+             class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+    </div>
+    <div>
+      <label class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Statut</label>
+      <select name="statut" class="bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+        <option value="">Tous</option>
+        <option value="en_attente" {% if statut_filter == 'en_attente' %}selected{% endif %}>En attente</option>
+        <option value="approuve"   {% if statut_filter == 'approuve' %}selected{% endif %}>Approuvé</option>
+        <option value="rejete"     {% if statut_filter == 'rejete' %}selected{% endif %}>Rejeté</option>
+        <option value="signale"    {% if statut_filter == 'signale' %}selected{% endif %}>Signalé</option>
+      </select>
+    </div>
+    <button type="submit" class="bg-foret-900 text-base-100 rounded-full px-6 py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition">Filtrer</button>
+    <a href="{% url 'reviews:moderation' %}" class="text-xs text-accent uppercase tracking-wider underline decoration-dotted underline-offset-4 px-3">→ Modération</a>
+  </form>
+
+  {% if avis_list %}
+  <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+          <tr>
+            <th class="px-7 py-4 text-left">Avis</th>
+            <th class="px-3 py-4 text-left">Auteur</th>
+            <th class="px-3 py-4 text-left">Site</th>
+            <th class="px-3 py-4 text-center">Note</th>
+            <th class="px-3 py-4 text-left">Date</th>
+            <th class="px-7 py-4 text-right">Statut</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-foret-100/60">
+          {% for a in avis_list %}
+          <tr class="hover:bg-sable-50/60 transition">
+            <td class="px-7 py-4 max-w-md">
+              {% if a.titre %}
+              <p class="font-display text-base text-foret-900 truncate">{{ a.titre }}</p>
+              {% endif %}
+              <p class="text-xs text-foret-700/70 line-clamp-2 italic">« {{ a.commentaire|truncatechars:120 }} »</p>
+            </td>
+            <td class="px-3 py-4">
+              <p class="text-foret-900">{{ a.touriste.user.nom_complet|default:a.touriste.user.email }}</p>
+            </td>
+            <td class="px-3 py-4">
+              <a href="{% url 'catalogue:detail_site' slug=a.site.slug %}" class="text-foret-900 hover:text-accent underline decoration-dotted underline-offset-4 text-xs">{{ a.site.nom|truncatechars:30 }}</a>
+            </td>
+            <td class="px-3 py-4 text-center text-accent">{% for i in "12345"|make_list %}{% if forloop.counter <= a.note %}★{% else %}☆{% endif %}{% endfor %}</td>
+            <td class="px-3 py-4 font-mono-num text-xs text-foret-700">{{ a.created_at|date:"d/m/Y" }}</td>
+            <td class="px-7 py-4 text-right">
+              {% if a.statut_moderation == 'approuve' %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Publié</span>
+              {% elif a.statut_moderation == 'en_attente' %}
+                <span class="badge-stamp text-warning border-warning/40 text-[10px]">Attente</span>
+              {% elif a.statut_moderation == 'signale' %}
+                <span class="badge-stamp text-error border-error/40 text-[10px]">Signalé</span>
+              {% else %}
+                <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">Rejeté</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include "partials/_pagination.html" %}
+  {% else %}
+  <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-16 text-center">
+    <div class="inline-flex w-20 h-20 rounded-full bg-sable-50 grid place-items-center text-3xl mb-5">★</div>
+    <h3 class="font-display text-2xl text-foret-900 mb-3">Aucun avis</h3>
+    <p class="text-foret-700/70">Aucun avis ne correspond aux critères.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

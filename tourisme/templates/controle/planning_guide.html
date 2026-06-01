@@ -1,0 +1,225 @@
+<!--
+  Mon planning (guide) — calendrier mensuel.
+  Jours libres (sable clair) vs jours réservés (carte + nom touriste + tél).
+  Navigation mois précédent/suivant via ?mois=YYYY-MM.
+-->
+{% extends "base.html" %}
+
+{% block title %}Mon planning — {{ nom_mois }} {{ annee }}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- HERO -->
+  <header class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative overflow-hidden mb-8">
+    <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+    <div aria-hidden="true" class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+
+    <nav class="relative flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+      <a href="{% url 'compte:dashbord_guide' %}" class="hover:text-accent transition">Tableau de bord</a>
+      <span>/</span>
+      <span class="text-accent">Mon planning</span>
+    </nav>
+    <p class="relative eyebrow text-accent mb-2">Calendrier · {{ nom_mois }} {{ annee }}</p>
+
+    <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      <div>
+        <h1 class="font-display text-3xl lg:text-4xl font-light leading-tight">
+          Mon <em class="font-display-italic text-accent">planning</em>.
+        </h1>
+        <p class="text-sm text-base-100/60 mt-2 font-mono uppercase tracking-wider">
+          {{ nb_jours_libres }} jour{{ nb_jours_libres|pluralize }} libre{{ nb_jours_libres|pluralize }}
+          · {{ nb_jours_reserves }} jour{{ nb_jours_reserves|pluralize }} réservé{{ nb_jours_reserves|pluralize }}
+          · {{ nb_missions }} mission{{ nb_missions|pluralize }} au total
+        </p>
+      </div>
+
+      <!-- Nav mois -->
+      <div class="inline-flex items-center gap-2">
+        <a href="?mois={{ mois_prec }}"
+           class="inline-flex items-center justify-center w-11 h-11 rounded-full border border-base-100/30 text-base-100/80 hover:bg-base-100/10 hover:text-accent transition"
+           aria-label="Mois précédent">←</a>
+        <a href="?mois={{ mois_courant }}"
+           class="inline-flex items-center justify-center h-11 px-5 rounded-full bg-accent text-foret-900 text-xs font-medium uppercase tracking-wider hover:bg-accent/90 transition"
+           title="Revenir au mois courant">Aujourd'hui</a>
+        <a href="?mois={{ mois_suiv }}"
+           class="inline-flex items-center justify-center w-11 h-11 rounded-full border border-base-100/30 text-base-100/80 hover:bg-base-100/10 hover:text-accent transition"
+           aria-label="Mois suivant">→</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-8">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60">
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Total jours</p>
+        <p class="font-display text-4xl font-medium text-foret-900">{{ nb_jours_total }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Dans le mois</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Libres</p>
+        <p class="font-display text-4xl font-medium text-success">{{ nb_jours_libres }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Disponibles</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Réservés</p>
+        <p class="font-display text-4xl font-medium text-accent">{{ nb_jours_reserves }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Avec mission</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Missions</p>
+        <p class="font-display text-4xl font-medium text-foret-900">{{ nb_missions }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Total mois</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDRIER -->
+  <section class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden mb-8">
+    <!-- En-tête jours -->
+    <div class="grid grid-cols-7 bg-sable-50 border-b border-foret-100/60">
+      {% for j in 'LMMJVSD'|make_list %}
+      <div class="px-3 py-3 text-center text-[10px] font-mono uppercase tracking-[0.2em] text-foret-700">
+        {% if forloop.counter == 1 %}Lundi
+        {% elif forloop.counter == 2 %}Mardi
+        {% elif forloop.counter == 3 %}Mercredi
+        {% elif forloop.counter == 4 %}Jeudi
+        {% elif forloop.counter == 5 %}Vendredi
+        {% elif forloop.counter == 6 %}Samedi
+        {% else %}Dimanche{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Grille -->
+    <div>
+      {% for semaine in grille %}
+      <div class="grid grid-cols-7 border-b border-foret-100/60 last:border-b-0">
+        {% for cellule in semaine %}
+        <div class="min-h-[110px] border-r border-foret-100/40 last:border-r-0 p-2.5
+                    {% if cellule == None %}bg-sable-50/40
+                    {% elif cellule.missions %}bg-accent/5
+                    {% elif cellule.is_past %}bg-sable-50/60
+                    {% else %}bg-base-100 hover:bg-success/5{% endif %} transition">
+          {% if cellule %}
+            <!-- Numéro jour -->
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-display text-base
+                           {% if cellule.is_today %}bg-foret-900 text-base-100 w-7 h-7 rounded-full grid place-items-center text-xs{% else %}text-foret-900{% endif %}
+                           {% if cellule.is_past and not cellule.is_today %}text-foret-700/40{% endif %}">{{ cellule.jour }}</span>
+              {% if cellule.missions %}
+              <span class="badge-stamp text-accent border-accent/40 text-[9px]">{{ cellule.missions|length }} mission{{ cellule.missions|length|pluralize }}</span>
+              {% elif not cellule.is_past %}
+              <span class="text-[9px] font-mono uppercase tracking-wider text-success/70">Libre</span>
+              {% endif %}
+            </div>
+
+            <!-- Missions -->
+            {% for m in cellule.missions %}
+            <a href="{% url 'reservation:detail_reservation' reservation_id=m.id %}"
+               class="block bg-base-100 border border-accent/40 rounded-lg px-2 py-1.5 mb-1 text-[10px] hover:border-accent transition"
+               title="Voir le détail de la réservation">
+              {% if m.heure_visite %}
+              <p class="font-mono-num text-foret-700/70">{{ m.heure_visite|time:"H:i" }}</p>
+              {% endif %}
+              <p class="font-display text-foret-900 truncate leading-tight">{{ m.touriste.user.first_name|default:m.touriste.user.email }} {{ m.touriste.user.last_name|first|upper }}</p>
+              {% if m.touriste.user.telephone %}
+              <p class="font-mono text-accent text-[9px] truncate">☎ {{ m.touriste.user.telephone }}</p>
+              {% endif %}
+              <p class="text-foret-700/60 truncate">{{ m.site.nom|truncatechars:18 }}</p>
+              {% if m.statut == 'en_attente' %}
+              <span class="inline-block mt-1 text-warning text-[8px] uppercase tracking-wider font-mono">⏳ En attente</span>
+              {% endif %}
+            </a>
+            {% endfor %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- LISTE DÉTAILLÉE -->
+  <section class="bg-base-100 border border-foret-100/60 rounded-3xl p-7 lg:p-10">
+    <p class="eyebrow mb-2">Récapitulatif</p>
+    <h2 class="font-display text-2xl text-foret-900 mb-2">Missions de {{ nom_mois }} {{ annee }}</h2>
+    <p class="text-sm text-foret-700/70 mb-6">Liste détaillée — coordonnées des touristes.</p>
+
+    {% if missions_mois %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-sable-50 text-xs font-mono uppercase tracking-wider text-foret-700">
+          <tr>
+            <th class="px-5 py-3 text-left">Date</th>
+            <th class="px-3 py-3 text-left">Heure</th>
+            <th class="px-3 py-3 text-left">Touriste</th>
+            <th class="px-3 py-3 text-left">Téléphone</th>
+            <th class="px-3 py-3 text-left">Site</th>
+            <th class="px-3 py-3 text-center">Pers.</th>
+            <th class="px-5 py-3 text-right">Statut</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-foret-100/60">
+          {% for m in missions_mois %}
+          <tr class="hover:bg-sable-50/60 transition">
+            <td class="px-5 py-3 font-mono-num text-foret-900">{{ m.date_visite|date:"d/m/Y" }}</td>
+            <td class="px-3 py-3 font-mono-num text-xs text-foret-700">
+              {% if m.heure_visite %}{{ m.heure_visite|time:"H:i" }}{% else %}—{% endif %}
+            </td>
+            <td class="px-3 py-3">
+              <p class="font-display text-foret-900">{{ m.touriste.user.nom_complet|default:m.touriste.user.email }}</p>
+              <p class="text-[10px] font-mono text-foret-700/60">{{ m.touriste.user.email }}</p>
+            </td>
+            <td class="px-3 py-3 font-mono text-xs text-accent">
+              {% if m.touriste.user.telephone %}{{ m.touriste.user.telephone }}{% else %}<span class="text-foret-700/40">—</span>{% endif %}
+            </td>
+            <td class="px-3 py-3 text-foret-900">{{ m.site.nom|truncatechars:30 }}</td>
+            <td class="px-3 py-3 text-center text-foret-700 font-mono-num">
+              {{ m.nb_adultes }}{% if m.nb_enfants %} + {{ m.nb_enfants }}e{% endif %}
+            </td>
+            <td class="px-5 py-3 text-right">
+              {% if m.statut == 'confirmee' %}
+                <span class="badge-stamp text-success border-success/40 text-[10px]">Confirmée</span>
+              {% elif m.statut == 'en_attente' %}
+                <span class="badge-stamp text-warning border-warning/40 text-[10px]">En attente</span>
+              {% else %}
+                <span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">{{ m.get_statut_display }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-sable-50 border border-dashed border-foret-100 rounded-2xl">
+      <div class="inline-flex w-16 h-16 rounded-full bg-base-100 grid place-items-center text-3xl mb-4">◇</div>
+      <p class="text-foret-700/70">Aucune mission pour {{ nom_mois|lower }} {{ annee }}.</p>
+      <p class="text-xs text-foret-700/50 mt-2 font-mono uppercase tracking-wider">Mois entièrement libre</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Légende -->
+  <div class="mt-6 flex flex-wrap items-center gap-5 text-xs font-mono uppercase tracking-wider text-foret-700">
+    <div class="flex items-center gap-2">
+      <span class="w-4 h-4 rounded bg-accent/20 border border-accent/40"></span>
+      <span>Jour avec mission</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="w-4 h-4 rounded bg-base-100 border border-foret-100/60"></span>
+      <span>Jour libre</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="w-4 h-4 rounded bg-sable-50 border border-foret-100/60"></span>
+      <span>Jour passé</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="w-4 h-4 rounded-full bg-foret-900"></span>
+      <span>Aujourd'hui</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

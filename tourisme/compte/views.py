@@ -25,11 +25,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Sum, Q, Avg
 from django.http import HttpResponseForbidden
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from compte.forms import (
     ConnexionForm, InscriptionForm,
@@ -120,6 +122,18 @@ def est_guide(user):
 
 def est_admin(user):
     return user.is_authenticated and user.type_user == 'admin'
+
+
+def paginer(request, queryset, par_page=6):
+    """
+    Pagine un queryset (6 éléments/page par défaut) en respectant ?page=N.
+
+    Pédago : Paginator.get_page() est tolérant — une page invalide
+    (non numérique ou hors borne) retombe sur une page valide plutôt
+    que de lever une exception. On affiche ainsi toujours quelque chose.
+    """
+    paginator = Paginator(queryset, par_page)
+    return paginator.get_page(request.GET.get('page'))
 
 
 # ============================================================
@@ -579,6 +593,114 @@ def dashbord_guide_view(request):
 
 
 @login_required
+@user_passes_test(est_guide, login_url='compte:connexion')
+def planning_guide_view(request):
+    """
+    Planning mensuel du guide : grille calendrier 7 colonnes
+    montrant les jours libres et les jours réservés (avec touriste + tél).
+
+    Pedago :
+    - Param GET 'mois' au format 'YYYY-MM' (par défaut : mois courant).
+    - On regroupe les réservations confirmees/en_attente du mois par
+      `date_visite` dans un dict {date -> [reservations]}.
+    - Le template itère sur calendar.monthcalendar() (matrice de semaines).
+    """
+    import calendar
+    from datetime import date as _date
+
+    guide = request.user.profil_guide
+
+    # --- Mois affiché ---
+    mois_param = (request.GET.get('mois') or '').strip()
+    today = timezone.now().date()
+    try:
+        annee, mois = (int(x) for x in mois_param.split('-'))
+        if not (1 <= mois <= 12) or not (2000 <= annee <= 2100):
+            raise ValueError
+    except (ValueError, AttributeError):
+        annee, mois = today.year, today.month
+
+    premier_du_mois = _date(annee, mois, 1)
+    dernier_jour = calendar.monthrange(annee, mois)[1]
+    dernier_du_mois = _date(annee, mois, dernier_jour)
+
+    # --- Mois précédent / suivant ---
+    if mois == 1:
+        mois_prec = f"{annee-1}-12"
+    else:
+        mois_prec = f"{annee}-{mois-1:02d}"
+    if mois == 12:
+        mois_suiv = f"{annee+1}-01"
+    else:
+        mois_suiv = f"{annee}-{mois+1:02d}"
+
+    # --- Réservations du mois ---
+    missions_mois = []
+    missions_par_jour = {}
+    if Reservation:
+        try:
+            missions_mois = (Reservation.objects
+                .filter(
+                    guide=guide,
+                    date_visite__gte=premier_du_mois,
+                    date_visite__lte=dernier_du_mois,
+                    statut__in=['confirmee', 'en_attente'],
+                )
+                .select_related('site', 'touriste__user')
+                .order_by('date_visite', 'heure_visite'))
+
+            for m in missions_mois:
+                missions_par_jour.setdefault(m.date_visite, []).append(m)
+        except Exception as e:
+            logger.warning(f"Planning guide: {e}")
+
+    # --- Grille calendrier ---
+    # calendar.monthcalendar -> liste de semaines, chaque semaine = 7 entiers
+    # (0 = jour appartenant au mois précédent/suivant)
+    # On enrichit avec les missions pour faciliter l'affichage.
+    cal = calendar.Calendar(firstweekday=0)  # 0 = lundi
+    grille = []
+    for semaine in cal.monthdayscalendar(annee, mois):
+        ligne = []
+        for jour_num in semaine:
+            if jour_num == 0:
+                ligne.append(None)  # hors mois
+            else:
+                d = _date(annee, mois, jour_num)
+                ligne.append({
+                    'date': d,
+                    'jour': jour_num,
+                    'is_today': d == today,
+                    'is_past': d < today,
+                    'missions': missions_par_jour.get(d, []),
+                })
+        grille.append(ligne)
+
+    # --- KPIs du mois ---
+    nb_jours_reserves = len(missions_par_jour)
+    nb_jours_libres = dernier_jour - nb_jours_reserves
+
+    nom_mois_fr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+    return render(request, 'controle/planning_guide.html', {
+        'grille': grille,
+        'missions_mois': missions_mois,
+        'annee': annee,
+        'mois': mois,
+        'nom_mois': nom_mois_fr[mois - 1],
+        'mois_prec': mois_prec,
+        'mois_suiv': mois_suiv,
+        'mois_courant': f"{today.year}-{today.month:02d}",
+        'nb_jours_total': dernier_jour,
+        'nb_jours_reserves': nb_jours_reserves,
+        'nb_jours_libres': nb_jours_libres,
+        'nb_missions': len(missions_mois),
+        'page_title': f"Mon planning — {nom_mois_fr[mois-1]} {annee}",
+    })
+
+
+@login_required
 @user_passes_test(est_admin, login_url='compte:connexion')
 def dashbord_admin_view(request):
     """Dashboard admin : KPIs globaux + validations + modération."""
@@ -657,3 +779,207 @@ def dashbord_admin_view(request):
         'dernieres_actions': dernieres_actions,
         'page_title': 'Administration',
     })
+
+
+# ============================================================
+# D. GESTION ADMIN DES UTILISATEURS — interne (sans backoffice Django)
+# ============================================================
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_utilisateurs(request):
+    """Liste de TOUS les utilisateurs avec filtres."""
+    q = request.GET.get('q', '').strip()
+    type_filter = request.GET.get('type', '').strip()
+
+    qs = User.objects.all().order_by('-date_inscription')
+    if q:
+        qs = qs.filter(
+            Q(email__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+        )
+    if type_filter in ('touriste', 'gestionnaire', 'guide', 'admin'):
+        qs = qs.filter(type_user=type_filter)
+
+    total = qs.count()
+    page_obj = paginer(request, qs)
+    return render(request, 'compte/utilisateur/liste_utilisateur.html', {
+        'utilisateurs': page_obj,
+        'page_obj': page_obj,
+        'q': q,
+        'type_filter': type_filter,
+        'total': total,
+        'page_title': 'Utilisateurs',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_touristes(request):
+    """Liste des touristes."""
+    q = request.GET.get('q', '').strip()
+    qs = Touriste.objects.select_related('user').order_by('-created_at')
+    if q:
+        qs = qs.filter(
+            Q(user__email__icontains=q)
+            | Q(user__first_name__icontains=q)
+            | Q(user__last_name__icontains=q)
+            | Q(nationalite__icontains=q)
+        )
+    total = qs.count()
+    page_obj = paginer(request, qs)
+    return render(request, 'compte/touriste/liste_touriste.html', {
+        'touristes': page_obj, 'page_obj': page_obj, 'q': q,
+        'total': total,
+        'page_title': 'Touristes',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_gestionnaires(request):
+    """Liste des gestionnaires avec filtre statut."""
+    q = request.GET.get('q', '').strip()
+    statut = request.GET.get('statut', '').strip()
+    qs = Gestionnaire.objects.select_related('user').order_by('-created_at')
+    if q:
+        qs = qs.filter(
+            Q(entreprise__icontains=q)
+            | Q(num_registre_commerce__icontains=q)
+            | Q(user__email__icontains=q)
+        )
+    if statut in ('en_attente', 'valide', 'rejete'):
+        qs = qs.filter(statut_validation=statut)
+    total = qs.count()
+    page_obj = paginer(request, qs)
+    return render(request, 'compte/gestionnaire/liste_gestionnaire.html', {
+        'gestionnaires': page_obj, 'page_obj': page_obj, 'q': q, 'statut_filter': statut,
+        'total': total,
+        'page_title': 'Gestionnaires',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_guides(request):
+    """Liste des guides avec filtre statut."""
+    q = request.GET.get('q', '').strip()
+    statut = request.GET.get('statut', '').strip()
+    qs = Guide.objects.select_related('user').order_by('-created_at')
+    if q:
+        qs = qs.filter(
+            Q(licence_pro__icontains=q)
+            | Q(user__email__icontains=q)
+            | Q(user__first_name__icontains=q)
+            | Q(user__last_name__icontains=q)
+        )
+    if statut in ('en_attente', 'valide', 'rejete'):
+        qs = qs.filter(statut_validation=statut)
+    total = qs.count()
+    page_obj = paginer(request, qs)
+    return render(request, 'compte/guide/liste_guide.html', {
+        'guides': page_obj, 'page_obj': page_obj, 'q': q, 'statut_filter': statut,
+        'total': total,
+        'page_title': 'Guides',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_administrateurs(request):
+    """Liste des administrateurs."""
+    qs = Administrateur.objects.select_related('user').order_by('-created_at')
+    total = qs.count()
+    page_obj = paginer(request, qs)
+    return render(request, 'compte/admin/liste_admin.html', {
+        'admins': page_obj,
+        'page_obj': page_obj,
+        'total': total,
+        'page_title': 'Administrateurs',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+@require_POST
+def admin_valider_gestionnaire(request, gestionnaire_id):
+    """Approuve un gestionnaire en attente."""
+    g = get_object_or_404(Gestionnaire, id=gestionnaire_id)
+    if g.statut_validation == 'en_attente':
+        g.statut_validation = 'valide'
+        g.date_validation = timezone.now()
+        try:
+            g.admin_valideur = request.user.profil_admin
+        except Exception:  # noqa: BLE001
+            pass
+        g.save()
+        log_action(request.user, 'update', 'Gestionnaire', g.id, request,
+                   details={'action': 'valider', 'entreprise': g.entreprise})
+        messages.success(request, f"Gestionnaire « {g.entreprise} » validé.")
+    return redirect('compte:admin_liste_gestionnaires')
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+@require_POST
+def admin_rejeter_gestionnaire(request, gestionnaire_id):
+    """Rejette un gestionnaire en attente."""
+    g = get_object_or_404(Gestionnaire, id=gestionnaire_id)
+    motif = request.POST.get('motif', '').strip()
+    if g.statut_validation == 'en_attente':
+        g.statut_validation = 'rejete'
+        g.motif_rejet = motif or 'Non précisé'
+        g.save()
+        log_action(request.user, 'update', 'Gestionnaire', g.id, request,
+                   details={'action': 'rejeter', 'motif': motif})
+        messages.warning(request, f"Gestionnaire « {g.entreprise} » rejeté.")
+    return redirect('compte:admin_liste_gestionnaires')
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+@require_POST
+def admin_valider_guide(request, guide_id):
+    """Approuve un guide en attente."""
+    g = get_object_or_404(Guide, id=guide_id)
+    if g.statut_validation == 'en_attente':
+        g.statut_validation = 'valide'
+        g.save()
+        log_action(request.user, 'update', 'Guide', g.id, request,
+                   details={'action': 'valider', 'nom': g.user.nom_complet})
+        messages.success(request, f"Guide « {g.user.nom_complet} » validé.")
+    return redirect('compte:admin_liste_guides')
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+@require_POST
+def admin_rejeter_guide(request, guide_id):
+    """Rejette un guide en attente."""
+    g = get_object_or_404(Guide, id=guide_id)
+    if g.statut_validation == 'en_attente':
+        g.statut_validation = 'rejete'
+        g.save()
+        log_action(request.user, 'update', 'Guide', g.id, request,
+                   details={'action': 'rejeter'})
+        messages.warning(request, f"Guide « {g.user.nom_complet} » rejeté.")
+    return redirect('compte:admin_liste_guides')
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+@require_POST
+def admin_toggle_user_actif(request, user_id):
+    """Active/désactive un utilisateur (suspension douce)."""
+    u = get_object_or_404(User, id=user_id)
+    if u == request.user:
+        messages.error(request, "Vous ne pouvez pas vous désactiver vous-même.")
+    else:
+        u.is_active = not u.is_active
+        u.save(update_fields=['is_active'])
+        log_action(request.user, 'update', 'User', u.id, request,
+                   details={'action': 'toggle_actif', 'now_active': u.is_active})
+        if u.is_active:
+            messages.success(request, f"Compte « {u.email} » réactivé.")
+        else:
+            messages.warning(request, f"Compte « {u.email} » suspendu.")
+    return redirect('compte:admin_liste_utilisateurs')

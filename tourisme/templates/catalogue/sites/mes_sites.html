@@ -47,8 +47,18 @@
     {% if sites %}
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
       {% for site in sites %}
-      <article class="card-editorial overflow-hidden group">
-        <figure class="h-44 bg-foret-100/40 relative overflow-hidden">
+      <!--
+        Note : pas de `overflow-hidden` sur l'article — sinon le dropdown
+        « Gérer » (positionné en absolute) est tronqué et invisible.
+        La figure ci-dessous a son propre `overflow-hidden` pour clipper l'image.
+
+        x-data sur l'article : quand le dropdown est ouvert, on promeut
+        toute la carte a `relative z-50` pour passer AU-DESSUS des cartes
+        voisines qui creent leur propre stacking context au hover (transform).
+      -->
+      <article class="card-editorial group" x-data="{ open: false }"
+               :class="open ? 'relative z-50' : ''">
+        <figure class="h-44 bg-foret-100/40 relative overflow-hidden rounded-t-3xl">
           {% if site.photo_principale %}
             <img src="{{ site.photo_principale.image.url }}" alt="{{ site.nom }}"
                  class="w-full h-full object-cover img-hover-bloom">
@@ -92,9 +102,9 @@
               {{ site.tarif_adulte|floatformat:0 }} <span class="text-[10px] font-sans text-foret-700/60">FCFA</span>
             </span>
 
-            <!-- Dropdown actions -->
-            <div class="relative" x-data="{ open: false }">
-              <button @click="open = !open"
+            <!-- Dropdown actions (l'etat `open` vient de l'article parent) -->
+            <div class="relative">
+              <button type="button" @click="open = !open"
                       class="bg-foret-900 text-base-100 rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition flex items-center gap-1.5">
                 Gérer <span :class="open ? 'rotate-180' : ''" class="transition text-[8px]">▾</span>
               </button>
@@ -102,7 +112,7 @@
                    x-transition:enter="transition ease-out duration-150"
                    x-transition:enter-start="opacity-0 scale-95"
                    x-transition:enter-end="opacity-100 scale-100"
-                   class="absolute right-0 mt-2 w-56 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-20 text-foret-900">
+                   class="absolute right-0 mt-2 w-56 bg-base-100 border border-foret-100/60 rounded-2xl shadow-2xl py-2 z-50 text-foret-900">
                 <a href="{% url 'catalogue:detail_site' slug=site.slug %}" target="_blank" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Voir la fiche publique</a>
                 <a href="{% url 'catalogue:update_sites' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Modifier les infos</a>
                 <a href="{% url 'catalogue:liste_photosite' slug=site.slug %}" class="block px-5 py-2 text-xs hover:bg-sable-50 transition">Photos ({{ site.photos.count }})</a>

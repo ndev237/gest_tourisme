@@ -17,6 +17,7 @@ Un touriste ne peut laisser un avis que si :
 import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -285,6 +286,68 @@ def moderation_avis_view(request):
         'avis_a_moderer': avis_a_moderer,
         'stats': stats,
         'page_title': "Modération des avis",
+    })
+
+
+# ----- Vues admin de consultation (tous les avis / favoris) -----
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_tous_avis(request):
+    """Liste TOUS les avis pour l'admin (lecture)."""
+    q = request.GET.get('q', '').strip()
+    statut = request.GET.get('statut', '').strip()
+
+    qs = (Avis.objects
+        .select_related('touriste__user', 'site')
+        .order_by('-created_at')
+    )
+    if q:
+        qs = qs.filter(
+            Q(site__nom__icontains=q)
+            | Q(touriste__user__email__icontains=q)
+            | Q(titre__icontains=q)
+            | Q(commentaire__icontains=q)
+        )
+    if statut:
+        qs = qs.filter(statut_moderation=statut)
+
+    total = qs.count()
+    page_obj = Paginator(qs, 6).get_page(request.GET.get('page'))
+    return render(request, 'review/avis/admin_liste.html', {
+        'avis_list': page_obj,
+        'page_obj': page_obj,
+        'q': q,
+        'statut_filter': statut,
+        'total': total,
+        'page_title': "Tous les avis",
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_liste_tous_favoris(request):
+    """Liste TOUS les favoris pour l'admin (lecture)."""
+    q = request.GET.get('q', '').strip()
+
+    qs = (Favori.objects
+        .select_related('touriste__user', 'site')
+        .order_by('-created_at')
+    )
+    if q:
+        qs = qs.filter(
+            Q(site__nom__icontains=q)
+            | Q(touriste__user__email__icontains=q)
+        )
+
+    total = qs.count()
+    page_obj = Paginator(qs, 6).get_page(request.GET.get('page'))
+    return render(request, 'review/favori/admin_liste.html', {
+        'favoris': page_obj,
+        'page_obj': page_obj,
+        'q': q,
+        'total': total,
+        'page_title': "Tous les favoris",
     })
 
 

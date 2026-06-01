@@ -9,6 +9,10 @@
     themes: cameroun --default;
 }
 
+/* Alpine.js x-cloak — masque les elements jusqu'a ce qu'Alpine
+   s'attache (evite le flash de contenu avant que x-show prenne effet). */
+[x-cloak] { display: none !important; }
+
 /* ============================================================
    THÈME CAMEROUN — Carnet de voyage moderne
    Palette : Forêt + Or + Terre cuite + Ivoire + Sable
@@ -223,10 +227,18 @@ body {
     animation: slow-zoom 18s linear both;
 }
 
-/* Stagger utilities — appliquer .stagger > * et .stagger-delay-N */
+/* Stagger utilities — appliquer .stagger > * et .stagger-delay-N
+   ATTENTION : fill-mode `backwards` (et NON `both`). Avec `both`, l'etat
+   final `to { transform: translateY(0) }` reste applique en permanence
+   apres l'animation — et un `transform` non-`none` cree un STACKING
+   CONTEXT CSS independant pour chaque carte. Consequence : tout dropdown
+   positionne en absolute a l'interieur reste cloitre dans ce stacking
+   context, et il est recouvert par les cartes voisines (memes contexts
+   au-dessus dans l'ordre du DOM). Avec `backwards`, le `from` n'est
+   applique que durant le delay initial, et apres l'animation, l'element
+   revient aux styles natifs (pas de transform → pas de stacking context). */
 .stagger > * {
-    opacity: 0;
-    animation: rise-in 0.8s var(--ease-out-expo) both;
+    animation: rise-in 0.8s var(--ease-out-expo) backwards;
 }
 .stagger > *:nth-child(1)  { animation-delay: 0.05s; }
 .stagger > *:nth-child(2)  { animation-delay: 0.15s; }
@@ -252,12 +264,16 @@ body {
    COMPOSANTS RÉUTILISABLES
    ============================================================ */
 
-/* Card éditoriale : bord net, hover doux */
+/* Card éditoriale : bord net, hover doux.
+   NOTE : pas de `overflow: hidden` globalement — il casserait tout
+   menu Alpine.js positionné en `absolute` qui dépasse de la carte
+   (dropdowns « Gérer », tooltips, etc.). Chaque template qui a
+   besoin de clipper son image utilise `overflow-hidden` + `rounded-t-*`
+   directement sur la <figure> contenant l'image. */
 .card-editorial {
     background: var(--color-base-100);
     border: 1px solid color-mix(in oklch, var(--color-foret-900) 8%, transparent);
     border-radius: 1rem;
-    overflow: hidden;
     transition: transform 0.4s var(--ease-out-expo),
                 box-shadow 0.4s var(--ease-out-expo),
                 border-color 0.4s ease;

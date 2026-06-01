@@ -36,7 +36,7 @@ from django.core.exceptions import ValidationError
 
 from catalogue.models import (
     Categorie, Tag, SiteTouristique, PhotoSite,
-    Hebergement, Disponibilite,
+    Hebergement, PhotoHebergement, Disponibilite,
 )
 from localisation.models import Region, Localisation
 
@@ -291,6 +291,29 @@ PhotoSiteFormSet = inlineformset_factory(
 
 
 # ============================================================
+# 5-bis. PHOTOS D'HEBERGEMENT
+# ============================================================
+class PhotoHebergementForm(forms.ModelForm):
+    """Formulaire individuel pour une photo d'hébergement."""
+
+    class Meta:
+        model = PhotoHebergement
+        fields = ['image', 'legende', 'est_principale', 'ordre']
+        widgets = {
+            'legende': forms.TextInput(attrs={
+                'placeholder': "Salle de bain, vue piscine, terrasse…",
+            }),
+        }
+
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        if image and hasattr(image, 'size'):
+            if image.size > 5 * 1024 * 1024:
+                raise ValidationError("L'image ne doit pas dépasser 5 Mo.")
+        return image
+
+
+# ============================================================
 # 6. HEBERGEMENT — CRUD gestionnaire
 # ============================================================
 class HebergementForm(forms.ModelForm):
@@ -299,33 +322,67 @@ class HebergementForm(forms.ModelForm):
 
     Le champ `site` est EXCLU — passé en paramètre depuis l'URL
     (sécurité : empêche de rattacher son hôtel au site d'un concurrent).
+
+    Champ `services` : on remplace l'edition JSON brute (peu user-friendly)
+    par un simple champ texte « tags separes par virgule ». La conversion
+    en liste JSON se fait dans clean_services().
     """
+    # Champ proxy pour l'edition par l'utilisateur (texte libre, tags
+    # separes par virgules). On ne le rattache PAS au modele.
+    services_texte = forms.CharField(
+        required=False,
+        label="Services proposés",
+        help_text="Séparez par des virgules. Ex : wifi, piscine, petit-déjeuner, climatisation",
+        widget=forms.TextInput(attrs={
+            'placeholder': 'wifi, piscine, restaurant, climatisation',
+        }),
+    )
 
     class Meta:
         model = Hebergement
         fields = [
             'nom', 'description', 'type',
             'nb_chambres', 'prix_nuit', 'etoiles',
-            'services', 'photo', 'est_disponible',
+            'photo', 'est_disponible',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
-            'services': forms.Textarea(attrs={
-                'rows': 3,
-                'placeholder': '["wifi", "piscine", "restaurant", "climatisation"]',
-            }),
             'etoiles': forms.Select(choices=[
-                (1, '⭐ (1 étoile)'),
-                (2, '⭐⭐ (2 étoiles)'),
-                (3, '⭐⭐⭐ (3 étoiles)'),
-                (4, '⭐⭐⭐⭐ (4 étoiles)'),
-                (5, '⭐⭐⭐⭐⭐ (5 étoiles)'),
+                (1, '★ (1 étoile)'),
+                (2, '★★ (2 étoiles)'),
+                (3, '★★★ (3 étoiles)'),
+                (4, '★★★★ (4 étoiles)'),
+                (5, '★★★★★ (5 étoiles)'),
             ]),
         }
         help_texts = {
-            'services': 'Liste JSON. Ex: ["wifi", "piscine", "petit-déjeuner inclus"]',
             'prix_nuit': "Prix par chambre par nuit en FCFA.",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-remplir services_texte depuis la liste JSON existante
+        instance = kwargs.get('instance')
+        if instance and isinstance(instance.services, list):
+            self.fields['services_texte'].initial = ', '.join(
+                str(s) for s in instance.services
+            )
+
+    def clean_services_texte(self):
+        """
+        Convertit la chaine 'wifi, piscine, restaurant' en liste Python
+        (qui sera serialisee en JSON par le JSONField du modele).
+        """
+        raw = (self.cleaned_data.get('services_texte') or '').strip()
+        if not raw:
+            return []
+        # Decoupe + trim + dedupe en preservant l'ordre
+        seen = []
+        for item in raw.split(','):
+            it = item.strip()
+            if it and it.lower() not in (s.lower() for s in seen):
+                seen.append(it)
+        return seen
 
     def clean_prix_nuit(self):
         prix = self.cleaned_data.get('prix_nuit')
@@ -338,6 +395,14 @@ class HebergementForm(forms.ModelForm):
         if nb is not None and nb < 1:
             raise ValidationError("Au moins 1 chambre requise.")
         return nb
+
+    def save(self, commit=True):
+        # Recopier la liste produite par clean_services_texte dans services
+        instance = super().save(commit=False)
+        instance.services = self.cleaned_data.get('services_texte', [])
+        if commit:
+            instance.save()
+        return instance
 
 
 # ============================================================

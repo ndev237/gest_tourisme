@@ -106,7 +106,7 @@ def carte_view(request):
     if SiteTouristique is None:
         # Sécurité : si l'app catalogue n'est pas chargée, retour gracieux
         return render(request, 'localisations/carte.html', {
-            'sites_json': '[]',
+            'sites_data': [],
             'regions': [],
             'categories': [],
             'region_active': None,
@@ -124,7 +124,11 @@ def carte_view(request):
         .prefetch_related('photos')
     )
 
-    # ---- 2. Filtres optionnels (sidebar) ----
+    # ---- 2. Filtres (pré-sélection des menus seulement) ----
+    # PÉDAGO : le filtrage réel se fait CÔTÉ CLIENT (JS instantané, sans
+    # rechargement) sur l'ensemble des sites sérialisés. On lit quand même
+    # les paramètres GET pour pré-sélectionner les menus déroulants si on
+    # arrive sur une URL partagée du type /carte/?region=2.
     region_id = request.GET.get('region')
     categorie_id = request.GET.get('categorie')
     region_active = None
@@ -133,14 +137,12 @@ def carte_view(request):
     if region_id:
         try:
             region_active = Region.objects.get(pk=region_id)
-            sites = sites.filter(localisation__region=region_active)
         except (Region.DoesNotExist, ValueError):
             pass
 
     if categorie_id and Categorie is not None:
         try:
             categorie_active = Categorie.objects.get(pk=categorie_id)
-            sites = sites.filter(categorie=categorie_active)
         except (Categorie.DoesNotExist, ValueError):
             pass
 
@@ -162,9 +164,11 @@ def carte_view(request):
             'nom': site.nom,
             'slug': site.slug,
             'categorie': site.categorie.libelle,
+            'categorie_id': site.categorie_id,   # pour le filtrage client
             'couleur': site.categorie.couleur or '#15803D',
             'ville': site.localisation.ville,
             'region': site.localisation.region.nom,
+            'region_id': site.localisation.region_id,  # pour le filtrage client
             'lat': float(site.localisation.latitude),
             'lng': float(site.localisation.longitude),
             'tarif': float(site.tarif_adulte) if site.tarif_adulte else 0,
@@ -186,7 +190,11 @@ def carte_view(request):
                   if Categorie else [])
 
     return render(request, 'localisations/carte.html', {
-        'sites_json': json.dumps(sites_data),
+        # PÉDAGO : on passe la LISTE Python directement à |json_script.
+        # Surtout PAS json.dumps() ici, sinon json_script ré-encode la
+        # chaîne (double encodage) → JSON.parse renvoie une string et
+        # sitesData.forEach plante → aucun marqueur ne s'affiche.
+        'sites_data': sites_data,
         'regions': regions,
         'categories': categories,
         'region_active': region_active,

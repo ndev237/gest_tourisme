@@ -1,0 +1,187 @@
+<!--
+  Médiathèque gestionnaire — point d'entrée global photos.
+  Liste tous les sites + hébergements avec compteur photos et accès galerie.
+-->
+{% extends "base.html" %}
+
+{% block title %}Médiathèque — Espace gestionnaire{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- HERO -->
+  <header class="bg-foret-900 text-base-100 rounded-3xl p-7 lg:p-10 relative mb-8">
+    <div aria-hidden="true" class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+      <div class="absolute inset-0 bg-grain opacity-25"></div>
+      <div class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/15 blur-3xl"></div>
+    </div>
+
+    <nav class="relative flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-base-100/60 mb-4">
+      <a href="{% url 'compte:dashbord_gestionnaire_site' %}" class="hover:text-accent transition">Tableau de bord</a>
+      <span>/</span>
+      <span class="text-accent">Médiathèque</span>
+    </nav>
+
+    <p class="relative eyebrow text-accent mb-2">Galerie · Toutes les photos</p>
+    <h1 class="relative font-display text-3xl lg:text-4xl font-light">
+      <em class="font-display-italic text-accent">Médiathèque</em>.
+    </h1>
+    <p class="relative text-sm text-base-100/60 mt-2 font-mono">
+      Gérez les photos de tous vos sites et hébergements depuis un seul endroit.
+    </p>
+  </header>
+
+  <!-- KPIs -->
+  <div class="bg-base-100 rounded-3xl border border-foret-100/60 shadow-2xl overflow-hidden mb-8">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x lg:divide-y-0 divide-foret-100/60">
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Photos sites</p>
+        <p class="font-display text-4xl font-medium text-foret-900">{{ total_photos_sites }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Sur {{ sites|length }} site{{ sites|length|pluralize }}</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Photos hébergements</p>
+        <p class="font-display text-4xl font-medium text-foret-900">{{ total_photos_heb }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">Sur {{ hebergements|length }} hébergement{{ hebergements|length|pluralize }}</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Sites sans photo</p>
+        <p class="font-display text-4xl font-medium {% if nb_sites_sans_photo %}text-warning{% else %}text-success{% endif %}">{{ nb_sites_sans_photo }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">À compléter</p>
+      </div>
+      <div class="p-6 lg:p-7">
+        <p class="eyebrow mb-2">Hébergements sans photo</p>
+        <p class="font-display text-4xl font-medium {% if nb_heb_sans_photo %}text-warning{% else %}text-success{% endif %}">{{ nb_heb_sans_photo }}</p>
+        <p class="text-xs text-foret-700/60 mt-1 font-mono">À compléter</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== SITES ============== -->
+  <section class="mb-12">
+    <div class="flex items-end justify-between mb-5">
+      <div>
+        <p class="eyebrow mb-2">Catalogue</p>
+        <h2 class="font-display text-2xl text-foret-900">Photos de mes sites</h2>
+      </div>
+    </div>
+
+    {% if sites %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for site in sites %}
+      <article class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden group hover:border-accent transition">
+        <!-- Aperçu photo de couverture -->
+        <figure class="aspect-[16/9] bg-foret-100/40 relative overflow-hidden">
+          {% if site.photo_principale %}
+            <img src="{{ site.photo_principale.image.url }}" alt="{{ site.nom }}" class="w-full h-full object-cover">
+          {% else %}
+            <div class="bg-pattern-kente w-full h-full grid place-items-center text-4xl opacity-40">◈</div>
+          {% endif %}
+          <div class="absolute top-3 right-3">
+            <span class="badge-stamp bg-base-100/90 backdrop-blur-sm text-foret-900 border-foret-900 text-[10px]">
+              {{ site.nb_photos }} photo{{ site.nb_photos|pluralize }}
+            </span>
+          </div>
+          {% if site.nb_photos == 0 %}
+          <div class="absolute inset-0 bg-foret-900/40 grid place-items-center">
+            <span class="badge-stamp text-warning bg-base-100 border-warning text-[10px]">⚠ Aucune photo</span>
+          </div>
+          {% endif %}
+        </figure>
+
+        <div class="p-5">
+          <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 mb-1">
+            {{ site.localisation.region.nom|default:"—"|truncatechars:20 }}
+          </p>
+          <h3 class="font-display text-base text-foret-900 mb-3 truncate">{{ site.nom }}</h3>
+          <div class="flex gap-2">
+            <a href="{% url 'catalogue:liste_photosite' slug=site.slug %}"
+               class="flex-1 bg-foret-900 text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition text-center">
+              Gérer les photos
+            </a>
+            <a href="{% url 'catalogue:add_photosite' slug=site.slug %}"
+               class="bg-accent text-foret-900 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-accent/90 transition"
+               title="Ajouter une photo">+</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-dashed border-foret-100 rounded-3xl p-10 text-center">
+      <p class="text-foret-700/70 text-sm">Vous n'avez pas encore créé de site.</p>
+      <a href="{% url 'catalogue:add_sites' %}" class="inline-flex mt-4 items-center gap-2 bg-foret-900 text-base-100 rounded-full px-5 py-2.5 text-xs uppercase tracking-wider font-medium hover:bg-foret-700 transition">
+        + Créer mon premier site
+      </a>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- ============== HÉBERGEMENTS ============== -->
+  <section>
+    <div class="flex items-end justify-between mb-5">
+      <div>
+        <p class="eyebrow mb-2">Hospitalité</p>
+        <h2 class="font-display text-2xl text-foret-900">Photos de mes hébergements</h2>
+      </div>
+    </div>
+
+    {% if hebergements %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for h in hebergements %}
+      <article class="bg-base-100 border border-foret-100/60 rounded-3xl overflow-hidden group hover:border-accent transition">
+        <figure class="aspect-[16/9] bg-foret-100/40 relative overflow-hidden">
+          {% if h.photo %}
+            <img src="{{ h.photo.url }}" alt="{{ h.nom }}" class="w-full h-full object-cover">
+          {% else %}
+            <div class="bg-pattern-kente w-full h-full grid place-items-center text-4xl opacity-40">⌂</div>
+          {% endif %}
+          <div class="absolute top-3 left-3">
+            <span class="badge-stamp bg-base-100/90 backdrop-blur-sm text-foret-900 border-foret-900 text-[10px]">
+              {{ h.get_type_display }}
+            </span>
+          </div>
+          <div class="absolute top-3 right-3">
+            <span class="badge-stamp bg-base-100/90 backdrop-blur-sm text-foret-900 border-foret-900 text-[10px]">
+              {{ h.nb_photos }} photo{{ h.nb_photos|pluralize }}
+            </span>
+          </div>
+          {% if h.nb_photos == 0 %}
+          <div class="absolute inset-0 bg-foret-900/40 grid place-items-center">
+            <span class="badge-stamp text-warning bg-base-100 border-warning text-[10px]">⚠ Aucune photo additionnelle</span>
+          </div>
+          {% endif %}
+        </figure>
+
+        <div class="p-5">
+          <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 mb-1">
+            ◈ {{ h.site.nom|truncatechars:24 }}
+          </p>
+          <h3 class="font-display text-base text-foret-900 mb-1 truncate">{{ h.nom }}</h3>
+          <p class="text-accent text-sm mb-3">
+            {% for i in "12345"|make_list %}{% if forloop.counter <= h.etoiles %}★{% else %}<span class="opacity-30">★</span>{% endif %}{% endfor %}
+          </p>
+          <div class="flex gap-2">
+            <a href="{% url 'catalogue:liste_photohebergement' hebergement_id=h.id %}"
+               class="flex-1 bg-foret-900 text-base-100 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-foret-700 transition text-center">
+              Gérer les photos
+            </a>
+            <a href="{% url 'catalogue:add_photohebergement' hebergement_id=h.id %}"
+               class="bg-accent text-foret-900 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-accent/90 transition"
+               title="Ajouter une photo">+</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-base-100 border border-dashed border-foret-100 rounded-3xl p-10 text-center">
+      <p class="text-foret-700/70 text-sm">Vous n'avez pas encore créé d'hébergement.</p>
+      <a href="{% url 'catalogue:mes_hebergements' %}" class="inline-flex mt-4 items-center gap-2 bg-foret-900 text-base-100 rounded-full px-5 py-2.5 text-xs uppercase tracking-wider font-medium hover:bg-foret-700 transition">
+        → Gérer mes hébergements
+      </a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

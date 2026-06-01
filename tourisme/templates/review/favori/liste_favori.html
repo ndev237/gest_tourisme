@@ -58,7 +58,7 @@
           </div>
         </a>
 
-        <form method="post" action="{% url 'review:delete_favori' favori_id=favori.id %}" class="absolute top-3 left-3">
+        <form method="post" action="{% url 'reviews:delete_favori' favori_id=favori.id %}" class="absolute top-3 left-3">
           {% csrf_token %}
           <button type="submit" class="w-9 h-9 rounded-full bg-base-100/80 backdrop-blur-sm text-foret-900 grid place-items-center hover:bg-base-100 hover:text-error transition"
                   title="Retirer des favoris">×</button>

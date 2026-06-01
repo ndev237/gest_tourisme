@@ -106,6 +106,11 @@ def est_admin(user):
     return user.is_authenticated and user.type_user == 'admin'
 
 
+def est_gestionnaire_ou_admin(user):
+    """L'admin peut tout faire ce que peut faire un gestionnaire (scan QR, etc.)."""
+    return est_gestionnaire(user) or est_admin(user)
+
+
 def check_reservation_ownership(reservation, user):
     """
     Vérifie qu'un utilisateur a le droit de voir/modifier cette réservation.
@@ -527,7 +532,7 @@ def reservations_gestionnaire_view(request):
 
 
 @login_required
-@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+@user_passes_test(est_gestionnaire_ou_admin, login_url='compte:connexion')
 def scan_qr_view(request):
     """
     Interface de scan QR à l'entrée du site.
