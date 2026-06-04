@@ -1,44 +1,139 @@
 <!--
-  Modifier administrateur - redirection vers le backoffice Django.
+  Modifier administrateur — formulaire pré-rempli + mot de passe optionnel.
 -->
 {% extends "base.html" %}
 
-{% block title %}Modifier un administrateur - Administration{% endblock %}
+{% block title %}Modifier {{ admin.user.first_name }} — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-sable-50 min-h-screen py-16">
-  <div class="max-w-2xl mx-auto px-4">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-3xl mx-auto px-4">
 
     <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
       <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-foret-900">Admin</a>
-      <span>/</span><span class="text-accent">Modifier</span>
+      <span>/</span>
+      <a href="{% url 'compte:admin_liste_administrateurs' %}" class="hover:text-foret-900">Administrateurs</a>
+      <span>/</span>
+      <span class="text-accent">{{ admin.user.first_name }}</span>
     </nav>
 
     <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
-      <div class="h-2 bg-accent"></div>
-      <div class="p-10 text-center">
-        <p class="eyebrow text-accent mb-4">Edition</p>
-        <div class="inline-flex w-20 h-20 rounded-full bg-accent/10 grid place-items-center mb-6">
-          <span class="font-display italic text-3xl text-accent">e</span>
+      <div class="bg-foret-900 text-base-100 px-8 py-7 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <div class="relative flex items-center justify-between gap-4">
+          <div>
+            <p class="eyebrow text-accent mb-2">Modification</p>
+            <h1 class="font-display text-2xl lg:text-3xl font-light">{{ admin.user.first_name }} {{ admin.user.last_name }}</h1>
+            <p class="text-sm text-base-100/60 mt-1 font-mono">{{ admin.user.email }} · {{ admin.get_role_display }}</p>
+          </div>
+          {% if admin.user.is_active %}
+          <span class="badge-stamp text-success border-success/60">Actif</span>
+          {% else %}
+          <span class="badge-stamp text-error border-error/60">Suspendu</span>
+          {% endif %}
         </div>
+      </div>
 
-        <h1 class="font-display text-3xl text-foret-900 mb-4">
-          Modifier un <em class="font-display-italic text-accent">administrateur</em>
-        </h1>
-        <p class="text-foret-700/80 leading-relaxed max-w-md mx-auto mb-8">
-          L'edition complete des comptes administrateurs (roles, permissions, validations) se fait via le backoffice Django.
-        </p>
+      <div class="p-8 lg:p-10">
 
-        <div class="flex flex-wrap justify-center gap-3">
-          <a href="/backoffice/compte/admin/"
-             class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
-            Ouvrir le backoffice
-          </a>
-          <a href="{% url 'compte:dashbord_admin' %}"
-             class="border border-foret-900 text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
-            <- Retour
-          </a>
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        {% if form.errors and not form.non_field_errors %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error">
+          <p class="font-medium">Merci de corriger les champs en rouge ci-dessous.</p>
         </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6" novalidate>
+          {% csrf_token %}
+
+          <fieldset class="space-y-4">
+            <legend class="eyebrow mb-3">Identité</legend>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_first_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Prénom <span class="text-error">*</span></label>
+                <input type="text" name="first_name" id="id_first_name" value="{{ form.first_name.value|default:'' }}" required
+                       class="w-full bg-sable-50 border {% if form.first_name.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.first_name.errors %}{% for e in form.first_name.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+              <div>
+                <label for="id_last_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nom <span class="text-error">*</span></label>
+                <input type="text" name="last_name" id="id_last_name" value="{{ form.last_name.value|default:'' }}" required
+                       class="w-full bg-sable-50 border {% if form.last_name.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.last_name.errors %}{% for e in form.last_name.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+            </div>
+
+            <div>
+              <label for="id_email" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Email <span class="text-error">*</span></label>
+              <input type="email" name="email" id="id_email" value="{{ form.email.value|default:'' }}" required
+                     class="w-full bg-sable-50 border {% if form.email.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              {% if form.email.errors %}{% for e in form.email.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+            </div>
+
+            <div>
+              <label for="id_telephone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Téléphone</label>
+              <input type="tel" name="telephone" id="id_telephone" value="{{ form.telephone.value|default:'' }}"
+                     class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+            </div>
+          </fieldset>
+
+          <fieldset class="space-y-4 pt-6 border-t border-foret-100/60">
+            <legend class="eyebrow mb-3">Rôle &amp; permissions</legend>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_role" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Rôle <span class="text-error">*</span></label>
+                <select name="role" id="id_role" required
+                        class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  {% for value, label in form.role.field.choices %}
+                  <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="id_niveau_acces" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Niveau d'accès <span class="text-error">*</span></label>
+                <input type="number" name="niveau_acces" id="id_niveau_acces" value="{{ form.niveau_acces.value|default:'1' }}" required min="1" max="5"
+                       class="w-full bg-sable-50 border border-foret-100/60 focus:border-foret-700 rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="space-y-4 pt-6 border-t border-foret-100/60">
+            <legend class="eyebrow mb-3">Mot de passe (optionnel)</legend>
+            <p class="text-xs text-foret-700/70">Laissez les champs vides pour conserver le mot de passe actuel.</p>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_password1" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Nouveau mot de passe</label>
+                <input type="password" name="password1" id="id_password1" autocomplete="new-password"
+                       class="w-full bg-sable-50 border {% if form.password1.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.password1.errors %}{% for e in form.password1.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+              <div>
+                <label for="id_password2" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Confirmation</label>
+                <input type="password" name="password2" id="id_password2" autocomplete="new-password"
+                       class="w-full bg-sable-50 border {% if form.password2.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.password2.errors %}{% for e in form.password2.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="flex justify-between items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'compte:admin_delete_administrateur' admin_id=admin.id %}"
+               class="text-xs text-error uppercase tracking-wider underline decoration-dotted underline-offset-4">Supprimer</a>
+            <div class="flex items-center gap-3">
+              <a href="{% url 'compte:admin_liste_administrateurs' %}"
+                 class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+              <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+                Enregistrer →
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

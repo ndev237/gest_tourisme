@@ -16,8 +16,16 @@
       <span class="text-accent">Administrateurs</span>
     </nav>
     <p class="relative eyebrow text-accent mb-2">Comptes système</p>
-    <h1 class="relative font-display text-3xl lg:text-4xl font-light">Administrateurs</h1>
-    <p class="relative text-sm text-base-100/60 mt-2 font-mono">{{ total }} compte{{ total|pluralize }} avec accès admin</p>
+    <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      <div>
+        <h1 class="font-display text-3xl lg:text-4xl font-light">Administrateurs</h1>
+        <p class="text-sm text-base-100/60 mt-2 font-mono">{{ total }} compte{{ total|pluralize }} avec accès admin</p>
+      </div>
+      <a href="{% url 'compte:admin_add_administrateur' %}"
+         class="self-start bg-accent text-foret-900 rounded-full px-6 py-3 text-sm font-medium uppercase tracking-wider hover:bg-accent/90 transition shadow-xl whitespace-nowrap">
+        + Nouvel administrateur
+      </a>
+    </div>
   </header>
 
   {% if admins %}
@@ -30,7 +38,8 @@
             <th class="px-3 py-4 text-left">Email</th>
             <th class="px-3 py-4 text-left">Rôle</th>
             <th class="px-3 py-4 text-center">Niveau</th>
-            <th class="px-7 py-4 text-right">Statut</th>
+            <th class="px-3 py-4 text-center">Statut</th>
+            <th class="px-7 py-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-foret-100/60">
@@ -41,18 +50,39 @@
                 <div class="w-9 h-9 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-xs">
                   {{ a.user.first_name|first|upper }}{{ a.user.last_name|first|upper|default:a.user.email|first|upper }}
                 </div>
-                <p class="font-display text-sm text-foret-900">{{ a.user.nom_complet|default:a.user.username }}</p>
+                <p class="font-display text-sm text-foret-900">
+                  {{ a.user.nom_complet|default:a.user.username }}
+                  {% if a.user_id == request.user.id %}
+                  <span class="ml-2 text-[10px] uppercase tracking-wider text-accent font-mono">(vous)</span>
+                  {% endif %}
+                </p>
               </div>
             </td>
             <td class="px-3 py-4 font-mono text-xs text-foret-700">{{ a.user.email }}</td>
             <td class="px-3 py-4 text-foret-900">{{ a.get_role_display|default:"—" }}</td>
             <td class="px-3 py-4 text-center font-mono-num text-accent font-semibold">{{ a.niveau_acces|default:1 }}/5</td>
-            <td class="px-7 py-4 text-right">
+            <td class="px-3 py-4 text-center">
               {% if a.user.is_active %}
                 <span class="badge-stamp text-success border-success/40 text-[10px]">Actif</span>
               {% else %}
                 <span class="badge-stamp text-error border-error/40 text-[10px]">Suspendu</span>
               {% endif %}
+            </td>
+            <td class="px-7 py-4 text-right">
+              <div class="inline-flex gap-2">
+                <a href="{% url 'compte:admin_update_administrateur' admin_id=a.id %}"
+                   class="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-foret-900 text-base-100 hover:bg-foret-700 transition">
+                  Modifier
+                </a>
+                {% if a.user_id != request.user.id %}
+                <a href="{% url 'compte:admin_delete_administrateur' admin_id=a.id %}"
+                   class="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full border border-error text-error hover:bg-error hover:text-base-100 transition">
+                  ×
+                </a>
+                {% else %}
+                <span class="text-[10px] uppercase tracking-wider px-3 py-1.5 text-foret-700/40">—</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -64,9 +94,9 @@
   <div class="bg-info/10 border border-info/30 rounded-2xl p-5 mt-6 flex gap-4">
     <span class="font-mono text-info text-base flex-shrink-0">i</span>
     <p class="text-sm text-foret-900">
-      <strong>Note :</strong> la création d'un nouvel administrateur passe par la commande
-      <code class="font-mono text-foret-700 bg-sable-100 px-2 py-0.5 rounded">python manage.py createsuperuser</code>
-      ou se fait par un super-admin existant via la table compte_administrateur.
+      <strong>Note :</strong> chaque administrateur créé via l'interface reçoit automatiquement
+      les droits superuser. Communiquez le mot de passe initial par un canal sécurisé et invitez
+      l'utilisateur à le changer à sa première connexion.
     </p>
   </div>
 

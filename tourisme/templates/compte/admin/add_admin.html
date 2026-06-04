@@ -1,44 +1,176 @@
 <!--
-  Nouveau administrateur - redirection vers le backoffice Django.
+  Nouvel administrateur — formulaire complet (identité + rôle + mot de passe).
 -->
 {% extends "base.html" %}
 
-{% block title %}Nouveau un administrateur - Administration{% endblock %}
+{% block title %}Nouvel administrateur — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-sable-50 min-h-screen py-16">
-  <div class="max-w-2xl mx-auto px-4">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-3xl mx-auto px-4">
 
     <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
       <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-foret-900">Admin</a>
-      <span>/</span><span class="text-info">Nouveau</span>
+      <span>/</span>
+      <a href="{% url 'compte:admin_liste_administrateurs' %}" class="hover:text-foret-900">Administrateurs</a>
+      <span>/</span>
+      <span class="text-accent">Nouveau</span>
     </nav>
 
     <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
-      <div class="h-2 bg-info"></div>
-      <div class="p-10 text-center">
-        <p class="eyebrow text-info mb-4">Creation</p>
-        <div class="inline-flex w-20 h-20 rounded-full bg-info/10 grid place-items-center mb-6">
-          <span class="font-display italic text-3xl text-info">+</span>
-        </div>
 
-        <h1 class="font-display text-3xl text-foret-900 mb-4">
-          Nouveau un <em class="font-display-italic text-info">administrateur</em>
+      <!-- Bandeau header -->
+      <div class="bg-foret-900 text-base-100 px-8 py-7 relative overflow-hidden">
+        <div aria-hidden="true" class="absolute inset-0 bg-grain opacity-25"></div>
+        <p class="relative eyebrow text-accent mb-2">Comptes système</p>
+        <h1 class="relative font-display text-2xl lg:text-3xl font-light">
+          Nouvel <em class="font-display-italic text-accent">administrateur</em>
         </h1>
-        <p class="text-foret-700/80 leading-relaxed max-w-md mx-auto mb-8">
-          La creation de comptes administrateur se fait via le backoffice Django pour assurer la coherence des permissions et la validation des donnees sensibles.
+        <p class="relative text-sm text-base-100/60 mt-1 font-mono">
+          Création complète depuis l'interface — plus besoin de createsuperuser
         </p>
+      </div>
 
-        <div class="flex flex-wrap justify-center gap-3">
-          <a href="/backoffice/compte/admin/add/"
-             class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
-            Ouvrir le backoffice
-          </a>
-          <a href="{% url 'compte:dashbord_admin' %}"
-             class="border border-foret-900 text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
-            <- Retour au tableau de bord
-          </a>
+      <div class="p-8 lg:p-10">
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error flex gap-3">
+          <span class="font-mono font-bold">!</span>
+          <p>{{ form.non_field_errors.0 }}</p>
         </div>
+        {% endif %}
+
+        {% if form.errors and not form.non_field_errors %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error">
+          <p class="font-medium">Merci de corriger les champs en rouge ci-dessous.</p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-6" novalidate>
+          {% csrf_token %}
+
+          <!-- IDENTITÉ -->
+          <fieldset class="space-y-4">
+            <legend class="eyebrow mb-3">Identité</legend>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_first_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Prénom <span class="text-error">*</span>
+                </label>
+                <input type="text" name="first_name" id="id_first_name"
+                       value="{{ form.first_name.value|default:'' }}" required maxlength="150"
+                       class="w-full bg-sable-50 border {% if form.first_name.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.first_name.errors %}{% for e in form.first_name.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+              <div>
+                <label for="id_last_name" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Nom <span class="text-error">*</span>
+                </label>
+                <input type="text" name="last_name" id="id_last_name"
+                       value="{{ form.last_name.value|default:'' }}" required maxlength="150"
+                       class="w-full bg-sable-50 border {% if form.last_name.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.last_name.errors %}{% for e in form.last_name.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+            </div>
+
+            <div>
+              <label for="id_email" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                Email professionnel <span class="text-error">*</span>
+              </label>
+              <input type="email" name="email" id="id_email"
+                     value="{{ form.email.value|default:'' }}" required
+                     placeholder="prenom.nom@tourisme.cm"
+                     class="w-full bg-sable-50 border {% if form.email.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              <p class="text-[11px] text-foret-700/60 mt-1.5 font-mono">L'email sert aussi d'identifiant de connexion</p>
+              {% if form.email.errors %}{% for e in form.email.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+            </div>
+
+            <div>
+              <label for="id_telephone" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">Téléphone</label>
+              <input type="tel" name="telephone" id="id_telephone"
+                     value="{{ form.telephone.value|default:'' }}"
+                     placeholder="+237 6XX XX XX XX"
+                     class="w-full bg-sable-50 border {% if form.telephone.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+              {% if form.telephone.errors %}{% for e in form.telephone.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+            </div>
+          </fieldset>
+
+          <!-- RÔLE -->
+          <fieldset class="space-y-4 pt-6 border-t border-foret-100/60">
+            <legend class="eyebrow mb-3">Rôle &amp; permissions</legend>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_role" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Rôle <span class="text-error">*</span>
+                </label>
+                <select name="role" id="id_role" required
+                        class="w-full bg-sable-50 border {% if form.role.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none">
+                  {% for value, label in form.role.field.choices %}
+                  <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                {% if form.role.errors %}{% for e in form.role.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+              <div>
+                <label for="id_niveau_acces" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Niveau d'accès (1-5) <span class="text-error">*</span>
+                </label>
+                <input type="number" name="niveau_acces" id="id_niveau_acces"
+                       value="{{ form.niveau_acces.value|default:'1' }}" required min="1" max="5"
+                       class="w-full bg-sable-50 border {% if form.niveau_acces.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                <p class="text-[11px] text-foret-700/60 mt-1.5 font-mono">1 = lecture seule · 5 = privilèges complets</p>
+                {% if form.niveau_acces.errors %}{% for e in form.niveau_acces.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- MOT DE PASSE -->
+          <fieldset class="space-y-4 pt-6 border-t border-foret-100/60">
+            <legend class="eyebrow mb-3">Sécurité</legend>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label for="id_password1" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Mot de passe <span class="text-error">*</span>
+                </label>
+                <input type="password" name="password1" id="id_password1" required minlength="8"
+                       autocomplete="new-password"
+                       class="w-full bg-sable-50 border {% if form.password1.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                <p class="text-[11px] text-foret-700/60 mt-1.5 font-mono">Min. 8 caractères</p>
+                {% if form.password1.errors %}{% for e in form.password1.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+              <div>
+                <label for="id_password2" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+                  Confirmation <span class="text-error">*</span>
+                </label>
+                <input type="password" name="password2" id="id_password2" required minlength="8"
+                       autocomplete="new-password"
+                       class="w-full bg-sable-50 border {% if form.password2.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %} rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 transition">
+                {% if form.password2.errors %}{% for e in form.password2.errors %}<p class="text-xs text-error mt-1.5">↳ {{ e }}</p>{% endfor %}{% endif %}
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Note sécurité -->
+          <div class="bg-info/10 border border-info/30 rounded-2xl p-4 flex gap-3 text-sm">
+            <span class="font-mono text-info text-base flex-shrink-0">i</span>
+            <p class="text-foret-900/80 leading-relaxed">
+              Le compte créé reçoit automatiquement les droits superuser (accès complet).
+              Communiquez le mot de passe par un canal sécurisé et demandez à l'utilisateur de
+              le changer à sa première connexion.
+            </p>
+          </div>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'compte:admin_liste_administrateurs' %}"
+               class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">Annuler</a>
+            <button type="submit" class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
+              Créer l'administrateur →
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

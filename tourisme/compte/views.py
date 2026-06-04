@@ -37,7 +37,7 @@ from compte.forms import (
     ConnexionForm, InscriptionForm,
     ProfilUserForm, ProfilTouristeForm,
     ProfilGestionnaireForm, ProfilGuideForm,
-    ChangerPasswordForm,
+    ChangerPasswordForm, AdministrateurForm,
 )
 from compte.models import User, Touriste, Gestionnaire, Guide, Administrateur
 
@@ -895,6 +895,89 @@ def admin_liste_administrateurs(request):
         'page_obj': page_obj,
         'total': total,
         'page_title': 'Administrateurs',
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_add_administrateur(request):
+    """Création d'un nouvel administrateur depuis l'UI admin."""
+    if request.method == 'POST':
+        form = AdministrateurForm(request.POST)
+        if form.is_valid():
+            admin = form.save()
+            log_action(request.user, 'create', 'Administrateur', admin.id, request,
+                       details={'email': admin.user.email, 'role': admin.role})
+            messages.success(
+                request,
+                f"✅ Administrateur « {admin.user.first_name} {admin.user.last_name} » créé."
+            )
+            return redirect('compte:admin_liste_administrateurs')
+    else:
+        form = AdministrateurForm()
+
+    return render(request, 'compte/admin/add_admin.html', {
+        'form': form,
+        'page_title': "Nouvel administrateur",
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_update_administrateur(request, admin_id):
+    """Edition d'un administrateur existant."""
+    admin = get_object_or_404(Administrateur.objects.select_related('user'), id=admin_id)
+    if request.method == 'POST':
+        form = AdministrateurForm(request.POST, instance=admin)
+        if form.is_valid():
+            form.save()
+            log_action(request.user, 'update', 'Administrateur', admin.id, request)
+            messages.success(request, f"✅ Administrateur « {admin.user.first_name} » mis à jour.")
+            return redirect('compte:admin_liste_administrateurs')
+    else:
+        form = AdministrateurForm(instance=admin)
+
+    return render(request, 'compte/admin/update_admin.html', {
+        'form': form,
+        'admin': admin,
+        'page_title': f"Modifier {admin.user.first_name}",
+    })
+
+
+@login_required
+@user_passes_test(est_admin, login_url='compte:connexion')
+def admin_delete_administrateur(request, admin_id):
+    """
+    Suppression d'un administrateur. Garde-fous :
+      - on ne peut pas se supprimer soi-meme,
+      - on ne peut pas supprimer le dernier admin restant.
+    """
+    admin = get_object_or_404(Administrateur.objects.select_related('user'), id=admin_id)
+
+    erreurs = []
+    if admin.user_id == request.user.id:
+        erreurs.append("Vous ne pouvez pas supprimer votre propre compte administrateur.")
+    if Administrateur.objects.count() <= 1:
+        erreurs.append("Impossible de supprimer le dernier administrateur de la plateforme.")
+
+    if request.method == 'POST':
+        if erreurs:
+            for e in erreurs:
+                messages.error(request, e)
+            return redirect('compte:admin_liste_administrateurs')
+
+        email = admin.user.email
+        log_action(request.user, 'delete', 'Administrateur', admin.id, request,
+                   details={'email': email})
+        # Supprimer aussi le compte User (cascade via OneToOneField)
+        admin.user.delete()
+        messages.success(request, f"✅ Administrateur « {email} » supprimé.")
+        return redirect('compte:admin_liste_administrateurs')
+
+    return render(request, 'compte/admin/delete_admin.html', {
+        'admin': admin,
+        'erreurs': erreurs,
+        'page_title': f"Supprimer {admin.user.first_name}",
     })
 
 

@@ -8,7 +8,9 @@
 
   IMPORTANT : ne jamais ecrire de balise de template active (include,
   querystring, url…) dans ce commentaire HTML — Django les EXECUTE meme
-  entre <!-- -->. Inclure ce partial via la balise include depuis la page.
+  entre commentaires. Et ne JAMAIS y mettre la sequence litterale
+  « moins-moins-superieur » : le parser HTML fermerait le commentaire
+  prematurement et le reste fuirait dans la page visible.
 -->
 {% if page_obj.paginator.num_pages > 1 %}
 <nav class="flex items-center justify-center gap-1.5 mt-8 select-none"

@@ -40,6 +40,9 @@ urlpatterns = [
     path('admin/gestionnaires/',   views.admin_liste_gestionnaires,   name='admin_liste_gestionnaires'),
     path('admin/guides/',          views.admin_liste_guides,          name='admin_liste_guides'),
     path('admin/administrateurs/', views.admin_liste_administrateurs, name='admin_liste_administrateurs'),
+    path('admin/administrateur/ajouter/',                 views.admin_add_administrateur,    name='admin_add_administrateur'),
+    path('admin/administrateur/<int:admin_id>/modifier/', views.admin_update_administrateur, name='admin_update_administrateur'),
+    path('admin/administrateur/<int:admin_id>/supprimer/',views.admin_delete_administrateur, name='admin_delete_administrateur'),
 
     # Actions de validation
     path('admin/gestionnaire/<int:gestionnaire_id>/valider/', views.admin_valider_gestionnaire, name='admin_valider_gestionnaire'),

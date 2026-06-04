@@ -1,44 +1,70 @@
 <!--
-  Supprimer administrateur - redirection vers le backoffice Django.
+  Supprimer administrateur — confirmation avec garde-fous.
 -->
 {% extends "base.html" %}
 
-{% block title %}Supprimer un administrateur - Administration{% endblock %}
+{% block title %}Supprimer {{ admin.user.first_name }} — Administration{% endblock %}
 
 {% block content %}
-<section class="bg-sable-50 min-h-screen py-16">
-  <div class="max-w-2xl mx-auto px-4">
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-xl mx-auto px-4">
 
     <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
       <a href="{% url 'compte:dashbord_admin' %}" class="hover:text-foret-900">Admin</a>
-      <span>/</span><span class="text-error">Supprimer</span>
+      <span>/</span>
+      <a href="{% url 'compte:admin_liste_administrateurs' %}" class="hover:text-foret-900">Administrateurs</a>
+      <span>/</span>
+      <span class="text-error">Suppression</span>
     </nav>
 
-    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
-      <div class="h-2 bg-error"></div>
-      <div class="p-10 text-center">
-        <p class="eyebrow text-error mb-4">Operation sensible</p>
-        <div class="inline-flex w-20 h-20 rounded-full bg-error/10 grid place-items-center mb-6">
-          <span class="font-display italic text-3xl text-error">!</span>
+    <div class="bg-base-100 border border-error/40 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="bg-error/10 px-8 py-7 border-b border-error/20">
+        <p class="eyebrow text-error mb-2">Suppression définitive</p>
+        <h1 class="font-display text-2xl text-foret-900">Supprimer cet administrateur ?</h1>
+      </div>
+
+      <div class="p-8">
+        <div class="flex items-center gap-4 mb-6 p-4 bg-sable-50 border border-foret-100/60 rounded-2xl">
+          <div class="w-14 h-14 rounded-full bg-foret-900 text-accent grid place-items-center font-display text-base font-semibold flex-shrink-0">
+            {{ admin.user.first_name|first|upper }}{{ admin.user.last_name|first|upper }}
+          </div>
+          <div class="min-w-0">
+            <p class="font-display text-base text-foret-900 truncate">{{ admin.user.first_name }} {{ admin.user.last_name }}</p>
+            <p class="text-xs font-mono text-foret-700/60 truncate">{{ admin.user.email }}</p>
+            <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/50 mt-1">
+              {{ admin.get_role_display }} · Niveau {{ admin.niveau_acces }}/5
+            </p>
+          </div>
         </div>
 
-        <h1 class="font-display text-3xl text-foret-900 mb-4">
-          Supprimer un <em class="font-display-italic text-error">administrateur</em>
-        </h1>
-        <p class="text-foret-700/80 leading-relaxed max-w-md mx-auto mb-8">
-          La suppression d'un compte administrateur entraine la cascade sur ses donnees associees (reservations, avis, photos, sites...). Operation reservee au backoffice Django pour tracabilite.
+        {% if erreurs %}
+        <div class="bg-error/10 border border-error/40 rounded-2xl p-4 mb-6 text-sm text-error space-y-2">
+          {% for e in erreurs %}
+          <p class="flex gap-2"><span class="font-mono font-bold">!</span>{{ e }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <p class="text-sm text-foret-700/80 leading-relaxed mb-6">
+          La suppression est <strong class="text-error">définitive</strong> et entraîne :
         </p>
+        <ul class="text-sm text-foret-900/80 list-disc list-inside space-y-1 mb-6">
+          <li>Suppression du compte utilisateur associé</li>
+          <li>Révocation immédiate de tous les accès</li>
+          <li>Conservation des logs d'actions (audit)</li>
+        </ul>
 
-        <div class="flex flex-wrap justify-center gap-3">
-          <a href="/backoffice/compte/admin/"
-             class="btn-carnet bg-foret-900 text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-700 transition">
-            Ouvrir le backoffice
+        <form method="post" class="flex justify-between items-center gap-3 pt-4 border-t border-foret-100/60">
+          {% csrf_token %}
+          <a href="{% url 'compte:admin_liste_administrateurs' %}"
+             class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">
+            ← Annuler
           </a>
-          <a href="{% url 'compte:dashbord_admin' %}"
-             class="border border-foret-900 text-foret-900 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:bg-foret-900 hover:text-base-100 transition">
-            <- Annuler
-          </a>
-        </div>
+          <button type="submit" {% if erreurs %}disabled{% endif %}
+                  class="bg-error text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition shadow-xl disabled:opacity-30 disabled:cursor-not-allowed">
+            Supprimer définitivement
+          </button>
+        </form>
       </div>
     </div>
   </div>

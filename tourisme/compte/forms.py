@@ -27,7 +27,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
-from compte.models import User, Touriste, Gestionnaire, Guide
+from compte.models import User, Touriste, Gestionnaire, Guide, Administrateur
 
 
 # ============================================================
@@ -461,3 +461,142 @@ class ChangerPasswordForm(forms.Form):
         self.user.set_password(self.cleaned_data['new_password1'])
         self.user.save(update_fields=['password'])
         return self.user
+
+
+# ============================================================
+# 8. ADMIN — CREATION ET EDITION D'UN ADMINISTRATEUR
+# ============================================================
+class AdministrateurForm(forms.Form):
+    """
+    Form unifie pour creer ou editer un administrateur depuis l'UI admin.
+    Combine les champs User (identite + mdp) et Administrateur (role +
+    niveau d'acces). Le mode edition saute la creation du mot de passe.
+
+    Pedago : on n'expose PAS ici les champs is_superuser / is_staff.
+    On les force a True dans la view pour eviter qu'un admin malicieux
+    cree un compte avec moins de privileges qu'attendu (defense en profondeur).
+    """
+    # --- Identité ---
+    email = forms.EmailField(label="Email professionnel")
+    first_name = forms.CharField(label="Prénom", max_length=150)
+    last_name = forms.CharField(label="Nom", max_length=150)
+    telephone = forms.CharField(label="Téléphone", max_length=20, required=False)
+
+    # --- Profil admin ---
+    role = forms.ChoiceField(
+        label="Rôle",
+        choices=Administrateur.Role.choices,
+        initial=Administrateur.Role.MODERATEUR,
+    )
+    niveau_acces = forms.IntegerField(
+        label="Niveau d'accès (1 à 5)",
+        min_value=1, max_value=5,
+        initial=1,
+        help_text="1 = lecture seule, 5 = privilèges complets",
+    )
+
+    # --- Securite ---
+    password1 = forms.CharField(
+        label="Mot de passe",
+        widget=forms.PasswordInput(),
+        required=False,
+        help_text="Min. 8 caractères. Laissez vide en édition pour conserver le mot de passe actuel.",
+    )
+    password2 = forms.CharField(
+        label="Confirmation du mot de passe",
+        widget=forms.PasswordInput(),
+        required=False,
+    )
+
+    def __init__(self, *args, instance=None, **kwargs):
+        """
+        instance : Administrateur existant pour le mode edition.
+                   None = creation.
+        """
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+        if instance is not None:
+            u = instance.user
+            self.fields['email'].initial = u.email
+            self.fields['first_name'].initial = u.first_name
+            self.fields['last_name'].initial = u.last_name
+            self.fields['telephone'].initial = u.telephone or ''
+            self.fields['role'].initial = instance.role
+            self.fields['niveau_acces'].initial = instance.niveau_acces
+            # En edition, le mot de passe est optionnel
+            self.fields['password1'].help_text = "Laissez vide pour conserver le mot de passe actuel."
+
+    # --- Validators ---
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.user_id)
+        if qs.exists():
+            raise ValidationError("Un compte avec cet email existe déjà.")
+        return email
+
+    def clean_password1(self):
+        pwd = self.cleaned_data.get('password1') or ''
+        # En CREATION le mdp est requis ; en EDITION il est optionnel.
+        if not self.instance and not pwd:
+            raise ValidationError("Un mot de passe est requis pour créer un compte.")
+        if pwd:
+            try:
+                validate_password(pwd)
+            except ValidationError as e:
+                raise ValidationError(e.messages)
+        return pwd
+
+    def clean_password2(self):
+        p1 = self.cleaned_data.get('password1') or ''
+        p2 = self.cleaned_data.get('password2') or ''
+        if p1 and p1 != p2:
+            raise ValidationError("Les deux mots de passe ne correspondent pas.")
+        return p2
+
+    # --- Persistance ---
+    def save(self):
+        """
+        Cree ou met a jour l'utilisateur + le profil admin.
+        On force is_staff + is_superuser + type_user='admin' pour
+        garantir l'acces backoffice si jamais reactive.
+        """
+        cd = self.cleaned_data
+        if self.instance is None:
+            # CREATION : modele User customise — pas de champ `username`
+            # (l'email sert d'identifiant — voir compte/models.py).
+            user = User(
+                email=cd['email'],
+                first_name=cd['first_name'],
+                last_name=cd['last_name'],
+                telephone=cd.get('telephone') or '',
+                type_user='admin',
+                is_staff=True,
+                is_superuser=True,
+                is_active=True,
+            )
+            user.set_password(cd['password1'])
+            user.save()
+            admin = Administrateur.objects.create(
+                user=user,
+                role=cd['role'],
+                niveau_acces=cd['niveau_acces'],
+            )
+            return admin
+        else:
+            # EDITION
+            user = self.instance.user
+            user.email = cd['email']
+            user.first_name = cd['first_name']
+            user.last_name = cd['last_name']
+            user.telephone = cd.get('telephone') or ''
+            user.is_staff = True
+            user.is_superuser = True
+            if cd.get('password1'):
+                user.set_password(cd['password1'])
+            user.save()
+            self.instance.role = cd['role']
+            self.instance.niveau_acces = cd['niveau_acces']
+            self.instance.save()
+            return self.instance
