@@ -57,6 +57,12 @@
               <span class="text-base-100/70">Montant payé</span>
               <span class="font-mono-num font-semibold">{{ reservation.montant_total|floatformat:0 }} FCFA</span>
             </div>
+            {% if reservation.frais_si_annulation %}
+            <div class="flex justify-between text-error/90">
+              <span class="text-base-100/70">Frais d'annulation</span>
+              <span class="font-mono-num font-semibold">− {{ reservation.frais_si_annulation|floatformat:0 }} FCFA</span>
+            </div>
+            {% endif %}
             <div class="flex justify-between pb-3 border-b border-base-100/15">
               <span class="text-base-100/70">Montant remboursable</span>
               <span class="font-mono-num font-semibold text-accent">{{ reservation.montant_remboursement|floatformat:0 }} FCFA</span>
@@ -65,12 +71,15 @@
             {% if reservation.peut_etre_annulee %}
             <div class="bg-success/10 border border-success/40 rounded-xl p-3 flex gap-3">
               <span class="text-success font-mono">✓</span>
-              <p class="text-xs">Annulation gratuite — vous serez intégralement remboursé(e).</p>
+              <p class="text-xs">Annulation gratuite — vous serez intégralement remboursé(e) (délai &gt; 48 h).</p>
             </div>
             {% else %}
             <div class="bg-warning/10 border border-warning/40 rounded-xl p-3 flex gap-3">
               <span class="text-warning font-mono">!</span>
-              <p class="text-xs">La date approche. Seul un remboursement partiel est possible.</p>
+              <p class="text-xs">
+                Annulation tardive (&lt; 48 h avant la visite) — des frais s'appliquent
+                (50 % du montant retenus). Seul {{ reservation.montant_remboursement|floatformat:0 }} FCFA seront remboursés.
+              </p>
             </div>
             {% endif %}
           </div>

@@ -1,0 +1,115 @@
+<!--
+  Refus d'une réservation par le gestionnaire — motif obligatoire.
+-->
+{% extends "base.html" %}
+
+{% block title %}Refuser {{ reservation.numero }}{% endblock %}
+
+{% block content %}
+<section class="bg-sable-50 min-h-screen py-12">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <nav class="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] text-foret-700/60 mb-6">
+      <a href="{% url 'reservation:reservations_gestionnaire' %}" class="hover:text-foret-900">Réservations</a>
+      <span>/</span>
+      <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}" class="hover:text-foret-900">{{ reservation.numero }}</a>
+      <span>/</span>
+      <span class="text-error">Refuser</span>
+    </nav>
+
+    <div class="bg-base-100 border border-foret-100/60 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="h-2 bg-error"></div>
+
+      <div class="p-8 lg:p-10">
+        <div class="text-center mb-6">
+          <p class="eyebrow text-error mb-4">Refus de réservation</p>
+          <div class="inline-flex w-20 h-20 rounded-full bg-error/10 grid place-items-center mb-4">
+            <span class="font-display italic text-4xl text-error">×</span>
+          </div>
+          <h1 class="font-display text-3xl text-foret-900">
+            Refuser cette <em class="font-display-italic text-error">réservation</em> ?
+          </h1>
+          <p class="text-sm text-foret-700/70 mt-3 max-w-md mx-auto">
+            Le touriste sera notifié et — s'il a déjà payé — sera intégralement remboursé.
+          </p>
+        </div>
+
+        <!-- Récap réservation -->
+        <div class="my-6 p-5 bg-sable-50 border border-foret-100/60 rounded-2xl space-y-3">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60">{{ reservation.numero }}</p>
+              <p class="font-display text-base text-foret-900 mt-0.5 truncate">{{ reservation.site.nom }}</p>
+            </div>
+            <span class="badge-stamp text-[10px]
+                         {% if reservation.statut == 'en_attente' %}text-warning border-warning/40
+                         {% elif reservation.statut == 'confirmee' %}text-success border-success/40{% endif %}">
+              {{ reservation.get_statut_display }}
+            </span>
+          </div>
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs pt-3 border-t border-foret-100/60">
+            <div>
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider">Touriste</dt>
+              <dd class="text-foret-900 font-display">{{ reservation.touriste.user.nom_complet }}</dd>
+            </div>
+            <div>
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider">Visite</dt>
+              <dd class="text-foret-900 font-mono-num">{{ reservation.date_visite|date:"d/m/Y" }}</dd>
+            </div>
+            <div>
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider">Personnes</dt>
+              <dd class="text-foret-900 font-mono-num">{{ reservation.nb_total_personnes }}</dd>
+            </div>
+            <div>
+              <dt class="text-foret-700/60 font-mono uppercase tracking-wider">Montant</dt>
+              <dd class="text-foret-900 font-mono-num font-semibold">{{ reservation.montant_total|floatformat:0 }} FCFA</dd>
+            </div>
+          </dl>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="bg-error/10 border border-error/30 rounded-2xl p-4 mb-5 text-sm text-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <form method="post" class="space-y-5">
+          {% csrf_token %}
+
+          <div>
+            <label for="id_motif" class="block text-xs font-mono uppercase tracking-wider text-foret-700 mb-2">
+              Motif du refus <span class="text-error">*</span>
+            </label>
+            <textarea name="motif" id="id_motif" rows="4" required minlength="10" maxlength="500"
+                      placeholder="Site fermé pour entretien, événement privé, capacité dépassée, autre…"
+                      class="w-full bg-sable-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none transition
+                             {% if form.motif.errors %}border-error{% else %}border-foret-100/60 focus:border-foret-700{% endif %}">{{ form.motif.value|default:'' }}</textarea>
+            {% if form.motif.errors %}
+            <p class="mt-1.5 text-xs text-error">{{ form.motif.errors.0 }}</p>
+            {% else %}
+            <p class="mt-1.5 text-[10px] font-mono uppercase tracking-wider text-foret-700/50">Sera communiqué au touriste — restez courtois et précis.</p>
+            {% endif %}
+          </div>
+
+          <label class="flex items-start gap-3 cursor-pointer bg-error/5 border border-error/30 rounded-2xl p-4">
+            <input type="checkbox" name="confirmation" required
+                   class="w-4 h-4 mt-0.5 rounded border-error/50 text-error focus:ring-error flex-shrink-0">
+            <span class="text-sm text-foret-900">
+              Je confirme <strong class="text-error">refuser définitivement</strong> cette réservation.
+              Le touriste recevra une notification immédiatement.
+            </span>
+          </label>
+
+          <div class="flex justify-end items-center gap-3 pt-4 border-t border-foret-100/60">
+            <a href="{% url 'reservation:detail_reservation' reservation_id=reservation.id %}"
+               class="text-sm text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4 px-3">
+              ← Garder la réservation
+            </a>
+            <button type="submit" class="bg-error text-base-100 rounded-full px-7 py-3 text-sm font-medium uppercase tracking-wider hover:opacity-90 transition">
+              Confirmer le refus
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

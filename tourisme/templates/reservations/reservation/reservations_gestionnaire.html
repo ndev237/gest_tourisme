@@ -115,10 +115,15 @@
                 {% if r.statut == 'en_attente' %}<span class="badge-stamp text-warning border-warning/40 text-[10px]">Attente</span>
                 {% elif r.statut == 'confirmee' %}<span class="badge-stamp text-success border-success/40 text-[10px]">Confirmée</span>
                 {% elif r.statut == 'terminee' %}<span class="badge-stamp text-foret-700 border-foret-700/40 text-[10px]">Terminée</span>
+                {% elif r.statut == 'refusee' %}<span class="badge-stamp text-error border-error/40 text-[10px]">Refusée</span>
                 {% elif r.statut == 'annulee' %}<span class="badge-stamp text-error border-error/40 text-[10px]">Annulée</span>{% endif %}
               </td>
-              <td class="px-7 py-4 text-right">
+              <td class="px-7 py-4 text-right whitespace-nowrap">
                 <a href="{% url 'reservation:detail_reservation' reservation_id=r.id %}" class="text-[10px] uppercase tracking-wider text-foret-700 hover:text-foret-900 underline decoration-dotted underline-offset-4">Détail</a>
+                {% if r.statut == 'en_attente' or r.statut == 'confirmee' %}
+                <a href="{% url 'reservation:refuser_reservation' reservation_id=r.id %}"
+                   class="ml-3 text-[10px] uppercase tracking-wider text-error hover:text-error/80 underline decoration-dotted underline-offset-4">Refuser</a>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}

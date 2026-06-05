@@ -186,6 +186,8 @@ def generer_bon_pdf(bon):
             ("Localisation", f"{site.localisation.ville}, {site.localisation.region.nom}"),
             ("Date de visite", reservation.date_visite.strftime("%d/%m/%Y")),
         ]
+        if site.gestionnaire and site.gestionnaire.user:
+            details.append(("Responsable", site.gestionnaire.user.nom_complet))
         if reservation.heure_visite:
             details.append(("Heure", reservation.heure_visite.strftime("%H:%M")))
         details.append(("Visiteur", touriste.user.nom_complet))

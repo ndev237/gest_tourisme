@@ -48,7 +48,7 @@ from django.views.decorators.http import require_POST
 
 from reservation.models import Reservation, LigneReservation, BonReservation
 from reservation.forms import (
-    ReservationForm, AnnulerReservationForm,
+    ReservationForm, AnnulerReservationForm, RefuserReservationForm,
     ScanQRForm, ReservationFiltreForm,
 )
 from reservation.utils import generer_bon_complet
@@ -252,6 +252,35 @@ def create_reservation_view(request, slug):
                     reservation.touriste = request.user.profil_touriste
                     reservation.site = site
                     reservation.statut = Reservation.Statut.EN_ATTENTE
+
+                    # Double-check anti race-condition : verrou pessimiste
+                    # pour empêcher 2 touristes de réserver le même guide
+                    # sur le même créneau en simultané.
+                    if reservation.guide_id:
+                        deja_pris = (Reservation.objects
+                            .select_for_update()
+                            .filter(
+                                guide_id=reservation.guide_id,
+                                date_visite=reservation.date_visite,
+                                statut__in=[
+                                    Reservation.Statut.EN_ATTENTE,
+                                    Reservation.Statut.CONFIRMEE,
+                                ],
+                            )
+                        )
+                        if reservation.heure_visite:
+                            deja_pris = deja_pris.filter(
+                                Q(heure_visite=reservation.heure_visite)
+                                | Q(heure_visite__isnull=True)
+                            )
+                        if deja_pris.exists():
+                            messages.error(
+                                request,
+                                "Ce guide vient d'être réservé pour ce créneau "
+                                "par un autre touriste. Choisissez-en un autre."
+                            )
+                            return redirect('reservation:add_reservation', slug=site.slug)
+
                     reservation.save()
 
                     # 2. Calcul + création des lignes (serveur-side)
@@ -380,10 +409,17 @@ def annuler_reservation_view(request, reservation_id):
     if not check_reservation_ownership(reservation, request.user):
         return HttpResponseForbidden()
 
-    if not reservation.peut_etre_annulee:
+    # On autorise toujours l'annulation tant que la réservation n'est ni terminée,
+    # ni déjà annulée, ni refusée. Les frais sont calculés selon le délai.
+    if reservation.statut in [
+        Reservation.Statut.TERMINEE,
+        Reservation.Statut.ANNULEE,
+        Reservation.Statut.REFUSEE,
+    ]:
         messages.warning(
             request,
-            "Cette réservation ne peut plus être annulée gratuitement."
+            f"Cette réservation est au statut « {reservation.get_statut_display()} » "
+            "et ne peut plus être annulée."
         )
         return redirect('reservation:detail_reservation',
                         reservation_id=reservation.id)
@@ -394,24 +430,39 @@ def annuler_reservation_view(request, reservation_id):
             try:
                 with transaction.atomic():
                     motif = form.cleaned_data['motif']
-                    reservation.annuler(motif=motif)
+                    # Calcul des frais retenus (différence entre payé et remboursable)
+                    frais = reservation.montant_total - reservation.montant_remboursement
+                    reservation.annuler(motif=motif, frais=frais)
 
                     # TODO : Déclencher remboursement via app paiements
                     # paiements_reussis = reservation.paiements.filter(statut='reussi')
                     # for p in paiements_reussis:
-                    #     p.creer_remboursement(motif="Annulation client")
+                    #     p.creer_remboursement(montant=reservation.montant_remboursement)
 
                     log_action(
                         request.user, 'update', 'Reservation',
                         reservation.id, request,
-                        details={'action': 'annulation', 'motif': motif}
+                        details={
+                            'action': 'annulation',
+                            'motif': motif,
+                            'frais': str(frais),
+                            'remboursable': str(reservation.montant_remboursement),
+                        }
                     )
 
-                messages.success(
-                    request,
-                    f"❌ Réservation {reservation.numero} annulée. "
-                    f"Montant remboursable : {reservation.montant_remboursement:.0f} FCFA."
-                )
+                if frais > 0:
+                    messages.success(
+                        request,
+                        f"Réservation {reservation.numero} annulée. "
+                        f"Frais retenus : {frais:.0f} FCFA · "
+                        f"Montant remboursable : {reservation.montant_remboursement:.0f} FCFA."
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Réservation {reservation.numero} annulée gratuitement. "
+                        f"Vous serez intégralement remboursé(e)."
+                    )
                 return redirect('reservation:mes_reservations')
             except Exception as e:
                 logger.error(f"Erreur annulation : {e}", exc_info=True)
@@ -528,6 +579,68 @@ def reservations_gestionnaire_view(request):
         'filtre_form': filtre_form,
         'stats': stats,
         'page_title': 'Réservations de mes sites',
+    })
+
+
+@login_required
+@user_passes_test(est_gestionnaire, login_url='compte:connexion')
+def refuser_reservation_view(request, reservation_id):
+    """
+    Refus d'une réservation par le gestionnaire du site.
+
+    Conditions :
+    - Le gestionnaire doit être propriétaire du site
+    - La réservation doit être en_attente OU confirmee
+    - Un motif obligatoire est demandé (>=10 caractères)
+    """
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+
+    # Vérif ownership : gestionnaire du site uniquement
+    gest = getattr(request.user, 'profil_gestionnaire', None)
+    if not gest or reservation.site.gestionnaire_id != gest.id:
+        return HttpResponseForbidden("Vous n'êtes pas le gestionnaire de ce site.")
+
+    if reservation.statut not in [
+        Reservation.Statut.EN_ATTENTE,
+        Reservation.Statut.CONFIRMEE,
+    ]:
+        messages.warning(
+            request,
+            f"Cette réservation est déjà au statut « {reservation.get_statut_display()} » "
+            "et ne peut plus être refusée."
+        )
+        return redirect('reservation:reservations_gestionnaire')
+
+    if request.method == 'POST':
+        form = RefuserReservationForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    motif = form.cleaned_data['motif']
+                    reservation.refuser(motif=motif)
+
+                    log_action(
+                        request.user, 'update', 'Reservation',
+                        reservation.id, request,
+                        details={'action': 'refus', 'motif': motif}
+                    )
+
+                messages.success(
+                    request,
+                    f"Réservation {reservation.numero} refusée. "
+                    "Le touriste a été notifié."
+                )
+                return redirect('reservation:reservations_gestionnaire')
+            except Exception as e:
+                logger.error(f"Erreur refus : {e}", exc_info=True)
+                messages.error(request, f"Erreur : {e}")
+    else:
+        form = RefuserReservationForm()
+
+    return render(request, 'reservations/reservation/refuser_reservation.html', {
+        'form': form,
+        'reservation': reservation,
+        'page_title': f"Refuser la réservation {reservation.numero}",
     })
 
 

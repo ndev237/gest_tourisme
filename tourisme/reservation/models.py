@@ -39,6 +39,7 @@ class Reservation(TimestampedModel):
     class Statut(models.TextChoices):
         EN_ATTENTE = 'en_attente', 'En attente de paiement'
         CONFIRMEE = 'confirmee', 'Confirmée'
+        REFUSEE = 'refusee', 'Refusée par le gestionnaire'
         ANNULEE = 'annulee', 'Annulée'
         TERMINEE = 'terminee', 'Terminée'
 
@@ -152,6 +153,21 @@ class Reservation(TimestampedModel):
         blank=True,
         verbose_name="Motif d'annulation"
     )
+    date_refus = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de refus"
+    )
+    motif_refus = models.TextField(
+        blank=True,
+        verbose_name="Motif du refus"
+    )
+    frais_annulation = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Frais d'annulation appliqués (FCFA)"
+    )
 
     class Meta:
         verbose_name = "Réservation"
@@ -201,6 +217,11 @@ class Reservation(TimestampedModel):
         return timezone.now().date() <= limite
 
     @property
+    def frais_si_annulation(self):
+        """Estimation des frais retenus si la réservation est annulée maintenant."""
+        return self.montant_total - self.montant_remboursement
+
+    @property
     def montant_remboursement(self):
         """
         Calcule le montant remboursable en cas d'annulation.
@@ -227,11 +248,20 @@ class Reservation(TimestampedModel):
         self.date_confirmation = timezone.now()
         self.save()
 
-    def annuler(self, motif=""):
-        """Annule la réservation."""
+    def annuler(self, motif="", frais=None):
+        """Annule la réservation. `frais` = montant retenu (peut être 0)."""
         self.statut = self.Statut.ANNULEE
         self.date_annulation = timezone.now()
         self.motif_annulation = motif
+        if frais is not None:
+            self.frais_annulation = frais
+        self.save()
+
+    def refuser(self, motif=""):
+        """Refus de la réservation par le gestionnaire du site."""
+        self.statut = self.Statut.REFUSEE
+        self.date_refus = timezone.now()
+        self.motif_refus = motif
         self.save()
 
 

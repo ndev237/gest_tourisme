@@ -2320,6 +2320,12 @@
   .gap-x-3 {
     column-gap: calc(var(--spacing) * 3);
   }
+  .gap-x-4 {
+    column-gap: calc(var(--spacing) * 4);
+  }
+  .gap-y-2 {
+    row-gap: calc(var(--spacing) * 2);
+  }
   .gap-y-4 {
     row-gap: calc(var(--spacing) * 4);
   }
@@ -3619,6 +3625,14 @@
   .text-error {
     color: var(--color-error);
   }
+  .text-error\/90 {
+    color: var(--color-error);
+  }
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-error\/90 {
+      color: color-mix(in oklab, var(--color-error) 90%, transparent);
+    }
+  }
   .text-foret-100 {
     color: var(--color-foret-100);
   }
@@ -4334,6 +4348,16 @@
     }
   }
   @media (hover: hover) {
+    .hover\:bg-error\/30:hover {
+      background-color: var(--color-error);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-error\/30:hover {
+        background-color: color-mix(in oklab, var(--color-error) 30%, transparent);
+      }
+    }
+  }
+  @media (hover: hover) {
     .hover\:bg-foret-100\/40:hover {
       background-color: color-mix(in srgb, oklch(90% 0.038 148) 40%, transparent);
     }
@@ -4421,6 +4445,16 @@
   @media (hover: hover) {
     .hover\:text-error:hover {
       color: var(--color-error);
+    }
+  }
+  @media (hover: hover) {
+    .hover\:text-error\/80:hover {
+      color: var(--color-error);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:text-error\/80:hover {
+        color: color-mix(in oklab, var(--color-error) 80%, transparent);
+      }
     }
   }
   @media (hover: hover) {

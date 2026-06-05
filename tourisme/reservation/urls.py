@@ -47,6 +47,9 @@ urlpatterns = [
     path('gestionnaire/scan/',
          views.scan_qr_view, name='scan_qr'),
 
+    path('gestionnaire/<uuid:reservation_id>/refuser/',
+         views.refuser_reservation_view, name='refuser_reservation'),
+
     # =========================================================
     # C. ADMIN
     # =========================================================

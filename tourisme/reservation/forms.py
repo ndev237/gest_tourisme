@@ -25,6 +25,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.utils import timezone
 
 from reservation.models import Reservation, LigneReservation
@@ -200,6 +201,34 @@ class ReservationForm(forms.ModelForm):
                 # (on assume capacité_max du site, déjà gérée par le gestionnaire)
                 pass
 
+        # === RÈGLE 1.bis : Disponibilité du GUIDE (anti double-booking) ===
+        guide = cleaned.get('guide')
+        heure_visite = cleaned.get('heure_visite')
+        if guide and date_visite:
+            conflits = Reservation.objects.filter(
+                guide=guide,
+                date_visite=date_visite,
+                statut__in=[
+                    Reservation.Statut.EN_ATTENTE,
+                    Reservation.Statut.CONFIRMEE,
+                ],
+            )
+            # Si une heure est précisée, on bloque uniquement les conflits
+            # sur le même créneau horaire. Sinon, c'est journée entière.
+            if heure_visite:
+                conflits = conflits.filter(
+                    Q(heure_visite=heure_visite) | Q(heure_visite__isnull=True)
+                )
+            if self.instance and self.instance.pk:
+                conflits = conflits.exclude(pk=self.instance.pk)
+            if conflits.exists():
+                self.add_error(
+                    'guide',
+                    "Ce guide est déjà réservé pour cette date"
+                    + (f" à {heure_visite.strftime('%H:%M')}" if heure_visite else "")
+                    + ". Veuillez choisir un autre guide ou un autre créneau."
+                )
+
         # === RÈGLE 2 : Cohérence hébergement ===
         if avec_hebergement:
             if not hebergement:
@@ -259,6 +288,33 @@ class AnnulerReservationForm(forms.Form):
 
 
 # ============================================================
+# 2.bis REFUS PAR GESTIONNAIRE
+# ============================================================
+class RefuserReservationForm(forms.Form):
+    """Le gestionnaire refuse une réservation avec un motif obligatoire."""
+    motif = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 4,
+            'placeholder': "Expliquez la raison du refus (site fermé, capacité dépassée, événement privé...).",
+        }),
+        max_length=500,
+        min_length=10,
+        label="Motif du refus",
+        help_text="Sera communiqué au touriste. Minimum 10 caractères.",
+    )
+    confirmation = forms.BooleanField(
+        required=True,
+        label="Je confirme refuser cette réservation",
+    )
+
+    def clean_motif(self):
+        motif = self.cleaned_data['motif'].strip()
+        if len(motif) < 10:
+            raise ValidationError("Le motif est trop court (10 caractères minimum).")
+        return motif
+
+
+# ============================================================
 # 3. SCAN QR — Validation à l'entrée du site
 # ============================================================
 class ScanQRForm(forms.Form):
@@ -297,6 +353,7 @@ class ReservationFiltreForm(forms.Form):
         ('', 'Tous les statuts'),
         ('en_attente', 'En attente'),
         ('confirmee', 'Confirmées'),
+        ('refusee', 'Refusées'),
         ('annulee', 'Annulées'),
         ('terminee', 'Terminées'),
     ]

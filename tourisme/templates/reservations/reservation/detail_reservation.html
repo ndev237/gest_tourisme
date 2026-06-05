@@ -43,7 +43,23 @@
         <p class="eyebrow text-error mb-1">Réservation annulée</p>
         <p class="text-sm text-foret-900">
           Annulée le {{ reservation.date_annulation|date:"d/m/Y à H:i" }}
+          {% if reservation.frais_annulation %}
+          <br><em class="text-foret-700/80">Frais retenus : {{ reservation.frais_annulation|floatformat:0 }} FCFA</em>
+          {% endif %}
           {% if reservation.motif_annulation %}<br><em class="text-foret-700/80">Motif : {{ reservation.motif_annulation }}</em>{% endif %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if reservation.statut == 'refusee' %}
+    <div class="bg-error/10 border border-error/30 rounded-2xl p-5 mb-6 flex gap-4">
+      <span class="font-mono text-error text-base flex-shrink-0">×</span>
+      <div>
+        <p class="eyebrow text-error mb-1">Réservation refusée par le gestionnaire</p>
+        <p class="text-sm text-foret-900">
+          Refusée le {{ reservation.date_refus|date:"d/m/Y à H:i" }}
+          {% if reservation.motif_refus %}<br><em class="text-foret-700/80">Motif : {{ reservation.motif_refus }}</em>{% endif %}
         </p>
       </div>
     </div>
@@ -211,11 +227,22 @@
             {% endif %}
             {% endif %}
 
-            {% if reservation.peut_etre_annulee %}
-            <a href="{% url 'reservation:annuler_reservation' reservation_id=reservation.id %}"
-               class="block w-full border border-base-100/40 text-base-100 text-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
-              Annuler la réservation
-            </a>
+            {% if user.type_user == 'touriste' %}
+              {% if reservation.statut == 'en_attente' or reservation.statut == 'confirmee' %}
+              <a href="{% url 'reservation:annuler_reservation' reservation_id=reservation.id %}"
+                 class="block w-full border border-base-100/40 text-base-100 text-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-wider hover:bg-base-100/10 transition">
+                Annuler la réservation
+              </a>
+              {% endif %}
+            {% endif %}
+
+            {% if user.type_user == 'gestionnaire' and reservation.site.gestionnaire.user_id == user.id %}
+              {% if reservation.statut == 'en_attente' or reservation.statut == 'confirmee' %}
+              <a href="{% url 'reservation:refuser_reservation' reservation_id=reservation.id %}"
+                 class="block w-full border border-error/60 bg-error/20 text-base-100 text-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-wider hover:bg-error/30 transition">
+                Refuser la réservation
+              </a>
+              {% endif %}
             {% endif %}
           </div>
         </div>
@@ -263,6 +290,25 @@
           </div>
           {% endif %}
         </div>
+
+        <!-- Responsable du site (gestionnaire) -->
+        {% if reservation.site.gestionnaire %}
+        <div class="bg-base-100 border border-foret-100/60 rounded-3xl p-6">
+          <p class="eyebrow mb-3">Responsable du site</p>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-foret-900 text-base-100 grid place-items-center font-display text-lg flex-shrink-0">
+              {{ reservation.site.gestionnaire.user.nom_complet|first|upper }}
+            </div>
+            <div class="min-w-0">
+              <p class="font-display text-sm text-foret-900 truncate">{{ reservation.site.gestionnaire.user.nom_complet }}</p>
+              <p class="text-[10px] font-mono uppercase tracking-wider text-foret-700/60 truncate">{{ reservation.site.gestionnaire.entreprise }}</p>
+              {% if reservation.site.gestionnaire.user.telephone %}
+              <p class="text-xs font-mono text-foret-700/70 mt-0.5">{{ reservation.site.gestionnaire.user.telephone }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
 
         <!-- À propos du site -->
         <div class="bg-pattern-kente border border-foret-100/60 rounded-3xl p-6">

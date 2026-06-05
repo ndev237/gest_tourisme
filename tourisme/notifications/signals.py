@@ -20,6 +20,7 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def _creer_notification(destinataire, type_notif, sujet, contenu, url=None, rese
             url_action=url or '',
             reservation=reservation,
             statut=Notification.Statut.ENVOYEE,  # in-app : immédiate
-            date_envoi=__import__('django.utils.timezone', fromlist=['timezone']).timezone.now(),
+            date_envoi=timezone.now(),
         )
         # TODO : brancher un vrai worker email/SMS ici (Celery + Mailgun/Twilio)
         # Pour l'instant : on log juste
@@ -82,7 +83,7 @@ def reservation_post_save(sender, instance, created, **kwargs):
     touriste_user = instance.touriste.user
 
     if created:
-        # Nouvelle réservation
+        # Nouvelle réservation : notifier le touriste
         _creer_notification(
             destinataire=touriste_user,
             type_notif=Notification.TypeNotif.RESERVATION_CREEE,
@@ -95,6 +96,21 @@ def reservation_post_save(sender, instance, created, **kwargs):
             url=_safe_url('reservation:detail_reservation', reservation_id=instance.id),
             reservation=instance,
         )
+        # Notifier le gestionnaire du site (responsable du site)
+        if hasattr(instance.site, 'gestionnaire') and instance.site.gestionnaire:
+            _creer_notification(
+                destinataire=instance.site.gestionnaire.user,
+                type_notif=Notification.TypeNotif.RESERVATION_CREEE,
+                sujet=f"Nouvelle réservation sur {instance.site.nom}",
+                contenu=(
+                    f"{touriste_user.nom_complet} a réservé une visite pour le "
+                    f"{instance.date_visite:%d/%m/%Y} ({instance.nb_total_personnes} pers., "
+                    f"{instance.montant_total:.0f} FCFA). "
+                    "La réservation est en attente de paiement."
+                ),
+                url=_safe_url('reservation:reservations_gestionnaire'),
+                reservation=instance,
+            )
         return
 
     # Mise à jour : on regarde le statut
@@ -130,7 +146,37 @@ def reservation_post_save(sender, instance, created, **kwargs):
             sujet=f"Réservation {instance.numero} annulée",
             contenu=(
                 f"Votre réservation pour {instance.site.nom} a été annulée. "
+                f"Frais retenus : {instance.frais_annulation:.0f} FCFA. "
                 "Le remboursement éventuel sera traité sous 5 jours ouvrés."
+            ),
+            url=_safe_url('reservation:detail_reservation', reservation_id=instance.id),
+            reservation=instance,
+        )
+        # Notifier aussi le gestionnaire (annulation par le touriste)
+        if hasattr(instance.site, 'gestionnaire') and instance.site.gestionnaire:
+            _creer_notification(
+                destinataire=instance.site.gestionnaire.user,
+                type_notif=Notification.TypeNotif.RESERVATION_ANNULEE,
+                sujet=f"Réservation {instance.numero} annulée par le touriste",
+                contenu=(
+                    f"{touriste_user.nom_complet} a annulé sa réservation du "
+                    f"{instance.date_visite:%d/%m/%Y}. "
+                    f"Motif : {instance.motif_annulation or '—'}"
+                ),
+                url=_safe_url('reservation:reservations_gestionnaire'),
+                reservation=instance,
+            )
+    elif instance.statut == 'refusee':
+        # Le gestionnaire a refusé la réservation
+        _creer_notification(
+            destinataire=touriste_user,
+            type_notif=Notification.TypeNotif.RESERVATION_ANNULEE,
+            sujet=f"Réservation {instance.numero} refusée",
+            contenu=(
+                f"Votre réservation pour {instance.site.nom} le "
+                f"{instance.date_visite:%d/%m/%Y} a été refusée par le gestionnaire. "
+                f"Motif : {instance.motif_refus or '—'}. "
+                "Si un paiement a été effectué, il sera intégralement remboursé."
             ),
             url=_safe_url('reservation:detail_reservation', reservation_id=instance.id),
             reservation=instance,
